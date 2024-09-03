@@ -348,7 +348,7 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="InventoryRef.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ShellExample_main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\NVSE\nvse\nvse\ParamInfos.h" />

@@ -67,7 +67,7 @@
       <Filter>nvse</Filter>
     </ClCompile>
     <ClCompile Include="dllmain.c" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="ShellExample_main.cpp" />
     <ClCompile Include="..\nvse\nvse\containers.cpp">
       <Filter>nvse</Filter>
     </ClCompile>
