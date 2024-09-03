@@ -1,0 +1,4 @@
+LIBRARY	"ShellNVSE"
+EXPORTS
+    NVSEPlugin_Query               @1
+    NVSEPlugin_Load                @2
