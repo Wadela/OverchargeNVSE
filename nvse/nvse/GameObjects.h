@@ -106,7 +106,7 @@ public:
 	virtual void		AnimateNiNode(void);					// same in FOSE ! identical to Func0052 in OBSE which says (inits animation-related data, and more)
 	virtual void		GenerateNiNode(bool arg0);				// same in FOSE !
 	virtual void		Set3D(NiNode* niNode, bool unloadArt);	// same in FOSE !
-	virtual NiNode *	GetNiNode(void);						// same in FOSE !
+	virtual NiNode *	GetNiNode(void);						// Same in FOSE !
 	virtual void		Unk_75(void);
 	virtual void		Unk_76(void);
 	virtual void		Unk_77(void);
@@ -178,6 +178,9 @@ public:
 	TESObjectCELL	* parentCell;			// 040
 	ExtraDataList	extraDataList;			// 044
 	RenderState		* renderState;			// 064	- (05C in FOSE)
+
+	//Copied from JIP LN NVSE - Needed for Overcharge NVSE. Formerly known as GetNiNode()
+	NiNode* GetNiNodeJIP() const; 
 
 	ExtraScript* GetExtraScript() const;
 	ScriptEventList *	GetEventList() const;

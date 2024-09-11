@@ -284,6 +284,26 @@ __declspec(naked) void TESObjectREFR::DeleteReference()
 			retn
 	}
 }
+
+//Copied from JIP formerly GetNiNode(). Needed for SetMaterialProperty in Overcharge.
+__declspec(naked) NiNode* TESObjectREFR::GetNiNodeJIP() const
+{
+	__asm
+	{
+		mov		eax, [ecx + 0x64]
+		test	eax, eax
+		jz		done
+		mov		eax, [eax + 0x14]
+		cmp		dword ptr[ecx + 0xC], 0x14
+		jnz		done
+		cmp		byte ptr[ecx + 0x64A], 0
+		jnz		done
+		mov		eax, [ecx + 0x694]
+		done:
+		retn
+	}
+}
+
 /*
 __declspec(naked) NiNode* __fastcall TESObjectREFR::GetNode(const char* nodeName) const
 {

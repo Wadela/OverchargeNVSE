@@ -263,6 +263,12 @@ float __vectorcall ASin(float x);
 float __vectorcall ACos(float x);
 float __vectorcall ATan2(float y, float x);
 
+//Copied from JIP LN NVSE - Needed for Overcharge NVSE
+float __vectorcall Length_V4(__m128 inPS);
+__m128 __vectorcall Normalize_V4(__m128 inPS);
+bool __vectorcall Equal_V3(__m128 v1, __m128 v2);
+bool __vectorcall Equal_V4(__m128 v1, __m128 v2);
+
 class SpinLock
 {
 	UInt32	owningThread;

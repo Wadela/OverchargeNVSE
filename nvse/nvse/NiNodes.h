@@ -592,6 +592,375 @@ public:
 };
 STATIC_ASSERT(sizeof(NiObjectNET) == 0x18);
 
+//Copied from JIP LN NVSE (Lines 596 - 962) - Needed for Overcharge NVSE 
+// // 0C	c'tor @ 0x43D410
+struct NiUpdateData
+{
+	float		timePassed;			// 00
+	bool		updateControllers;	// 04
+	bool		isMultiThreaded;	// 05
+	UInt8		byte06;				// 06
+	bool		updateGeomorphs;	// 07
+	bool		updateShadowScene;	// 08
+	UInt8		pad09[3];			// 09
+
+	NiUpdateData() { ZeroMemory(this, sizeof(NiUpdateData)); }
+};
+
+extern const NiUpdateData kNiUpdateData;
+
+// 18
+class NiProperty : public NiObjectNET
+{
+public:
+	/*8C*/virtual UInt32	GetPropertyType();
+	/*90*/virtual void		UpdateController(const NiUpdateData& updParams);
+
+	enum PropertyType
+	{
+		kPropertyType_Alpha =			0,
+		kPropertyType_Culling =			1,
+		kPropertyType_Material =		2,
+		kPropertyType_Shader =			3,
+		kPropertyType_Stencil =			4,
+		kPropertyType_Texturing =		5,
+		kPropertyType_Dither =			8,
+		kPropertyType_Specular =		9,
+		kPropertyType_VertexColor =		10,
+		kPropertyType_ZBuffer =			11,
+		kPropertyType_Fog =				13,
+	};
+};
+
+// 4C
+class NiMaterialProperty : public NiProperty
+{
+public:
+	UInt32				m_iIndex;		// 18
+	NiColor				specularRGB;	// 1C
+	NiColor				emissiveRGB;	// 28
+	UInt32				isExternalEmit;	// 34
+	float				glossiness;		// 38
+	float				alpha;			// 3C
+	float				emitMult;		// 40
+	UInt32				m_uiRevID;		// 44
+	UInt32				unk48;			// 48
+
+	__forceinline static NiMaterialProperty* Create() { return CdeclCall<NiMaterialProperty*>(0xA756D0); }
+	void __vectorcall SetTraitValue(UInt32 traitID, float value);
+};
+
+// 1C
+class NiAlphaProperty : public NiProperty
+{
+public:
+	enum AlphaFlag
+	{
+		kFlag_EnableBlending =			1 << 0,
+		kFlag_SourceInverse =			1 << 1,
+		kFlag_SourceSrcColor =			1 << 2,
+		kFlag_SourceDestColor =			1 << 3,
+		kFlag_SourceSrcAlpha =			kFlag_SourceSrcColor | kFlag_SourceDestColor,
+		kFlag_SourceDestAlpha =			1 << 4,
+		kFlag_SourceAlphaSaturate =		kFlag_SourceSrcColor | kFlag_SourceDestAlpha,
+		kFlag_DestinInverse =			1 << 5,
+		kFlag_DestinSrcColor =			1 << 6,
+		kFlag_DestinDestColor =			1 << 7,
+		kFlag_DestinSrcAlpha =			kFlag_DestinSrcColor | kFlag_DestinDestColor,
+		kFlag_DestinDestAlpha =			1 << 8,
+		kFlag_DestinAlphaSaturate =		kFlag_DestinSrcColor | kFlag_DestinDestAlpha,
+		kFlag_EnableTesting =			1 << 9,
+		kFlag_TestFuncLess =			1 << 10,
+		kFlag_TestFuncEqual =			1 << 11,
+		kFlag_TestFuncLessOrEq =		kFlag_TestFuncLess | kFlag_TestFuncEqual,
+		kFlag_TestFuncGreater =			1 << 12,
+		kFlag_TestFuncNotEqual =		kFlag_TestFuncLess | kFlag_TestFuncGreater,
+		kFlag_TestFuncGrtOrEq =			kFlag_TestFuncEqual | kFlag_TestFuncGreater,
+		kFlag_TestFuncNever =			kFlag_TestFuncLess | kFlag_TestFuncEqual | kFlag_TestFuncGreater,
+		kFlag_NoSorter =				1 << 13,
+	};
+
+	UInt16				flags;		// 18
+	UInt8				threshold;	// 1A
+	UInt8				byte1B;		// 1B
+
+	__forceinline static NiAlphaProperty* Create() { return CdeclCall<NiAlphaProperty*>(0xA5CEB0); }
+};
+extern NiAlphaProperty* s_alphaProperty;
+
+struct TextureTransform
+{
+	NiPoint2		translation;	// 00
+	float			rotation;		// 08
+	NiPoint2		scale;			// 0C
+	NiPoint2		centre;			// 14
+	UInt8			byte1C;			// 1C
+	UInt8			pad1D[3];		// 1D
+	NiMatrix33		matrix20;		// 20
+	UInt32			unk44;			// 44
+};
+static_assert(sizeof(TextureTransform) == 0x48);
+
+// 30
+class NiTexturingProperty : public NiProperty
+{
+public:
+	class Map
+	{
+	public:
+		virtual void	Destroy(bool doFree);
+		virtual void	Unk_01(void);
+		virtual void	Unk_02(void);
+		virtual void	Unk_03(void);
+
+		Map					*baseMap;		// 04
+		void				*srcTexture;	// 08
+		TextureTransform	*transform;		// 0C
+	};
+
+	class ShaderMap : public Map
+	{
+	public:
+		UInt32				mapID;		// 10
+	};
+
+	UInt16					flags;				// 18
+	UInt8					pad1A[2];			// 1A
+	NiTArray<Map*>			textures;			// 1C
+	NiTArray<ShaderMap*>	*shaderTextures;	// 2C
+};
+static_assert(sizeof(NiTexturingProperty) == 0x30);
+
+// 24
+class NiStencilProperty : public NiProperty
+{
+public:
+	UInt16				flags;		// 18
+	UInt16				word1A;		// 1A
+	UInt32				unk1C;		// 1C
+	UInt32				mask;		// 20
+
+	__forceinline static NiStencilProperty* Create() { return CdeclCall<NiStencilProperty*>(0xA6F410);}
+};
+static_assert(sizeof(NiStencilProperty) == 0x24);
+
+// 1C
+class NiCullingProperty : public NiProperty
+{
+public:
+	UInt32				unk18;		// 18
+};
+
+class LightingData;
+
+// 10
+struct BSRenderPass
+{
+	void			*geometry;		// 00
+	UInt16			passEnum;		// 04
+	UInt8			accumHint;		// 06
+	UInt8			bEnabled;		// 07
+	UInt8			noFog;			// 08
+	UInt8			numLights;		// 09
+	UInt8			maxNumLights;	// 0A
+	UInt8			currLandTexture;// 0B
+	LightingData	**sceneLights;	// 0C
+};
+
+enum LightingPassFlags
+{
+	kPass_Ambient =			1,
+	kPass_Diffuse =			2,
+	kPass_Texture =			4,
+	kPass_Specular =		8,
+	kPass_Shadow =			0x10,
+	kPass_CanopyShadow =	0x20,
+	kPass_Opt =				0x100
+};
+
+// 14	vtbl 0x10B8480
+class BSRenderPassList
+{
+public:
+	virtual void	Destroy(bool doFree);
+
+	BSRenderPass	**passes;	// 04
+	UInt16			maxSize;	// 08
+	UInt16			word0A;		// 0A
+	UInt16			arraySize;	// 0C
+	UInt16			growBy;		// 0E
+	UInt32			passCount;	// 10
+};
+
+// 60
+class BSShaderProperty : public NiProperty
+{
+public:
+	/*94*/virtual void		Unk_25(void);
+	/*98*/virtual void		Unk_26(UInt32 arg1);
+	/*9C*/virtual void		Unk_27(UInt32 arg1);
+	/*A0*/virtual void		Unk_28(UInt32 arg1, UInt32 arg2, UInt32 arg3, UInt32 arg4, UInt32 arg5, UInt32 arg6);
+	/*A4*/virtual void		Unk_29(UInt32 arg1);
+	/*A8*/virtual void		Unk_2A(void);
+	/*AC*/virtual void		Unk_2B(UInt32 arg1);
+	/*B0*/virtual void		Unk_2C(UInt32 arg1, UInt32 arg2, UInt32 arg3);
+	/*B4*/virtual void		Unk_2D(void);
+	/*B8*/virtual void		Unk_2E(UInt32 arg1);
+	/*BC*/virtual void		Unk_2F(UInt32 arg1, UInt32 arg2);
+	/*C0*/virtual void		Unk_30(void);
+
+	enum ShaderType
+	{
+		kType_Lighting =			1,
+		kType_DistantLOD =			2,
+		kType_GeometryDecal =		3,
+		kType_TallGrass =			4,
+		kType_SpeedTreeLeaf =		6,
+		kType_PPLighting =			8,
+		kType_Hair =				9,
+		kType_SpeedTreeBranch =		0xA,
+		kType_SpeedTreeBillboard =	0xB,
+		kType_Lighting30 =			0xC,
+		kType_Sky =					0xD,
+		kType_Water =				0xE,
+		kType_Bolt =				0xF,
+		kType_Particle =			0x11,
+		kType_Precipitation =		0x12,
+		kType_Tile =				0x13,
+		kType_NoLighting =			0x15,
+		kType_VolumetricFog =		0x16,
+		kType_BloodSplatter =		0x17,
+		kType_DistantTree =			0x18
+	};
+
+	enum ShaderFlag
+	{
+		kFlag1_Specular =					1,
+		kFlag1_Skinned =					2,
+		kFlag1_LowDetail =					4,
+		kFlag1_VertexAlpha =				8,
+		kFlag1_MotionBlur =					0x10,
+		kFlag1_SinglePass =					0x20,
+		kFlag1_Empty =						0x40,
+		kFlag1_EnvironmentMapping =			0x80,
+		kFlag1_AlphaTexture =				0x100,
+		kFlag1_ZPrepass =					0x200,
+		kFlag1_Facegen =					0x400,
+		kFlag1_Parallax =					0x800,
+		kFlag1_ModelSpaceNormals =			0x1000,
+		kFlag1_NonProjectiveShadows =		0x2000,
+		kFlag1_Landscape =					0x4000,
+		kFlag1_Refraction =					0x8000,
+		kFlag1_FireRefraction =				0x10000,
+		kFlag1_EyeEnvironmentMapping =		0x20000,
+		kFlag1_Hair =						0x40000,
+		kFlag1_DynamicAlpha =				0x80000,
+		kFlag1_LocalMapHideSecret =			0x100000,
+		kFlag1_WindowEnvironmentMapping =	0x200000,
+		kFlag1_TreeBillboard =				0x400000,
+		kFlag1_ShadowFrustum =				0x800000,
+		kFlag1_MultipleTextures =			0x1000000,
+		kFlag1_RemappableTextures =			0x2000000,
+		kFlag1_Decal =						0x4000000,
+		kFlag1_DynamicDecal =				0x8000000,
+		kFlag1_ParallaxOcclusion =			0x10000000,
+		kFlag1_ExternalEmittance =			0x20000000,
+		kFlag1_Shadowmap =					0x40000000,
+		kFlag1_ZbufferTest =				0x80000000,
+
+		kFlag2_ZbufferWrite =				1,
+		kFlag2_LODLandscape =				2,
+		kFlag2_LODBuilding =				4,
+		kFlag2_NoFade =						8,
+		kFlag2_RefractionTint =				0x10,
+		kFlag2_VertexColors =				0x20,
+		kFlag2_1stPerson =					0x40,
+		kFlag2_1stLightIsPointLight =		0x80,
+		kFlag2_2ndLight =					0x100,
+		kFlag2_3rdLight =					0x200,
+		kFlag2_VertexLighting =				0x400,
+		kFlag2_UniformScale =				0x800,
+		kFlag2_FitSlope =					0x1000,
+		kFlag2_Billboard =					0x2000,
+		kFlag2_NoLODLandBlend =				0x4000,
+		kFlag2_EnvmapLightFade =			0x8000,
+		kFlag2_Wireframe =					0x10000,
+		kFlag2_VatsSelection =				0x20000,
+		kFlag2_ShowInLocalMap =				0x40000,
+		kFlag2_PremultAlpha =				0x80000,
+		kFlag2_SkipNormalMaps =				0x100000,
+		kFlag2_AlphaDecal =					0x200000,
+		kFlag2_NoTransparencyMultisampling =0x400000,
+		kFlag2_StingerProp =				0x800000
+	};
+
+	UInt16				unk18;				// 18
+	UInt16				unk1A;				// 1A
+	UInt32				shaderType;			// 1C
+	UInt32				flags1;				// 20
+	UInt32				flags2;				// 24
+	float				alpha;				// 28
+	float				fadeAlpha;			// 2C
+	float				envMapScale;		// 30
+	float				LODFade;			// 34
+	UInt32				lastRenderPassState;// 38
+	BSRenderPassList	*renderPassLists[7];// 3C
+	UInt32				shaderIndex;		// 58
+	float				depthBias;			// 5C
+};
+static_assert(sizeof(BSShaderProperty) == 0x60);
+
+// 80
+class BSShaderNoLightingProperty : public BSShaderProperty
+{
+public:
+	/*C4*/virtual void		Unk_31(void);
+	/*C8*/virtual void		Unk_32(void);
+	/*CC*/virtual void		Unk_33(void);
+	/*D0*/virtual void		Unk_34(void);
+
+	void			*srcTexture;			// 60
+	const char		*texturePath;			// 64
+	UInt16			word68;					// 68
+	UInt16			word6A;					// 6A
+	UInt32			unk6C;					// 6C
+	float			falloffStartAngle;		// 70
+	float			falloffStopAngle;		// 74
+	float			falloffStartOpacity;	// 78
+	float			falloffStopOpacity;		// 7C
+
+	__forceinline static BSShaderNoLightingProperty* Create() { return ThisCall<BSShaderNoLightingProperty*>(0xB6FC90, CdeclCall<void*>(0xAA13E0, sizeof(BSShaderNoLightingProperty))); }
+};
+static_assert(sizeof(BSShaderNoLightingProperty) == 0x80);
+
+// 7C
+class BSShaderLightingProperty : public BSShaderProperty
+{
+public:
+	/*C4*/virtual void		Unk_31(void);
+	/*C8*/virtual void		Unk_32(void);
+
+	DList<LightingData>			illuminatingLights;	// 60
+	float						flt6C;				// 6C
+	UInt32						unk70;				// 70
+	bool						lightListChanged;	// 74
+	UInt8						pad75[3];			// 75
+	DList<LightingData>::Node	*lastLight;			// 78
+};
+static_assert(sizeof(BSShaderLightingProperty) == 0x7C);
+
+// 1C
+struct GeometryProperties
+{
+	NiAlphaProperty		*alphaProp;		// 00
+	NiCullingProperty	*cullingProp;	// 04
+	NiMaterialProperty	*materialProp;	// 08
+	BSShaderProperty	*shaderProp;	// 0C
+	NiStencilProperty	*stencilProp;	// 10
+	NiTexturingProperty	*texturingProp;	// 14
+	UInt32				unk18;			// 18
+};
+
 /* 12659 */
 class NiTimeController : public NiObject
 {
@@ -1694,18 +2063,7 @@ public:
 };
 //static_assert(sizeof(NiControllerManager) == 0x7C);
 
-struct NiUpdateData
-{
-	float		timePassed;			// 00
-	bool		updateControllers;	// 04
-	bool		isMultiThreaded;	// 05
-	UInt8		byte06;				// 06
-	bool		updateGeomorphs;	// 07
-	bool		updateShadowScene;	// 08
-	UInt8		pad09[3];			// 09
 
-	NiUpdateData() { ZeroMemory(this, sizeof(NiUpdateData)); }
-};
 
 enum eAnimSequence
 {
@@ -2054,10 +2412,12 @@ public:
 
 	void DumpProperties();
 	void DumpParents();
+	
+	void UpdateJIP();
 
-	void Update(NiUpdateData& arData) {
-		ThisStdCall(0xA59C60, this, &arData);
-	}
+	//void Update(NiUpdateData& arData) {
+		//ThisStdCall(0xA59C60, this, &arData);
+	//}
 };
 
 // AC
@@ -2134,6 +2494,62 @@ public:
 };
 static_assert(sizeof(BSFadeNode) == 0xE4);
 
+//Copied from JIP LN NVSE - Needed for Overcharge NVSE
+// 14
+class NiShader : public NiRefObject
+{
+public:
+	/*08*/virtual void		Unk_02(void);
+	/*0C*/virtual void		Unk_03(void);
+	/*10*/virtual void		Unk_04(void);
+	/*14*/virtual void		Unk_05(void);
+	/*18*/virtual void		Unk_06(void);
+	/*1C*/virtual void		Unk_07(void);
+	/*20*/virtual void		Unk_08(void);
+	/*24*/virtual void		Unk_09(void);
+	/*28*/virtual void		Unk_0A(void);
+	/*2C*/virtual void		Unk_0B(void);
+	/*30*/virtual void		Unk_0C(void);
+	/*34*/virtual void		Unk_0D(void);
+	/*38*/virtual void		Unk_0E(void);
+	/*3C*/virtual void		Unk_0F(void);
+	/*40*/virtual void		Unk_10(void);
+	/*44*/virtual void		Unk_11(void);
+	/*48*/virtual void		Unk_12(void);
+	/*4C*/virtual void		Unk_13(void);
+	/*50*/virtual void		Unk_14(void);
+	/*54*/virtual void		Unk_15(void);
+	/*58*/virtual void		Unk_16(void);
+	/*5C*/virtual void		Unk_17(void);
+	/*60*/virtual void		Unk_18(void);
+	/*64*/virtual void		Unk_19(void);
+	/*68*/virtual void		Unk_1A(void);
+	/*6C*/virtual void		Unk_1B(void);
+	/*70*/virtual void		Unk_1C(void);
+	/*74*/virtual void		Unk_1D(void);
+	/*78*/virtual void		Unk_1E(void);
+	/*7C*/virtual void		Unk_1F(void);
+	/*80*/virtual void		Unk_20(void);
+	/*84*/virtual void		Unk_21(void);
+	/*88*/virtual void		Unk_22(void);
+	/*8C*/virtual void		Unk_23(void);
+	/*90*/virtual void		Unk_24(void);
+	/*94*/virtual void		Unk_25(void);
+	/*98*/virtual void		Unk_26(void);
+	/*9C*/virtual void		Unk_27(void);
+	/*A0*/virtual void		Unk_28(void);
+	/*A4*/virtual void		Unk_29(void);
+	/*A8*/virtual void		Unk_2A(void);
+	/*AC*/virtual void		Unk_2B(void);
+	/*B0*/virtual void		Unk_2C(void);
+	/*B4*/virtual void		Unk_2D(void);
+	/*B8*/virtual void		Unk_2E(void);
+
+	UInt32			unk08;		// 08
+	UInt32			unk0C;		// 0C
+	UInt32			unk10;		// 10
+};
+
 class BSSceneGraph : public NiNode {
 public:
 	BSSceneGraph();
@@ -2171,3 +2587,204 @@ public:
 	float			LODAdjust;			// 110
 };
 STATIC_ASSERT(sizeof(NiCamera) == 0x114);
+
+//Copied from JIP LN NVSE (Lines 2592 - 2790) - Needed for Overcharge NVSE
+// 210
+class NiRenderer : public NiObject
+{
+public:
+	/*8C*/virtual void		Unk_23(void);
+
+	enum FrameState : UInt32
+	{
+		kFrmState_OutsideFrame,
+		kFrmState_InsideFrame,
+		kFrmState_InsideOffscreenFrame,
+		kFrmState_waitingForDisplay,
+		kFrmState_InternalFrame
+	};
+
+	void				*shaderAccum;		// 008
+	UInt32				unk00C[124];		// 00C
+	FrameState			savdFrameState;		// 1FC
+	FrameState			frameState;			// 200
+	UInt32				frameID;			// 204
+	bool				renderTargetGroup;	// 208
+	bool				batchRendering;		// 209
+	UInt8				pad20A[2];			// 20A
+	UInt32				unk20C;				// 20C
+};
+static_assert(sizeof(NiRenderer) == 0x210);
+
+
+// 40
+class NiGeometryData : public NiObject
+{
+public:
+	/*8C*/virtual void		SetVertexCount(UInt16 vtxCount);
+	/*90*/virtual UInt16	GetVertexCount();
+	/*94*/virtual void	*GetStripsData();
+	/*98*/virtual void	*GetShapeData();
+	/*9C*/virtual bool		ContainsDataType(UInt32 dataType);
+	/*A0*/virtual void		CalculateNormals();
+
+	enum KeepFlag
+	{
+		eKeep_Vertices =	1,
+		eKeep_Normals =		2,
+		eKeep_VertexColor = 4,
+		eKeep_UVCoords =	8,
+		eKeep_Indices =		0x10,
+		eKeep_BoneData =	0x20,
+		eKeep_All =			eKeep_Vertices | eKeep_Normals | eKeep_VertexColor | eKeep_UVCoords | eKeep_Indices | eKeep_BoneData
+	};
+
+	enum CompressFlag
+	{
+		eCompress_Normals =		1,
+		eCompress_Color =		2,
+		eCompress_UV =			4,
+		eCompress_Weight =		8,
+		eCompress_Position =	0x10,
+		eCompress_All =			0x1F
+	};
+
+	UInt16						numVertices;	// 08
+	UInt16						id;				// 0A
+	UInt16						dataFlags;		// 0C	NormalBinormalTangent
+	UInt16						dirtyFlags;		// 0E
+	NiBound						bounds;			// 10
+	NiVector3					*vertices;		// 20
+	NiVector3					*normals;		// 24
+	NiColorAlpha				*vertexColors;	// 28
+	NiPoint2					*uvCoords;		// 2C
+	void 						*additionalData;// 30
+	void 						*bufferData;	// 34
+	UInt8						keepFlags;		// 38
+	UInt8						compressFlags;	// 39
+	UInt8						byte3A;			// 3A
+	UInt8						byte3B;			// 3B
+	bool						canSave;		// 3C
+	UInt8						pad3D[3];		// 3D
+
+	void FlipNormals();
+};
+static_assert(sizeof(NiGeometryData) == 0x40);
+
+// 44
+class NiTriBasedGeomData : public NiGeometryData
+{
+public:
+	/*A4*/virtual void		Unk_29(UInt32 arg);
+	/*A8*/virtual UInt16	GetNumTriangles();
+	/*AC*/virtual void		Unk_2B(UInt32 arg1, UInt32 arg2, UInt32 arg3, UInt32 arg4);
+	/*B0*/virtual void		Unk_2C(UInt32 arg1, UInt32 arg2, UInt32 arg3, UInt32 arg4);
+
+	UInt16			numTriangles;		// 40
+	UInt16			activeTriangles;	// 42
+};
+
+// 58
+class NiTriShapeData : public NiTriBasedGeomData
+{
+public:
+	struct SharedNormalArray
+	{
+		UInt16		numSharedNormals;
+		UInt16		pad02;
+		UInt16* sharedNormalIndexArray;
+	};
+
+	struct SharedNormArrBlock
+	{
+		UInt16* pBlock;
+		UInt16* pFreeBlock;
+		UInt32				blockSize;
+		UInt32				freeBlockSize;
+		SharedNormArrBlock* pNext;
+	};
+
+	UInt32				trianglePoints;		// 44
+	void				*triangles;			// 48
+	SharedNormalArray	*sharedNormals;		// 4C
+	UInt16				sharedNormArrSize;	// 50
+	UInt16				pad52;				// 52
+	SharedNormArrBlock	*snArrBlock;		// 54
+
+};
+static_assert(sizeof(NiTriShapeData) == 0x58); 
+
+// 50
+class NiTriStripsData : public NiTriBasedGeomData
+{
+public:
+	UInt16			numStrips;		// 44
+	UInt16			unk46;			// 46
+	UInt16			*stripLengths;	// 48
+	UInt16			*strips;		// 4C
+
+	static NiTriStripsData* __vectorcall DrawConvex(float radius, UInt32 numEdges, const NiColorAlpha& color);
+	static NiTriStripsData* __vectorcall DrawCylinder(float radius, float height, UInt32 numEdges, const NiColorAlpha& color);
+	static NiTriStripsData* __vectorcall DrawPrism(float radius, float height, UInt32 numEdges, const NiColorAlpha& color);
+};
+
+class NiSkinData : public NiObject
+{
+public:
+};
+
+// 10
+class NiSkinPartition : public NiObject
+{
+public:
+
+};
+
+// 34
+class NiSkinInstance : public NiObject
+{
+public:
+	NiSkinData		*skinData;		// 08
+	NiSkinPartition	*skinPartition;	// 0C
+	NiNode			*actorRoot;		// 10
+	NiAVObject		**pBones;		// 14
+	UInt32			frameID;		// 18
+	UInt32			numMatrices;	// 1C
+	UInt32			numRegisters;	// 20
+	UInt32			allocatedSize;	// 24
+	void			*pBoneMatrices;	// 28
+	void			*ptr2C;			// 2C
+	void			*skinToWorldToSkinMatrix;	// 30
+};
+
+// C4
+class NiGeometry : public NiAVObject
+{
+public:
+	/*DC*/virtual void		RenderImmediate(NiRenderer* pRenderer);
+	/*E0*/virtual void		RenderImmediateAlt(NiRenderer* pRenderer);
+	/*E4*/virtual void		SetGeometryData(NiGeometryData* pkModelData);
+	/*E8*/virtual void		CalculateNormals();
+	/*EC*/virtual void		CalculateConsistency(UInt8 arg1);
+
+	NiAlphaProperty			*alphaProp;			// 9C
+	NiCullingProperty		*cullingProp;		// A0
+	NiMaterialProperty		*materialProp;		// A4
+	BSShaderProperty		*shaderProp;		// A8
+	NiStencilProperty		*stencilProp;		// AC
+	NiTexturingProperty		*texturingProp;		// B0
+	UInt32					unkB4;				// B4
+	NiGeometryData			*geometryData;		// B8
+	NiSkinInstance			*skinInstance;		// BC
+	NiShader				*shader;			// C0
+
+	GeometryProperties* GetProperties() const { return (GeometryProperties*)&alphaProp; }
+
+	NiProperty* GetProperty(UInt32 propID) const
+	{
+		return ((NiProperty**)&alphaProp)[propID];
+	}
+
+	void __fastcall AddProperty(NiProperty* niProperty);
+};
+static_assert(sizeof(NiGeometry) == 0xC4); 

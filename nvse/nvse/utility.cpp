@@ -363,6 +363,87 @@ __declspec(naked) float __vectorcall ATan2(float y, float x)
 	}
 }
 
+
+//Copied from JIP LN NVSE (Lines 368 - 445) - Needed for Overcharge NVSE
+__declspec(naked) float __vectorcall Length_V4(__m128 inPS)
+{
+	__asm
+	{
+		xorps	xmm1, xmm1
+		mulps	xmm0, xmm0
+		haddps	xmm0, xmm1
+		haddps	xmm0, xmm1
+		comiss	xmm0, xmm1
+		jz		done
+		movq	xmm1, xmm0
+		rsqrtss	xmm2, xmm0
+		mulss	xmm1, xmm2
+		mulss	xmm1, xmm2
+		movss	xmm3, SS_3
+		subss	xmm3, xmm1
+		mulss	xmm3, xmm2
+		mulss	xmm3, PS_V3_Half
+		mulss	xmm0, xmm3
+		done :
+		retn
+	}
+}
+
+__declspec(naked) __m128 __vectorcall Normalize_V4(__m128 inPS)
+{
+	__asm
+	{
+		movaps	xmm1, xmm0
+		movaps	xmm2, xmm1
+		mulps	xmm2, xmm2
+		xorps	xmm0, xmm0
+		haddps	xmm2, xmm0
+		haddps	xmm2, xmm0
+		comiss	xmm2, PS_Epsilon
+		jb		zeroLen
+		rsqrtss	xmm3, xmm2
+		movss	xmm0, SS_3
+		mulss	xmm2, xmm3
+		mulss	xmm2, xmm3
+		subss	xmm0, xmm2
+		mulss	xmm0, xmm3
+		mulss	xmm0, PS_V3_Half
+		shufps	xmm0, xmm0, 0
+		mulps	xmm0, xmm1
+		zeroLen :
+		retn
+	}
+}
+
+__declspec(naked) bool __vectorcall Equal_V3(__m128 v1, __m128 v2)
+{
+	__asm
+	{
+		subps	xmm0, xmm1
+		pshufd	xmm1, PS_AbsMask0, 0x40
+		andps	xmm0, xmm1
+		cmpltps	xmm0, PS_Epsilon
+		movmskps	eax, xmm0
+		cmp		al, 0xF
+		setz	al
+		retn
+	}
+}
+
+__declspec(naked) bool __vectorcall Equal_V4(__m128 v1, __m128 v2)
+{
+	__asm
+	{
+		subps	xmm0, xmm1
+		andps	xmm0, PS_AbsMask
+		cmpltps	xmm0, PS_Epsilon
+		movmskps	eax, xmm0
+		cmp		al, 0xF
+		setz	al
+		retn
+	}
+}
+
 __declspec(naked) void __fastcall MemZero(void *dest, UInt32 bsize)
 {
 	__asm

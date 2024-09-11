@@ -348,7 +348,8 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="InventoryRef.cpp" />
-    <ClCompile Include="ShellExample_main.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\NVSE\nvse\nvse\ParamInfos.h" />
@@ -384,7 +385,10 @@
     <ClInclude Include="..\nvse\nvse\utility.h" />
     <ClInclude Include="AuxVars.h" />
     <ClInclude Include="class_vtbls.h" />
+    <ClInclude Include="InitHooks.h" />
     <ClInclude Include="InventoryRef.h" />
+    <ClInclude Include="MainHeader.h" />
+    <ClInclude Include="OverCharge.h" />
     <ClInclude Include="ShellNVSE.h" />
   </ItemGroup>
   <ItemGroup>

@@ -61,7 +61,81 @@ void DumpAnimGroups(void)
 	}
 }
 
+//Copied from JIP LN NVSE (Lines 65 - 136) - Needed for Overcharge NVSE
+const NiUpdateData kNiUpdateData;
+
+__declspec(naked) void NiAVObject::UpdateJIP() 
+{
+	__asm
+	{
+		push	ecx
+		push	0
+		push	offset kNiUpdateData
+		mov		eax, [ecx]
+		call	dword ptr[eax + 0xA4]
+		pop		ecx
+		mov		ecx, [ecx + 0x18]
+		test	ecx, ecx
+		jz		done
+		mov		eax, [ecx]
+		call	dword ptr[eax + 0xFC]
+		done:
+		retn
+	}
+}
+
+__declspec(naked) void __fastcall NiGeometry::AddProperty(NiProperty* niProperty)
+{
+	__asm
+	{
+		lock inc dword ptr[edx + 4]
+		push	ecx
+		push	edx
+		CALL_EAX(0x43A010)
+		pop		dword ptr[eax + 8]
+		pop		ecx
+		inc		dword ptr[ecx + 0x2C]
+		mov		edx, [ecx + 0x24]
+		mov[ecx + 0x24], eax
+		test	edx, edx
+		jz		emptyList
+		mov[eax], edx
+		mov[edx + 4], eax
+		retn
+		emptyList :
+		mov[ecx + 0x28], eax
+			retn
+	}
+}
+
 #endif
+
+__declspec(noinline) void __vectorcall NiMaterialProperty::SetTraitValue(UInt32 traitID, float value)
+{
+	switch (traitID)
+	{
+	case 0:
+	case 1:
+	case 2:
+		specularRGB[traitID] = value;
+		break;
+	case 3:
+	case 4:
+	case 5:
+		emissiveRGB[traitID - 3] = value;
+		break;
+	case 6:
+		glossiness = value;
+		break;
+	case 7:
+		alpha = value;
+		break;
+	default:
+		emitMult = value;
+	}
+}
+
+
 
 __declspec(naked) NiAVObject* __fastcall NiNode::GetBlockByName(const char* nameStr)	//	str of NiString
 {
@@ -150,3 +224,6 @@ __declspec(naked) NiNode* __fastcall NiNode::GetNode(const char* nodeName)
 		retn
 	}
 }
+
+//Copied from JIP LN NVSE - Needed for Overcharge NVSE
+NiAlphaProperty* s_alphaProperty;

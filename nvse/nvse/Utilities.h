@@ -370,3 +370,29 @@ inline int __cdecl game_tolower(int _C) { return CdeclCall<int>(0xEC67AA, _C); }
 inline int __cdecl game_toupper(int _C) { return toupper(_C); }
 inline int __cdecl game_tolower(int _C) { return tolower(_C); }
 #endif
+
+//From JIP LN NVSE - Needed for Overcharge NVSE
+__forceinline __m128 __vectorcall operator+(__m128 a, __m128 b)
+{
+	return _mm_add_ps(a, b);
+}
+__forceinline __m128 __vectorcall operator-(__m128 a, __m128 b)
+{
+	return _mm_sub_ps(a, b);
+}
+__forceinline __m128 __vectorcall operator*(__m128 a, __m128 b)
+{
+	return _mm_mul_ps(a, b);
+}
+__forceinline __m128 __vectorcall operator&(__m128 a, __m128 b)
+{
+	return _mm_and_ps(a, b);
+}
+__forceinline __m128 __vectorcall operator|(__m128 a, __m128 b)
+{
+	return _mm_or_ps(a, b);
+}
+__forceinline __m128 __vectorcall operator^(__m128 a, __m128 b)
+{
+	return _mm_xor_ps(a, b);
+}

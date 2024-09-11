@@ -14,6 +14,35 @@ struct NiRTTI
 	NiRTTI		* parent;
 };
 
+//Copied from JIP LN NVSE - Needed for Overcharge NVSE
+// 08
+struct NiPoint2
+{
+	float	x, y;
+
+	NiPoint2() {}
+	__forceinline NiPoint2(float _x, float _y) : x(_x), y(_y) {}
+	__forceinline NiPoint2(const NiPoint2& rhs) { *this = rhs; }
+	__forceinline explicit NiPoint2(const __m128 rhs) { SetPS(rhs); }
+
+	__forceinline void operator=(NiPoint2&& rhs)
+	{
+		x = rhs.x;
+		y = rhs.y;
+	}
+	__forceinline void operator=(const NiPoint2& rhs) { _mm_storeu_si64(this, _mm_loadu_si64(&rhs)); }
+
+	__forceinline NiPoint2& SetPS(const __m128 rhs)
+	{
+		_mm_storeu_si64(this, _mm_castps_si128(rhs));
+		return *this;
+	}
+
+	inline operator float* () { return &x; }
+
+	__forceinline __m128 PS() const { return _mm_castsi128_ps(_mm_loadu_si64(this)); }
+};
+
 // C
 struct NiVector3
 {
@@ -77,6 +106,38 @@ struct NiSphere
 	float	x, y, z, radius;
 };
 
+// 10
+struct NiBound
+{
+	NiVector3	center;
+	float		radius;
+
+	NiBound() {}
+	__forceinline NiBound(float cX, float cY, float cZ, float rad) : center(cX, cY, cZ), radius(rad) {}
+	__forceinline NiBound(const NiBound& rhs) { *this = rhs; }
+	__forceinline explicit NiBound(const __m128 rhs) { SetPS(rhs); }
+
+	__forceinline void operator=(NiBound&& rhs)
+	{
+		center.x = rhs.center.x;
+		center.y = rhs.center.y;
+		center.z = rhs.center.z;
+		radius = rhs.radius;
+	}
+	__forceinline void operator=(const NiBound& rhs) { SetPS(rhs.PS()); }
+
+	__forceinline NiBound& SetPS(const __m128 rhs)
+	{
+		_mm_storeu_ps(&center.x, rhs);
+		return *this;
+	}
+
+	inline operator float* () { return &center.x; }
+	__forceinline __m128 PS() const { return _mm_loadu_ps(&center.x); }
+
+	void Merge(const NiBound* other) { ThisCall(0xA7F3F0, this, other); }
+};
+
 // 1C
 struct NiFrustum
 {
@@ -105,6 +166,34 @@ struct NiColor
 	float	r;
 	float	g;
 	float	b;
+
+	//Copied from JIP LN NVSE - Needed for OverchargeNVSE
+	NiColor() {}
+	__forceinline NiColor(float _r, float _g, float _b) : r(_r), g(_g), b(_b) {}
+	__forceinline NiColor(const NiColor& rhs) { *this = rhs;}
+	__forceinline explicit NiColor(const __m128 rhs) { SetPS(rhs); }
+
+	__forceinline void operator=(NiColor&& rhs)
+	{
+		r = rhs.r;
+		g = rhs.g;
+		b = rhs.b;
+	}
+	__forceinline void operator=(const NiColor& rhs)
+	{
+		_mm_storeu_si64(this, _mm_loadu_si64(&rhs));
+		b = rhs.b;
+	}
+
+	__forceinline NiColor& SetPS(const __m128 rhs)
+	{
+		_mm_storeu_si64(this, _mm_castps_si128(rhs));
+		_mm_store_ss(&r, _mm_unpackhi_ps(rhs, rhs));
+		return *this;
+	}
+
+	inline operator float* () { return &r; }
+	__forceinline __m128 PS() const { return _mm_loadu_ps(&r); }
 };
 
 // 10

@@ -19,6 +19,12 @@
     <Filter Include="ShellNVSE\DataExtensions\InventoryRefs">
       <UniqueIdentifier>{bf5f6eee-2f10-4e22-be69-8e36cf1451d9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Wadelz">
+      <UniqueIdentifier>{8e88f2a7-2075-4027-ba4e-c0e0c4f0ba95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wadelz\Headers">
+      <UniqueIdentifier>{341aedfb-93ff-4d2d-938e-7ead50f41f62}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\nvse\nvse\GameAPI.cpp">
@@ -67,7 +73,6 @@
       <Filter>nvse</Filter>
     </ClCompile>
     <ClCompile Include="dllmain.c" />
-    <ClCompile Include="ShellExample_main.cpp" />
     <ClCompile Include="..\nvse\nvse\containers.cpp">
       <Filter>nvse</Filter>
     </ClCompile>
@@ -97,6 +102,10 @@
     </ClCompile>
     <ClCompile Include="..\nvse\nvse\NiNodes.cpp">
       <Filter>nvse</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source.cpp">
+      <Filter>Wadelz</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -202,6 +211,15 @@
     </ClInclude>
     <ClInclude Include="..\nvse\nvse\NiObjects.h">
       <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="InitHooks.h">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="MainHeader.h">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="OverCharge.h">
+      <Filter>Wadelz\Headers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
