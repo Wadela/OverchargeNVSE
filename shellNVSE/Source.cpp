@@ -7,22 +7,40 @@
 #include "GameObjects.h"
 
 
-
-void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName)
+namespace Overcharge
 {
-	actorRef = *g_thePlayer; 
-	if (NiNode* niNode = actorRef->GetNiNodeJIP())   
+
+	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName)
 	{
-		if (NiAVObject* block = niNode->GetBlock(blockName))
+		actorRef = *g_thePlayer;
+		if (NiNode* niNode = actorRef->GetNiNodeJIP())
 		{
-			if (NiMaterialProperty* matProp = ((NiGeometry*)block)->materialProp)
+			if (NiAVObject* block = niNode->GetBlock(blockName))
 			{
-				matProp->emissiveRGB.r = 0;
-				matProp->emissiveRGB.g = 0;
-				matProp->emissiveRGB.b = 0;
+				if (NiMaterialProperty* matProp = ((NiGeometry*)block)->materialProp)
+				{
+					matProp->emissiveRGB.r = 0;
+					matProp->emissiveRGB.g = 0;
+					matProp->emissiveRGB.b = 0;
+				}
 			}
 		}
 	}
+
+	char __cdecl TestFunc(ExtraDataList* a2)
+	{
+		Console_Print("Blah Blah Break...");
+		
+		return 0;
+	}
+
+	void InitHooks()
+	{
+		WriteRelCall(0x5AC763, (UInt32) TestFunc);   
+		//0x5AC750 - looks like Actor::OnFire
+		//0x523150 - from jip under DoFireWeaponEX
+		//0x9BAD76, 0x1087F1C - from jip under CMD_FireWeaponEX_Execure
+		//0x400000 - Enum Script Locals
+	}
+
 }
-
-

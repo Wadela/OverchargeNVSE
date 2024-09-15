@@ -11,6 +11,8 @@
 #include "EventHandlers.h"
 #include "GameUI.h"
 #include "SafeWrite.h"
+#include "InitHooks.h"
+#include "MainHeader.h"
 
 IDebugLog		gLog("ShellNVSE.log");
 constexpr UInt32 g_PluginVersion = 1;
@@ -192,6 +194,7 @@ bool NVSEPlugin_Load(NVSEInterface* nvse)
 
 	if (!nvse->isEditor)
 	{
+		Overcharge::InitHooks();
 
 		g_scriptInterface = (NVSEScriptInterface*)nvse->QueryInterface(kInterface_Script);
 		ExtractArgsEx = g_scriptInterface->ExtractArgsEx;
