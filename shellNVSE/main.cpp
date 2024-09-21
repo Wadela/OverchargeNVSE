@@ -196,7 +196,7 @@ bool NVSEPlugin_Load(NVSEInterface* nvse)
 	{
 		Overcharge::InitHooks();
 
-		g_scriptInterface = (NVSEScriptInterface*)nvse->QueryInterface(kInterface_Script);
+		/*g_scriptInterface = (NVSEScriptInterface*)nvse->QueryInterface(kInterface_Script);
 		ExtractArgsEx = g_scriptInterface->ExtractArgsEx;
 		ExtractFormatStringArgs = g_scriptInterface->ExtractFormatStringArgs;
 		FunctionCallScript = g_scriptInterface->CallFunction;
@@ -241,16 +241,16 @@ bool NVSEPlugin_Load(NVSEInterface* nvse)
 				DecompileScript = (_DecompileScript)nvseData->GetFunc(NVSEDataInterface::kNVSEData_DecompileScript);
 		#endif
 ;
-		PluginHandle pluginHandle = nvse->GetPluginHandle();
+		PluginHandle pluginHandle = nvse->GetPluginHandle();*/
 
 	}
 
 	//	See https://geckwiki.com/index.php?title=NVSE_Opcode_Base
 
-	UInt32 const ShellNVSEPluginOpcodeBase = 0; //Replace
+	//UInt32 const ShellNVSEPluginOpcodeBase = 0; //Replace
 
 	// register commands
-	nvse->SetOpcodeBase(ShellNVSEPluginOpcodeBase);
+	//nvse->SetOpcodeBase(ShellNVSEPluginOpcodeBase);
 		
 		
 	return true;
