@@ -7,32 +7,13 @@
 #include "GameObjects.h"
 #include "OverCharge.h"
 
-NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
+
 
 namespace Overcharge
 {
 	UInt32 originalAddress; 
+	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
 
-	/*const char* getMaterialBlock(TESForm* rWeap)
-	{
-
-		switch (rWeap->refID) 
-		{
-		case kPlasmaRifle:
-		{
-			return "##PLRPlane1:0"; 
-		}
-		break; 
-
-		case kPlasmaRifleUnique:
-		{
-			return "##PLRPlane1:0";
-		}
-		break;
-		} 
-	}*/
-	//struct HeatRGB; 
-	//std::unordered_map<UInt32, ColorTiers> DefaultColorMap;
 	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName)
 	{
 
@@ -40,12 +21,9 @@ namespace Overcharge
 		{
 			if (NiAVObject* block = niNode->GetBlock(blockName))
 			{
-				//if (NiMaterialProperty* matProp = ((NiGeometry*)block)->materialProp->Create())
-				//((NiGeometry*)block)->materialProp = matProp;
-
 				((NiGeometry*)block)->materialProp = g_customPlayerMatProperty; 
-				((NiGeometry*)block)->materialProp->emissiveRGB.r = 1.0;  
-				((NiGeometry*)block)->materialProp->emissiveRGB.g = 0;	 
+				((NiGeometry*)block)->materialProp->emissiveRGB.r = 1.0;
+				((NiGeometry*)block)->materialProp->emissiveRGB.g = 0;
 				((NiGeometry*)block)->materialProp->emissiveRGB.b = 0;
 				((NiGeometry*)block)->materialProp->emitMult = 2.0;
 			}
@@ -57,15 +35,7 @@ namespace Overcharge
 		TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
 		const char* blockName = "##PLRPlane1:0"; //Plasma Rifle zap effect in the barrel 
 
-		float increment = 0.100f; 
-		HeatRGB targetColor = Default.blueTier; 
-		HeatRGB currentColor = currentColor.ColorShift(targetColor, increment); 
-		float emissiveRed = currentColor.heatRed; 
-		float emissiveGreen = currentColor.heatGreen;
-		float emissiveBlue = currentColor.heatBlue;
-
-		SetEmissiveRGB(actorRef, blockName);
-
+		SetEmissiveRGB(actorRef, blockName); 
 		ThisStdCall<int>(originalAddress, rWeap, rActor);
 	}
 
