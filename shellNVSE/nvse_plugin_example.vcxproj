@@ -349,6 +349,7 @@
     </ClCompile>
     <ClCompile Include="InventoryRef.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="OverCharge.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -385,6 +386,7 @@
     <ClInclude Include="..\nvse\nvse\utility.h" />
     <ClInclude Include="AuxVars.h" />
     <ClInclude Include="class_vtbls.h" />
+    <ClInclude Include="ColorGroups.h" />
     <ClInclude Include="InitHooks.h" />
     <ClInclude Include="InventoryRef.h" />
     <ClInclude Include="MainHeader.h" />

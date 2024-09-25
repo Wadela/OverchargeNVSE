@@ -7,8 +7,6 @@
 #include "GameObjects.h"
 #include "OverCharge.h"
 
-
-
 namespace Overcharge
 {
 	UInt32 originalAddress; 
@@ -22,9 +20,7 @@ namespace Overcharge
 			if (NiAVObject* block = niNode->GetBlock(blockName))
 			{
 				((NiGeometry*)block)->materialProp = g_customPlayerMatProperty; 
-				((NiGeometry*)block)->materialProp->emissiveRGB.r = 1.0;
-				((NiGeometry*)block)->materialProp->emissiveRGB.g = 0;
-				((NiGeometry*)block)->materialProp->emissiveRGB.b = 0;
+				((NiGeometry*)block)->materialProp->emissiveRGB = { 1.0f, 0.0f, 0.0f };
 				((NiGeometry*)block)->materialProp->emitMult = 2.0;
 			}
 		}

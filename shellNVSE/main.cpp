@@ -195,7 +195,6 @@ bool NVSEPlugin_Load(NVSEInterface* nvse)
 	if (!nvse->isEditor)
 	{
 		Overcharge::InitHooks();
-		Overcharge::InitDefault(); 
 
 		/*g_scriptInterface = (NVSEScriptInterface*)nvse->QueryInterface(kInterface_Script);
 		ExtractArgsEx = g_scriptInterface->ExtractArgsEx;
