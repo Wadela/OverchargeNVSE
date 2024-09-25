@@ -65,7 +65,7 @@ namespace Overcharge
         float heatGreen;
         float heatBlue;
 
-        HeatRGB(float r, float g, float b) : heatRed(r), heatGreen(g), heatBlue(b) {}
+        HeatRGB(float r, float g, float b) : heatRed{ r }, heatGreen{ g }, heatBlue{ b } {}
 
         HeatRGB blend(const HeatRGB& other, float ratio) const;
     };

@@ -386,7 +386,6 @@
     <ClInclude Include="..\nvse\nvse\utility.h" />
     <ClInclude Include="AuxVars.h" />
     <ClInclude Include="class_vtbls.h" />
-    <ClInclude Include="ColorGroups.h" />
     <ClInclude Include="InitHooks.h" />
     <ClInclude Include="InventoryRef.h" />
     <ClInclude Include="MainHeader.h" />

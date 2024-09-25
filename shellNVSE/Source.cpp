@@ -20,7 +20,9 @@ namespace Overcharge
 			if (NiAVObject* block = niNode->GetBlock(blockName))
 			{
 				((NiGeometry*)block)->materialProp = g_customPlayerMatProperty; 
-				((NiGeometry*)block)->materialProp->emissiveRGB = { 1.0f, 0.0f, 0.0f };
+				((NiGeometry*)block)->materialProp->emissiveRGB.r = PlasmaColor::plasmaColorSet[4].heatRed;
+				((NiGeometry*)block)->materialProp->emissiveRGB.g = PlasmaColor::plasmaColorSet[4].heatGreen;
+				((NiGeometry*)block)->materialProp->emissiveRGB.b = PlasmaColor::plasmaColorSet[4].heatBlue;
 				((NiGeometry*)block)->materialProp->emitMult = 2.0;
 			}
 		}

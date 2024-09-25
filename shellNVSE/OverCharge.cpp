@@ -26,7 +26,7 @@ namespace Overcharge
         return blendedColors;
     }
 
-    const std::vector<HeatRGB> plasmaColorSet =
+    const std::vector<HeatRGB> PlasmaColor::plasmaColorSet = 
     {
         HeatRGB(1.000f, 0.486f, 0.655f),         //plasmaRed: #ff7ca7
         HeatRGB(1.000f, 0.698f, 0.486f),         //plasmaOrange: #ffb27c
@@ -36,7 +36,11 @@ namespace Overcharge
         HeatRGB(0.655f, 0.486f, 1.000f),         //plasmaViolet: #a77cff
         HeatRGB(0.878f, 0.969f, 1.000f)          //plasmaWhite: #e0f7ff
     };
-    const std::vector<HeatRGB> laserColorSet =
+
+    const ColorGroup PlasmaColor::plasmaColors{ "Plasma", PlasmaColor::plasmaColorSet };
+    const HeatRGB PlasmaColor::defaultPlasma = PlasmaColor::plasmaColorSet[3];
+
+    const std::vector<HeatRGB> LaserColor::laserColorSet = 
     {
         HeatRGB(1.000f, 0.235f, 0.235f),         //laserRed: #ff3c3c
         HeatRGB(1.000f, 0.620f, 0.235f),         //laserOrange: #ff9e3c
@@ -46,7 +50,11 @@ namespace Overcharge
         HeatRGB(0.624f, 0.235f, 1.000f),         //laserViolet: #9f3cff
         HeatRGB(0.878f, 0.969f, 1.000f)          //laserWhite: #e0f7ff
     };
-    const std::vector<HeatRGB> flameColorSet =
+
+    const ColorGroup LaserColor::laserColors{ "Laser", LaserColor::laserColorSet };
+    const HeatRGB LaserColor::defaultLaser = LaserColor::laserColorSet[0];
+
+    const std::vector<HeatRGB> FlameColor::flameColorSet = 
     {
         HeatRGB(1.000f, 0.341f, 0.133f),         //flameRed: #ff5722
         HeatRGB(1.000f, 0.549f, 0.000f),         //flameOrange: #ff8c00 
@@ -56,7 +64,11 @@ namespace Overcharge
         HeatRGB(0.608f, 0.000f, 1.000f),         //flameViolet: #9b00ff
         HeatRGB(0.961f, 0.961f, 0.961f)          //flameWhite: #f5f5f5
     };
-    const std::vector<HeatRGB> zapColorSet =
+
+    const ColorGroup FlameColor::flameColors{ "Flame", FlameColor::flameColorSet };
+    const HeatRGB FlameColor::defaultFlame = FlameColor::flameColorSet[1];
+
+    const std::vector<HeatRGB> ZapColor::zapColorSet = 
     {
         HeatRGB(1.000f, 0.235f, 0.235f),         //zapRed: #ff3c3c
         HeatRGB(1.000f, 0.620f, 0.235f),         //zapOrange: #ff9e3c
@@ -67,15 +79,7 @@ namespace Overcharge
         HeatRGB(0.878f, 0.969f, 1.000f)          //zapWhite: #e0f7ff
     };
 
-    //const HeatRGB PlasmaColor::defaultPlasma = PlasmaColor::plasmaColorSet[3];
-    //const ColorGroup plasmaColors{ "Plasma", plasmaColorSet };
+    const ColorGroup ZapColor::zapColors{ "Zap", ZapColor::zapColorSet };
+    const HeatRGB ZapColor::defaultZap = ZapColor::zapColorSet[4];
 
-    //const HeatRGB LaserColor::defaultLaser = LaserColor::laserColorSet[0];
-    //const ColorGroup laserColors{ "Laser", laserColorSet };
-
-    //const HeatRGB FlameColor::defaultFlame = FlameColor::flameColorSet[1];
-    //const ColorGroup flameColors{ "Flame", flameColorSet };
-
-    //const HeatRGB ZapColor::defaultZap = ZapColor::zapColorSet[4];
-    //const ColorGroup zapColors{ "Zap", zapColorSet };
 } 

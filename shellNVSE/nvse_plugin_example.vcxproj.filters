@@ -224,9 +224,6 @@
     <ClInclude Include="OverCharge.h">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="ColorGroups.h">
-      <Filter>Wadelz\Headers</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />
