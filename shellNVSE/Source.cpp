@@ -11,8 +11,10 @@ namespace Overcharge
 {
 	UInt32 originalAddress; 
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
+	ColorShift shiftedColor(PlasmaColor::plasmaColorSet[1], PlasmaColor::plasmaColorSet[5], 0.15f);
+	//NiGeometryData* g_customPlayerGeomDat = NiGeometryData::Create();
 
-	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName)
+	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName, HeatRGB blendedColor)
 	{
 
 		if (NiNode* niNode = actorRef->GetNiNode())
@@ -20,9 +22,9 @@ namespace Overcharge
 			if (NiAVObject* block = niNode->GetBlock(blockName))
 			{
 				((NiGeometry*)block)->materialProp = g_customPlayerMatProperty; 
-				((NiGeometry*)block)->materialProp->emissiveRGB.r = PlasmaColor::plasmaColorSet[4].heatRed;
-				((NiGeometry*)block)->materialProp->emissiveRGB.g = PlasmaColor::plasmaColorSet[4].heatGreen;
-				((NiGeometry*)block)->materialProp->emissiveRGB.b = PlasmaColor::plasmaColorSet[4].heatBlue;
+				((NiGeometry*)block)->materialProp->emissiveRGB.r = blendedColor.heatRed;
+				((NiGeometry*)block)->materialProp->emissiveRGB.g = blendedColor.heatGreen;
+				((NiGeometry*)block)->materialProp->emissiveRGB.b = blendedColor.heatBlue;
 				((NiGeometry*)block)->materialProp->emitMult = 2.0;
 			}
 		}
@@ -33,7 +35,9 @@ namespace Overcharge
 		TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
 		const char* blockName = "##PLRPlane1:0"; //Plasma Rifle zap effect in the barrel 
 
-		SetEmissiveRGB(actorRef, blockName); 
+		HeatRGB blendedColor = shiftedColor.Shift();
+
+		SetEmissiveRGB(actorRef, blockName, blendedColor); 
 		ThisStdCall<int>(originalAddress, rWeap, rActor);
 	}
 

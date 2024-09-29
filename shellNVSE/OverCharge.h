@@ -60,7 +60,6 @@ namespace Overcharge
 
     struct HeatRGB
     {
-
         float heatRed;
         float heatGreen;
         float heatBlue;
@@ -85,7 +84,6 @@ namespace Overcharge
         static const std::vector<HeatRGB> plasmaColorSet;
 
         static const ColorGroup plasmaColors;
-
         static const HeatRGB defaultPlasma;
     };
 
@@ -94,7 +92,6 @@ namespace Overcharge
         static const std::vector<HeatRGB> laserColorSet;
 
         static const ColorGroup laserColors;
-
         static const HeatRGB defaultLaser;
     };
 
@@ -103,7 +100,6 @@ namespace Overcharge
         static const std::vector<HeatRGB> flameColorSet;
 
         static const ColorGroup flameColors;
-
         static const HeatRGB defaultFlame;
     };
 
@@ -112,7 +108,36 @@ namespace Overcharge
         static const std::vector<HeatRGB> zapColorSet;
 
         static const ColorGroup zapColors;
-
         static const HeatRGB defaultZap;
+    };
+
+    struct ColorShift
+    {
+        HeatRGB startColor;
+        HeatRGB targetColor;
+        float currentRatio;
+        float incRatio;
+
+        ColorShift(const HeatRGB& start, const HeatRGB& end, float step) : 
+            startColor(start), targetColor(end), currentRatio(0.0f), incRatio(step) {} 
+
+        HeatRGB Shift()
+        {
+            if (currentRatio > 1.0f)
+            {
+                currentRatio = 1.0f;
+            }
+
+            HeatRGB blendedColor = startColor.blend(targetColor, currentRatio);
+
+            currentRatio += incRatio;
+
+            return blendedColor;
+        }
+
+        void resetColor()
+        {
+            currentRatio = 0.0f;
+        }
     };
 }
