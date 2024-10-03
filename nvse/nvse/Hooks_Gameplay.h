@@ -78,6 +78,7 @@ namespace DisablePlayerControlsAlt
 		return std::pair<bool, flags_t>(true, newFlagsForMod);
 	}
 
+
 	void ApplyImmediateDisablingEffects(flags_t changedFlagsForMod);
 	void ApplyImmediateEnablingEffects(flags_t changedFlagsForMod);
 

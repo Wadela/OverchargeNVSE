@@ -4,4 +4,5 @@
 namespace Overcharge
 {
 	void InitHooks();
+	void InitHooks1(); 
 }

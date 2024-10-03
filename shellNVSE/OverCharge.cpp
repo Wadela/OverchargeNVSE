@@ -81,4 +81,5 @@ namespace Overcharge
 
     const ColorGroup ZapColor::zapColors{ "Zap", ZapColor::zapColorSet };
     const HeatRGB ZapColor::defaultZap = ZapColor::zapColorSet[4];
+
 } 

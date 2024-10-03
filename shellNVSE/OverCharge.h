@@ -2,6 +2,16 @@
 #include "MainHeader.h"
 #include <unordered_map>
 #include <vector>
+#include "Hooks_Gameplay.h"
+#include <Hooks_Gameplay.h>
+#include <unordered_set>
+
+#include "CommandTable.h"
+#include "Utilities.h"
+#include "GameObjects.h"
+
+#include <chrono>
+#include <thread>
 
 namespace Overcharge
 {
@@ -58,6 +68,7 @@ namespace Overcharge
         kProtonicInversalAxe = 0x009701
     };
 
+    //Color Changing Code
     struct HeatRGB
     {
         float heatRed;
@@ -140,4 +151,82 @@ namespace Overcharge
             currentRatio = 0.0f;
         }
     };
+
+    //Overheating Code
+    struct WeaponHeat
+    {
+        float heatVal;
+        const float maxHeat;
+        const float overheat;
+        float heatPerShot; 
+        float cooldownRate;
+        bool isOverheated;
+
+        std::chrono::time_point<std::chrono::high_resolution_clock> lastFiredTime;
+        bool coolingDown;
+
+        WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal)
+            : heatVal(initialHeatVal), maxHeat(299.0f), overheat(300.0f),
+            heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal),
+            isOverheated(false), coolingDown(false) {}
+
+        void HeatOnFire()
+        {
+            if (isOverheated)
+            {
+                //extern void DisablePlayerControlsAlt::Overcharge::DisableAttacking1();  
+                return;
+            }
+
+            heatVal += heatPerShot;
+
+            if (heatVal > maxHeat)
+            {
+                heatVal = maxHeat;
+                isOverheated = true;
+                //extern void DisablePlayerControlsAlt::Overcharge::DisableAttacking1(); 
+            }
+
+            lastFiredTime = std::chrono::high_resolution_clock::now(); 
+            coolingDown = true; 
+
+        }
+
+        void HeatCooldown(float startingHeatVal) 
+        
+        {
+            if (coolingDown) {
+                // Calculate the time elapsed since the last fire
+                auto now = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<float> elapsed = now - lastFiredTime;
+
+                // Decrease heat based on the elapsed time and cooldown rate
+                heatVal -= cooldownRate * elapsed.count();
+
+                // Ensure heatVal does not fall below the starting heat value
+                if (heatVal < startingHeatVal) {
+                    heatVal = startingHeatVal;
+                }
+
+                // If we were overheated and the heat is below the overheat threshold, reset
+                if (isOverheated && heatVal < overheat) {
+                    isOverheated = false;
+                    // Call to enable controls
+                    // extern void DisablePlayerControlsAlt::Overcharge::EnableAttacking1();
+                }
+
+                lastFiredTime = std::chrono::high_resolution_clock::now();
+            }
+        }
+
+        void UpdateCooldown(float startingHeatVal) {
+            // Call this function regularly (e.g., in your game loop) to apply cooldown
+            HeatCooldown(startingHeatVal);
+        }
+
+        float GetHeat() const {
+            return heatVal;
+        }
+    };
+
 }
