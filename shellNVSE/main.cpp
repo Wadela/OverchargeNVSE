@@ -13,7 +13,6 @@
 #include "SafeWrite.h"
 #include "InitHooks.h"
 #include "MainHeader.h"
-#include "OverCharge.h"
 
 IDebugLog		gLog("ShellNVSE.log");
 constexpr UInt32 g_PluginVersion = 1;
@@ -149,7 +148,7 @@ void MessageHandler(NVSEMessagingInterface::Message* msg)
 	case NVSEMessagingInterface::kMessage_RenameNewGameName: break;
 	case NVSEMessagingInterface::kMessage_DeferredInit: break;
 	case NVSEMessagingInterface::kMessage_ClearScriptDataCache: break;
-	case NVSEMessagingInterface::kMessage_MainGameLoop: Overcharge::InitHooks1(); break;
+	case NVSEMessagingInterface::kMessage_MainGameLoop: Overcharge::CooldownGameLoop();  break;
 		//Func Here
 	case NVSEMessagingInterface::kMessage_ScriptCompile: break;
 	default: break;
@@ -197,6 +196,7 @@ bool NVSEPlugin_Load(NVSEInterface* nvse)
 	if (!nvse->isEditor)
 	{
 		Overcharge::InitHooks();
+
 		/*g_scriptInterface = (NVSEScriptInterface*)nvse->QueryInterface(kInterface_Script);
 		ExtractArgsEx = g_scriptInterface->ExtractArgsEx;
 		ExtractFormatStringArgs = g_scriptInterface->ExtractFormatStringArgs;

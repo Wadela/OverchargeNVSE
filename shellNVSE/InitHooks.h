@@ -4,5 +4,5 @@
 namespace Overcharge
 {
 	void InitHooks();
-	void InitHooks1(); 
+	void CooldownGameLoop(); 
 }
