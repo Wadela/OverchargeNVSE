@@ -20,7 +20,7 @@ ITimer::ITimer()
 
 ITimer::~ITimer()
 {
-	DeInit();
+
 }
 
 void ITimer::Init(void)

@@ -2,6 +2,7 @@
 
 namespace Overcharge
 {
+
     HeatRGB HeatRGB::blend(const HeatRGB& other, float ratio) const
     {
         float blendedRed = (this->heatRed * (1 - ratio)) + (other.heatRed * ratio);
@@ -82,4 +83,34 @@ namespace Overcharge
     const ColorGroup ZapColor::zapColors{ "Zap", ZapColor::zapColorSet };
     const HeatRGB ZapColor::defaultZap = ZapColor::zapColorSet[4];
 
+
+    //Overheating System
+    void WeaponHeat::HeatOnFire()
+    {
+        heatVal += heatPerShot;
+    }
+
+    void WeaponHeat::HeatCooldown(float startingHeatVal)
+    {
+        float maxHeat = 299.0f;
+        float overheat = 300.0f;
+        float heatDecay = cooldownRate;
+
+        if (heatVal > startingHeatVal)
+        {
+            heatVal -= heatDecay;
+
+            if (heatVal < startingHeatVal)
+            {
+                heatVal = startingHeatVal;
+            }
+
+            if (isOverheated && heatVal < overheat) 
+            {
+                isOverheated = false;
+            }
+
+        }
+    }
+ 
 } 

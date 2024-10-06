@@ -13,6 +13,7 @@
 #include "SafeWrite.h"
 #include "InitHooks.h"
 #include "MainHeader.h"
+#include "OverCharge.h"
 
 IDebugLog		gLog("ShellNVSE.log");
 constexpr UInt32 g_PluginVersion = 1;
@@ -148,7 +149,28 @@ void MessageHandler(NVSEMessagingInterface::Message* msg)
 	case NVSEMessagingInterface::kMessage_RenameNewGameName: break;
 	case NVSEMessagingInterface::kMessage_DeferredInit: break;
 	case NVSEMessagingInterface::kMessage_ClearScriptDataCache: break;
-	case NVSEMessagingInterface::kMessage_MainGameLoop: Overcharge::CooldownGameLoop();  break;
+	case NVSEMessagingInterface::kMessage_MainGameLoop: 
+		
+		if (!IsGamePaused() && !BGSSaveLoadGame::GetSingleton()->IsLoading())
+		{
+			if (!Overcharge::heatedWeapons.empty())
+			{
+				for (auto it = Overcharge::heatedWeapons.begin(); it != Overcharge::heatedWeapons.end();)
+				{
+					if ((it->heatVal -= (g_timeGlobal->secondsPassed * it->cooldownRate)) <= 50)
+					{
+						it = Overcharge::heatedWeapons.erase(it);
+					}
+					else
+					{
+						++it;
+					}
+				}
+			}
+
+		}
+
+		break;
 		//Func Here
 	case NVSEMessagingInterface::kMessage_ScriptCompile: break;
 	default: break;
@@ -196,8 +218,7 @@ bool NVSEPlugin_Load(NVSEInterface* nvse)
 	if (!nvse->isEditor)
 	{
 		Overcharge::InitHooks();
-
-		/*g_scriptInterface = (NVSEScriptInterface*)nvse->QueryInterface(kInterface_Script);
+		g_scriptInterface = (NVSEScriptInterface*)nvse->QueryInterface(kInterface_Script);
 		ExtractArgsEx = g_scriptInterface->ExtractArgsEx;
 		ExtractFormatStringArgs = g_scriptInterface->ExtractFormatStringArgs;
 		FunctionCallScript = g_scriptInterface->CallFunction;
@@ -242,7 +263,7 @@ bool NVSEPlugin_Load(NVSEInterface* nvse)
 				DecompileScript = (_DecompileScript)nvseData->GetFunc(NVSEDataInterface::kNVSEData_DecompileScript);
 		#endif
 ;
-		PluginHandle pluginHandle = nvse->GetPluginHandle();*/
+		PluginHandle pluginHandle = nvse->GetPluginHandle();
 
 	}
 

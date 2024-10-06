@@ -3,13 +3,12 @@
 #include <unordered_map>
 #include <vector>
 #include "Hooks_Gameplay.h"
-#include <Hooks_Gameplay.h>
 #include <unordered_set>
 
 #include "CommandTable.h"
 #include "Utilities.h"
 #include "GameObjects.h"
-#include "common/ITimer.h"
+#include <array>
 
 namespace Overcharge
 {
@@ -154,66 +153,19 @@ namespace Overcharge
     struct WeaponHeat
     {
         float heatVal;
-        const float maxHeat;
-        const float overheat;
         float heatPerShot; 
         float cooldownRate;
         bool isOverheated;
-        ITimer cooldownTimer;
 
 
-        WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal) : 
-            heatVal(initialHeatVal), maxHeat(299.0f), overheat(300.0f), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal), isOverheated(false)
+        WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal) :
+            heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal), isOverheated(false) {} 
 
-        {
-            cooldownTimer.Start(); 
-        }
+        void HeatOnFire();
 
-        void HeatOnFire()
-        {
-            double elapsedTime = cooldownTimer.GetElapsedTime(); 
-
-            if (isOverheated)
-            {
-                //extern void DisablePlayerControlsAlt::Overcharge::DisableAttacking1();  
-                return;
-            }
-
-            heatVal += heatPerShot;
-
-            if (heatVal > maxHeat)
-            {
-                heatVal = maxHeat;
-                isOverheated = true;
-                //extern void DisablePlayerControlsAlt::Overcharge::DisableAttacking1(); 
-            }
-
-        }
-
-        void HeatCooldown(float startingHeatVal)
-        {
-            double elapsedTime = cooldownTimer.GetElapsedTime();
-            float heatDecay = cooldownRate * elapsedTime; 
-
-            if (heatVal > startingHeatVal)
-            {
-                heatVal -= heatDecay;
-
-                if (heatVal < startingHeatVal)
-                {
-                    heatVal = startingHeatVal;
-                }
-
-                if (isOverheated && heatVal < overheat)
-                {
-                    isOverheated = false;
-                    //extern void DisablePlayerControlsAlt::Overcharge::EnableAttacking1(); 
-                }
-
-            }
-
-            cooldownTimer.Start(); 
-        }
+        void HeatCooldown(float startingHeatVal);
     };
+
+       extern std::vector<WeaponHeat> heatedWeapons; 
 
 }

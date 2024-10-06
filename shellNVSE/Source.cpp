@@ -6,18 +6,17 @@
 #include "NiObjects.h"
 #include "GameObjects.h"
 #include "OverCharge.h"
+#include <vector>
 
 namespace Overcharge
 {
 	UInt32 originalAddress; 
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
+	std::vector<WeaponHeat> heatedWeapons;
 	ColorShift shiftedColor(PlasmaColor::plasmaColorSet[1], PlasmaColor::plasmaColorSet[5], 0.15f);
-	WeaponHeat heatSystem = WeaponHeat(50.0f, 20.0f, 5.0f);
-	//NiGeometryData* g_customPlayerGeomDat = NiGeometryData::Create();
 
 	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName, HeatRGB blendedColor)
 	{
-
 		if (NiNode* niNode = actorRef->GetNiNode())
 		{
 			if (NiAVObject* block = niNode->GetBlock(blockName))
@@ -36,9 +35,13 @@ namespace Overcharge
 		TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
 		const char* blockName = "##PLRPlane1:0"; //Plasma Rifle zap effect in the barrel 
 
-		heatSystem.HeatOnFire();
+		if (heatedWeapons.empty())
+		{
+			heatedWeapons.emplace_back(WeaponHeat(50.0f, 20.0f, 10.0f));
+		}
+		heatedWeapons[0].HeatOnFire();
 
-		HeatRGB blendedColor = shiftedColor.Shift();
+		HeatRGB blendedColor = shiftedColor.Shift();  
 
 		SetEmissiveRGB(actorRef, blockName, blendedColor); 
 		ThisStdCall<int>(originalAddress, rWeap, rActor);
@@ -51,8 +54,4 @@ namespace Overcharge
 		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalAddress); 
 	}
 
-	void CooldownGameLoop()
-	{
-		heatSystem.HeatCooldown(50.0f);
-	}
 }
