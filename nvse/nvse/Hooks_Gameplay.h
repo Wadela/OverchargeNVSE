@@ -78,15 +78,22 @@ namespace DisablePlayerControlsAlt
 		return std::pair<bool, flags_t>(true, newFlagsForMod);
 	}
 
-	void DisableAttacking()
+	template <bool IsEnable>
+	std::pair<bool, flags_t> ToggleFlag(flags_t flag)
 	{
-		g_disabledControls |= kFlag_Attacking; 
-	} 
+		flags_t resultFlag; 
+		if constexpr (IsEnable) { 
+			// Enable the flag
+			resultFlag = flag; // Compute new state with the flag enabled 
+		}
+		else {
+			// Disable the flag
+			resultFlag = g_disabledControls & ~flag; // Compute new state with the flag disabled 
+		}
 
-	void EnableAttacking()
-	{
-		g_disabledControls &= kFlag_Attacking;
+		return std::pair<bool, flags_t>(true, kFlag_Attacking); // Return true and the new state   
 	}
+
 	void ApplyImmediateDisablingEffects(flags_t changedFlagsForMod);
 	void ApplyImmediateEnablingEffects(flags_t changedFlagsForMod);
 

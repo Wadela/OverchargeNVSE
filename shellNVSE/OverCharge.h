@@ -9,6 +9,7 @@
 #include "Utilities.h"
 #include "GameObjects.h"
 #include <array>
+#include "GameUI.h"
 
 namespace Overcharge
 {
@@ -162,10 +163,9 @@ namespace Overcharge
             heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal), isOverheated(false) {} 
 
         void HeatOnFire();
-
-        void HeatCooldown(float startingHeatVal);
+        void CheckCooldown();
     };
 
        extern std::vector<WeaponHeat> heatedWeapons; 
-
+       void AllowAttack();
 }

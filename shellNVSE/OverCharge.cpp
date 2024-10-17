@@ -1,8 +1,21 @@
 #include "OverCharge.h"
 
+namespace DisablePlayerControlsAlt
+{
+    extern std::map<ModID, flags_t> g_disabledFlagsPerMod;   
+    extern flags_t g_disabledControls = 0;  // Definition and initialization of global variable
+
+}
+
+void __cdecl HUDMainMenu::UpdateVisibilityState(signed int hudState)
+{
+    return CdeclCall(0x771700, hudState);
+}
+
+UInt32 originalAddress;
+
 namespace Overcharge
 {
-
     HeatRGB HeatRGB::blend(const HeatRGB& other, float ratio) const
     {
         float blendedRed = (this->heatRed * (1 - ratio)) + (other.heatRed * ratio);
@@ -83,34 +96,102 @@ namespace Overcharge
     const ColorGroup ZapColor::zapColors{ "Zap", ZapColor::zapColorSet };
     const HeatRGB ZapColor::defaultZap = ZapColor::zapColorSet[4];
 
+    UInt32 g_PreventAttackDetour;
+    bool __fastcall MaybePreventPlayerAttacking2(Actor* player, void* edx, UInt32 animGroupId)
+    {
+        if ((DisablePlayerControlsAlt::g_disabledControls & DisablePlayerControlsAlt::DisabledControlsFlags::kFlag_Attacking) != 0)
+            return false;
+    }
+
+    bool __fastcall MaybeAllowPlayerAttacking(Actor* player, void* edx, UInt32 animGroupId)
+    {
+            //DisablePlayerControlsAlt::g_disabledControls & ~DisablePlayerControlsAlt::DisabledControlsFlags::kFlag_Attacking;  
+        if ((DisablePlayerControlsAlt::g_disabledControls & DisablePlayerControlsAlt::DisabledControlsFlags::kFlag_Attacking) != 0)
+            return true;
+    }
 
     //Overheating System
     void WeaponHeat::HeatOnFire()
     {
+        float maxHeat = 300.0f;
+        float startingHeat = 50.0f;
+
+
         heatVal += heatPerShot;
-    }
 
-    void WeaponHeat::HeatCooldown(float startingHeatVal)
-    {
-        float maxHeat = 299.0f;
-        float overheat = 300.0f;
-        float heatDecay = cooldownRate;
-
-        if (heatVal > startingHeatVal)
+        if (heatVal >= maxHeat)
         {
-            heatVal -= heatDecay;
+            isOverheated = true;  
+            auto* player = PlayerCharacter::GetSingleton();
+            //auto result = ToggleFlag<false>(DisablePlayerControlsAlt::kFlag_Movement);
+            //if (result.first) // Only proceed if the flag change was successful
+            //{
+                DisablePlayerControlsAlt::flags_t changedFlag = DisablePlayerControlsAlt::DisabledControlsFlags::kFlag_Sneaking & ~(DisablePlayerControlsAlt::g_disabledControls | static_cast<DisablePlayerControlsAlt::flags_t>(player->disabledControlFlags));; // Disable attacking for everyone    
+                if (!changedFlag) 
+                    return;
 
-            if (heatVal < startingHeatVal)
-            {
-                heatVal = startingHeatVal;
-            }
+                // Copy code at 0x95F590 to force out of sneak etc 
+                if ((changedFlag & DisablePlayerControlsAlt::DisabledControlsFlags::kFlag_Movement) != 0) 
+                {
+                    HUDMainMenu::UpdateVisibilityState(HUDMainMenu::kHUDState_PlayerDisabledControls); 
+                }
+                else
+                {
+                    // important for updating RolloverText and such at 0x771972
+                    HUDMainMenu::UpdateVisibilityState(HUDMainMenu::kHUDState_RECALCULATE);
+                }
 
-            if (isOverheated && heatVal < overheat) 
-            {
-                isOverheated = false;
-            }
+                if ((changedFlag & DisablePlayerControlsAlt::DisabledControlsFlags::kFlag_Fighting) != 0) 
+                    player->SetWantsWeaponOut(0); 
 
+                if ((changedFlag & DisablePlayerControlsAlt::DisabledControlsFlags::kFlag_POV) != 0) 
+                {
+                    player->bThirdPerson = false; 
+                    if (player->playerNode) 
+                        player->UpdateCamera(0, 0); 
+                    else
+                    { 
+                        float& g_fThirdPersonZoomHeight = *reinterpret_cast<float*>(0x11E0768); 
+                        g_fThirdPersonZoomHeight = 0.0; 
+                    }
+                }
+
+                if ((changedFlag & DisablePlayerControlsAlt::DisabledControlsFlags::kFlag_Sneaking) != 0) 
+                {
+                    // force out of sneak by removing sneak movement flag
+                    ThisStdCall(0x9EA3E0, PlayerCharacter::GetSingleton()->actorMover, (player->GetMovementFlags() & ~0x400)); 
+                }
+                AppendToCallChain(0x949CF1, UInt32(MaybePreventPlayerAttacking2), originalAddress); 
+
+            //}
         }
     }
  
+    void WeaponHeat::CheckCooldown()
+    {
+        float startHeatLevel = 50.0f;  // The heat level required to re-enable firing
+
+        // If the weapon is overheated, check the cooldown
+        if (isOverheated)
+        {
+            // If the weapon cools down to or below the starting heat level, re-enable attacking
+            if (heatVal <= startHeatLevel)
+            {
+                isOverheated = false;
+
+                // Re-enable attacking after cooldown
+                //auto result = ToggleFlag<true>(DisablePlayerControlsAlt::kFlag_Attacking);  // Re-enable attacking
+
+                //if (result.first)
+                //{
+                    //DisablePlayerControlsAlt::g_disabledControls &= ~result.second;  // Apply enabling
+                //}
+            }
+        }
+    }
+
+    void AllowAttack()
+    {
+        AppendToCallChain(0x949CF1, UInt32(MaybeAllowPlayerAttacking), originalAddress);
+    }
 } 

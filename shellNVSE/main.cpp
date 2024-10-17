@@ -159,6 +159,7 @@ void MessageHandler(NVSEMessagingInterface::Message* msg)
 				{
 					if ((it->heatVal -= (g_timeGlobal->secondsPassed * it->cooldownRate)) <= 50)
 					{
+						//Overcharge::AllowAttack();
 						it = Overcharge::heatedWeapons.erase(it);
 					}
 					else

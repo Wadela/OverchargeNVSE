@@ -12,6 +12,7 @@ namespace Overcharge
 {
 	UInt32 originalAddress; 
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
+
 	std::vector<WeaponHeat> heatedWeapons;
 	ColorShift shiftedColor(PlasmaColor::plasmaColorSet[1], PlasmaColor::plasmaColorSet[5], 0.15f);
 
@@ -37,10 +38,10 @@ namespace Overcharge
 
 		if (heatedWeapons.empty())
 		{
-			heatedWeapons.emplace_back(WeaponHeat(50.0f, 20.0f, 10.0f));
+			heatedWeapons.emplace_back(WeaponHeat(50.0f, 40.0f, 20.0f));
 		}
 		heatedWeapons[0].HeatOnFire();
-
+		//heatedWeapons[0].CheckCooldown(); 
 		HeatRGB blendedColor = shiftedColor.Shift();  
 
 		SetEmissiveRGB(actorRef, blockName, blendedColor); 
@@ -52,6 +53,6 @@ namespace Overcharge
 		UInt32 actorFireAddr = 0x8BADE9; //0x8BADE9 Actor:FireWeapon
 
 		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalAddress); 
-	}
+	} 
 
 }
