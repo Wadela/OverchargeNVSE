@@ -10,13 +10,14 @@
 
 namespace Overcharge
 {
-	UInt32 originalAddress; 
-	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
+	UInt32 originalAddress;																		//Needed for AppendToCallChain
+	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();				//Needed so that all instances won't change color when a single weapon fires
 
-	std::vector<WeaponHeat> heatedWeapons;
+	std::vector<WeaponHeat> heatedWeapons;														//Vector containing all weapons that are currently heating up
+
 	ColorShift shiftedColor(PlasmaColor::plasmaColorSet[1], PlasmaColor::plasmaColorSet[5], 0.15f);
 
-	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName, HeatRGB blendedColor)
+	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName, HeatRGB blendedColor)	//Rewritten SetMaterialProperty function
 	{
 		if (NiNode* niNode = actorRef->GetNiNode())
 		{
@@ -37,21 +38,21 @@ namespace Overcharge
 
 		__asm
 		{
-			cmp g_isOverheated, 0
-			jz skip
-			mov ecx, 0xC9
+			cmp g_isOverheated, 0			//If Overheated
+			jz skip							//Returns to original Animation if it isn't overheated
+			mov ecx, 0xC9					//Plays kAnimGroup_JamB (201U)
 			
 		skip:
-			push ecx
-			mov ecx, [ebp - 0x9C]
-			jmp returnAddr
+			push ecx						//ECX contains the fire AnimGroup
+			mov ecx, [ebp - 0x9C]			//Rewriting original, overwritten instructions
+			jmp returnAddr					//StartFireAnimation Function
 		}
 	}
 
 	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)
 	{
 		TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
-		const char* blockName = "##PLRPlane1:0"; //Plasma Rifle zap effect in the barrel 
+		const char* blockName = "##PLRPlane1:0";								//Plasma Rifle zap effect in the barrel 
 
 		if (heatedWeapons.empty())
 		{
@@ -62,13 +63,13 @@ namespace Overcharge
 		HeatRGB blendedColor = shiftedColor.Shift();  
 
 		SetEmissiveRGB(actorRef, blockName, blendedColor); 
-		ThisStdCall<int>(originalAddress, rWeap, rActor);
+		ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
 	}
 
 	void InitHooks()
 	{
 		UInt32 actorFireAddr = 0x8BADE9; //0x8BADE9 Actor:FireWeapon
-		UInt32 startFireAnim = 0x949CEA;
+		UInt32 startFireAnim = 0x949CEA; //0x949CF1 Start Fire Animation
 
 		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalAddress); 
 		WriteRelJump(startFireAnim, UInt32(FireAnimDetour));  

@@ -85,18 +85,15 @@ namespace Overcharge
     const HeatRGB ZapColor::defaultZap = ZapColor::zapColorSet[4];
 
 
-    //Overheating System
     void WeaponHeat::HeatOnFire()
     {
         float maxHeat = 300.0f;
-        float startingHeat = 50.0f;
 
+        heatVal += heatPerShot;         //Ticks up heatVal by the weapons defined heatPerShot value
 
-        heatVal += heatPerShot;
-
-        if (heatVal >= maxHeat)
+        if (heatVal >= maxHeat)         //If heatVal reaches maximum heat threshold --> Weapon overheats
         {
-            g_isOverheated = 1;    
+            g_isOverheated = 1;         //When g_isOverheated == 1, Weapon does not fire.
         }
     }
 } 
