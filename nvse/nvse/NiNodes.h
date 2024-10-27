@@ -1775,6 +1775,19 @@ public:
 	BSAnimGroupSequence();
 	~BSAnimGroupSequence();
 
+	enum AnimSequenceType
+	{
+		kSequence_Idle,
+		kSequence_Movement,
+		kSequence_LeftArm,
+		kSequence_LeftHand,
+		kSequence_Weapon,
+		kSequence_WeaponUp,
+		kSequence_WeaponDown,
+		kSequence_SpecialIdle,
+		kSequence_Death = 0x14
+	};
+
 	TESAnimGroup		* animGroup;	//068
 
 	BSAnimGroupSequence* Get3rdPersonCounterpart() const;

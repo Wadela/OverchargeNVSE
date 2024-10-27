@@ -31,6 +31,23 @@ namespace Overcharge
 		}
 	}
 
+	__declspec(naked) void __stdcall FireAnimDetour()
+	{
+		static const UInt32 returnAddr = 0x949CF1;
+
+		__asm
+		{
+			cmp g_isOverheated, 0
+			jz skip
+			mov ecx, 0xC9
+			
+		skip:
+			push ecx
+			mov ecx, [ebp - 0x9C]
+			jmp returnAddr
+		}
+	}
+
 	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)
 	{
 		TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
@@ -41,7 +58,7 @@ namespace Overcharge
 			heatedWeapons.emplace_back(WeaponHeat(50.0f, 40.0f, 20.0f));
 		}
 		heatedWeapons[0].HeatOnFire();
-		//heatedWeapons[0].CheckCooldown(); 
+
 		HeatRGB blendedColor = shiftedColor.Shift();  
 
 		SetEmissiveRGB(actorRef, blockName, blendedColor); 
@@ -51,8 +68,16 @@ namespace Overcharge
 	void InitHooks()
 	{
 		UInt32 actorFireAddr = 0x8BADE9; //0x8BADE9 Actor:FireWeapon
+		UInt32 startFireAnim = 0x949CEA;
 
 		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalAddress); 
+		WriteRelJump(startFireAnim, UInt32(FireAnimDetour));  
 	} 
 
+	void FireAnimDetourHook()
+	{
+		UInt32 startFireAnim = 0x949CEA;
+
+		AppendToCallChain(startFireAnim, UInt32(FireAnimDetour), originalAddress); 
+	}
 }

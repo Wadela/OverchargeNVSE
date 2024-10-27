@@ -10,6 +10,9 @@
 #include "GameObjects.h"
 #include <array>
 #include "GameUI.h"
+#include "SafeWrite.h"
+
+extern int g_isOverheated;
 
 namespace Overcharge
 {
@@ -167,5 +170,6 @@ namespace Overcharge
     };
 
        extern std::vector<WeaponHeat> heatedWeapons; 
-       void AllowAttack();
+
+
 }
