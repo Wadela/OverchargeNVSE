@@ -96,35 +96,7 @@ namespace Overcharge
 
         if (heatVal >= maxHeat)
         {
-            isOverheated = true;  
             g_isOverheated = 1;    
-            auto* player = PlayerCharacter::GetSingleton();
-            player->baseProcess->SetQueuedIdleFlag(0x80);  
         }
     }
- 
-    void WeaponHeat::CheckCooldown()
-    {
-        float startHeatLevel = 51.0f;  // The heat level required to re-enable firing
-
-        // If the weapon is overheated, check the cooldown
-        if (isOverheated)
-        {
-            // If the weapon cools down to or below the starting heat level, re-enable attacking
-            if (heatVal <= startHeatLevel)
-            {
-                isOverheated = false;
-                
-                // Re-enable attacking after cooldown
-                //auto result = ToggleFlag<true>(DisablePlayerControlsAlt::kFlag_Attacking);  // Re-enable attacking
-
-                //if (result.first)
-                //{
-                    //DisablePlayerControlsAlt::g_disabledControls &= ~result.second;  // Apply enabling
-                //}
-            }
-        }
-    }
-
-
 } 

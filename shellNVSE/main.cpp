@@ -169,7 +169,6 @@ void MessageHandler(NVSEMessagingInterface::Message* msg)
 					}
 				}
 			}
-
 		}
 
 		break;

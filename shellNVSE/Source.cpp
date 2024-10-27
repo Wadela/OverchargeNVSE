@@ -73,11 +73,4 @@ namespace Overcharge
 		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalAddress); 
 		WriteRelJump(startFireAnim, UInt32(FireAnimDetour));  
 	} 
-
-	void FireAnimDetourHook()
-	{
-		UInt32 startFireAnim = 0x949CEA;
-
-		AppendToCallChain(startFireAnim, UInt32(FireAnimDetour), originalAddress); 
-	}
 }

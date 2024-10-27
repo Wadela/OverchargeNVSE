@@ -159,17 +159,12 @@ namespace Overcharge
         float heatVal;
         float heatPerShot; 
         float cooldownRate;
-        bool isOverheated;
-
 
         WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal) :
-            heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal), isOverheated(false) {} 
+            heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {} 
 
         void HeatOnFire();
-        void CheckCooldown();
     };
 
        extern std::vector<WeaponHeat> heatedWeapons; 
-
-
 }
