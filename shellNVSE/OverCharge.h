@@ -167,4 +167,6 @@ namespace Overcharge
     };
 
        extern std::vector<WeaponHeat> heatedWeapons; 
+
+       void WeaponCooldown();
 }

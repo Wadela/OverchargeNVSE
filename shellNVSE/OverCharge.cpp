@@ -4,6 +4,7 @@ int g_isOverheated = 0;
 
 namespace Overcharge
 {
+    //Color Shift System
     HeatRGB HeatRGB::blend(const HeatRGB& other, float ratio) const
     {
         float blendedRed = (this->heatRed * (1 - ratio)) + (other.heatRed * ratio);
@@ -84,8 +85,8 @@ namespace Overcharge
     const ColorGroup ZapColor::zapColors{ "Zap", ZapColor::zapColorSet };
     const HeatRGB ZapColor::defaultZap = ZapColor::zapColorSet[4];
 
-
-    void WeaponHeat::HeatOnFire()
+    //Overheating System
+    void WeaponHeat::HeatOnFire()       //Responsible for heating a weapon up
     {
         float maxHeat = 300.0f;
 
@@ -94,6 +95,25 @@ namespace Overcharge
         if (heatVal >= maxHeat)         //If heatVal reaches maximum heat threshold --> Weapon overheats
         {
             g_isOverheated = 1;         //When g_isOverheated == 1, Weapon does not fire.
+        }
+    }
+
+    void WeaponCooldown()                                                                               //Responsible for cooling a weapon down
+    {
+        if (!Overcharge::heatedWeapons.empty())															//If there are heating weapons...
+        {
+            for (auto it = Overcharge::heatedWeapons.begin(); it != Overcharge::heatedWeapons.end();)	//Iterates through vector containing all heating weapons 
+            {
+                if ((it->heatVal -= (g_timeGlobal->secondsPassed * it->cooldownRate)) <= 50)			//Cools down heatVal by specified cooldown rate per second until starting heat level is reached
+                {
+                    g_isOverheated = 0;																	//When starting value is reached remove Overheated flag
+                    it = Overcharge::heatedWeapons.erase(it);											//Remove weapon from vector containing heating weapons 
+                }
+                else
+                {
+                    ++it;																				//Move on to next heating weapons
+                }
+            }
         }
     }
 } 

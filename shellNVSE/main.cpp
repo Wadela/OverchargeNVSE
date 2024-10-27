@@ -151,28 +151,12 @@ void MessageHandler(NVSEMessagingInterface::Message* msg)
 	case NVSEMessagingInterface::kMessage_ClearScriptDataCache: break;
 	case NVSEMessagingInterface::kMessage_MainGameLoop: 
 		
-		if (!IsGamePaused() && !BGSSaveLoadGame::GetSingleton()->IsLoading())
+		if (!IsGamePaused() && !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading
 		{
-			if (!Overcharge::heatedWeapons.empty())
-			{
-
-				for (auto it = Overcharge::heatedWeapons.begin(); it != Overcharge::heatedWeapons.end();)
-				{
-					if ((it->heatVal -= (g_timeGlobal->secondsPassed * it->cooldownRate)) <= 50)
-					{
-						g_isOverheated = 0;
-						it = Overcharge::heatedWeapons.erase(it);
-					}
-					else
-					{
-						++it;
-					}
-				}
-			}
+			Overcharge::WeaponCooldown();										//Cooldown system runs in gameloop
 		}
-
 		break;
-		//Func Here
+
 	case NVSEMessagingInterface::kMessage_ScriptCompile: break;
 	default: break;
 	}
