@@ -7,6 +7,7 @@
 #include "GameObjects.h"
 #include "OverCharge.h"
 #include <vector>
+#include "ShellNVSE.h"
 
 namespace Overcharge
 {
@@ -16,6 +17,7 @@ namespace Overcharge
 	std::vector<WeaponHeat> heatedWeapons;														//Vector containing all weapons that are currently heating up
 
 	ColorShift shiftedColor(PlasmaColor::plasmaColorSet[1], PlasmaColor::plasmaColorSet[5], 0.15f);
+	
 
 	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName, HeatRGB blendedColor)	//Rewritten SetMaterialProperty function
 	{
@@ -49,21 +51,83 @@ namespace Overcharge
 		}
 	}
 
+	void devKitFork(TESForm* rWeap, TESObjectREFR* rActor)
+	{
+		AuxVector* ColorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
+
+		if (ColorDataArgs == nullptr || ColorDataArgs->size() <= 3)
+		{
+			ThisStdCall<int>(originalAddress, rWeap, rActor); 
+			return;
+		}
+		if ((*ColorDataArgs)[0].type == kRetnType_String)
+		{
+			const char* overchargeColorType = (*ColorDataArgs)[0].str;
+		}
+		if ((*ColorDataArgs)[1].type == kRetnType_Default)
+		{
+			UInt32 overchargeColorStart = (*ColorDataArgs)[1].num;
+		}
+		if ((*ColorDataArgs)[2].type == kRetnType_Default)
+		{
+			UInt32 overchargeColorTarget = (*ColorDataArgs)[2].num;
+		}
+
+		AuxVector* HeatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
+
+		if (HeatDataArgs == nullptr || HeatDataArgs->size() <= 3)
+		{
+			ThisStdCall<int>(originalAddress, rWeap, rActor);
+			return;
+		}
+		if ((*HeatDataArgs)[0].type == kRetnType_Default)
+		{
+			UInt32 overchargeHeatStart = (*HeatDataArgs)[0].num;
+		}
+		if ((*HeatDataArgs)[1].type == kRetnType_Default)
+		{
+			UInt32 overchargeHeatPerShot = (*HeatDataArgs)[1].num;
+		}
+		if ((*HeatDataArgs)[2].type == kRetnType_Default)
+		{
+			UInt32 overchargeCooldown = (*HeatDataArgs)[2].num;
+		}
+
+		AuxVector* NodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
+		if (NodeDataArgs == nullptr || NodeDataArgs->size() <= 1)
+		{
+			ThisStdCall<int>(originalAddress, rWeap, rActor);
+			return;
+		}
+		if ((*NodeDataArgs)[0].type == kRetnType_String)
+		{
+			const char* overchargeBlockName = (*NodeDataArgs)[0].str;
+		}
+	}
+
 	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)
 	{
 		TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
 		const char* blockName = "##PLRPlane1:0";								//Plasma Rifle zap effect in the barrel 
 
-		if (heatedWeapons.empty())
+		if (PluginFunctions::pNVSE == true) 
 		{
-			heatedWeapons.emplace_back(WeaponHeat(50.0f, 40.0f, 20.0f));
+			devKitFork(rWeap, rActor);
 		}
-		heatedWeapons[0].HeatOnFire();
+		else
+		{
+			if (heatedWeapons.empty())
+			{
+				heatedWeapons.emplace_back(WeaponHeat(50.0f, 40.0f, 20.0f));
+			}
+			heatedWeapons[0].HeatOnFire();
 
-		HeatRGB blendedColor = shiftedColor.Shift();  
 
-		SetEmissiveRGB(actorRef, blockName, blendedColor); 
-		ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
+			HeatRGB blendedColor = shiftedColor.Shift();
+
+			SetEmissiveRGB(actorRef, blockName, blendedColor);
+			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
+		}
 	}
 
 	void InitHooks()

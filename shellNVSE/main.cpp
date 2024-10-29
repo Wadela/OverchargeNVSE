@@ -14,6 +14,7 @@
 #include "InitHooks.h"
 #include "MainHeader.h"
 #include "OverCharge.h"
+#include "AuxVars.h"
 
 IDebugLog		gLog("ShellNVSE.log");
 constexpr UInt32 g_PluginVersion = 1;

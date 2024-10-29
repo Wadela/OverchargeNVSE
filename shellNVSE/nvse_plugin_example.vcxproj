@@ -351,6 +351,7 @@
     <ClCompile Include="InventoryRef.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="OverCharge.cpp" />
+    <ClCompile Include="PluginFunctions.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -391,6 +392,7 @@
     <ClInclude Include="InventoryRef.h" />
     <ClInclude Include="MainHeader.h" />
     <ClInclude Include="OverCharge.h" />
+    <ClInclude Include="PluginFunctions.h" />
     <ClInclude Include="ShellNVSE.h" />
   </ItemGroup>
   <ItemGroup>

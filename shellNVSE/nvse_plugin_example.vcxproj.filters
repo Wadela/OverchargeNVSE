@@ -110,6 +110,9 @@
     <ClCompile Include="OverCharge.cpp">
       <Filter>Wadelz</Filter>
     </ClCompile>
+    <ClCompile Include="PluginFunctions.cpp">
+      <Filter>ShellNVSE</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\nvse\nvse\GameAPI.h">
@@ -223,6 +226,9 @@
     </ClInclude>
     <ClInclude Include="OverCharge.h">
       <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="PluginFunctions.h">
+      <Filter>ShellNVSE</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
