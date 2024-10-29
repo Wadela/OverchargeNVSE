@@ -8,13 +8,13 @@
 #include "nvse/Hooks_DirectInput8Create.h"
 #include <string>
 #include "ShellNVSE.h"
+#include "AuxVars.h"
 #include "EventHandlers.h"
 #include "GameUI.h"
 #include "SafeWrite.h"
 #include "InitHooks.h"
 #include "MainHeader.h"
 #include "OverCharge.h"
-#include "AuxVars.h"
 
 IDebugLog		gLog("ShellNVSE.log");
 constexpr UInt32 g_PluginVersion = 1;

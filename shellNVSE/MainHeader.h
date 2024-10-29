@@ -14,4 +14,3 @@
 #include <utility.h>
 #include <CommandTable.h>
 #include "NiNodes.h"
-#include "PluginFunctions.h"

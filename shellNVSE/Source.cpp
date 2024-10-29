@@ -53,6 +53,7 @@ namespace Overcharge
 
 	void devKitFork(TESForm* rWeap, TESObjectREFR* rActor)
 	{
+		/*
 		AuxVector* ColorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
 
 		if (ColorDataArgs == nullptr || ColorDataArgs->size() <= 3)
@@ -103,6 +104,7 @@ namespace Overcharge
 		{
 			const char* overchargeBlockName = (*NodeDataArgs)[0].str;
 		}
+		*/
 	}
 
 	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)

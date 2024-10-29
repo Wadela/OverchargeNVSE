@@ -7,11 +7,12 @@
 #include "ParamInfos.h"
 
 #include "PluginAPI.h"
+#include "AuxVars.h"
+#include "PluginFunctions.h"
 #include "InventoryRef.h"
 #include "GameUI.h" 
 #include "common/ICriticalSection.h"
 #include "GameData.h"
-#include "AuxVars.h"
 #include "Hooks_DirectInput8Create.h"
 #include "NiNodes.h"
 

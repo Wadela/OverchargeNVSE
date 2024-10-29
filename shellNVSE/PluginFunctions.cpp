@@ -1,4 +1,4 @@
-#include "PluginFunctions.h"
+#include "ShellNVSE.h"
 
 namespace PluginFunctions
 {
