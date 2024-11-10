@@ -117,7 +117,7 @@ namespace Overcharge
 		}
 		if (heatedWeapons.empty())
 		{
-			heatedWeapons.emplace_back(WeaponHeat(overchargeHeatStart, overchargeHeatPerShot, overchargeCooldown));
+			heatedWeapons.emplace_back(WeaponHeat(overchargeHeatStart, overchargeHeatPerShot, overchargeCooldown));   
 		}
 
 		//Node Data: names of node(s) being put into SetEmmissiveRGB()

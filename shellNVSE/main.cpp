@@ -148,7 +148,7 @@ void MessageHandler(NVSEMessagingInterface::Message* msg)
 	case NVSEMessagingInterface::kMessage_DeleteGameName: break;
 	case NVSEMessagingInterface::kMessage_RenameGameName: break;
 	case NVSEMessagingInterface::kMessage_RenameNewGameName: break;
-	case NVSEMessagingInterface::kMessage_DeferredInit: break;
+	case NVSEMessagingInterface::kMessage_DeferredInit: PluginFunctions::init_pNVSE(); break;
 	case NVSEMessagingInterface::kMessage_ClearScriptDataCache: break;
 	case NVSEMessagingInterface::kMessage_MainGameLoop: 
 		
