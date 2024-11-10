@@ -5,7 +5,7 @@ int g_isOverheated = 0;
 namespace Overcharge
 {
     //Color Shift System
-    HeatRGB HeatRGB::blend(const HeatRGB& other, float ratio) const
+    HeatRGB HeatRGB::Blend(const HeatRGB& other, float ratio) const
     {
         float blendedRed = (this->heatRed * (1 - ratio)) + (other.heatRed * ratio);
         float blendedGreen = (this->heatGreen * (1 - ratio)) + (other.heatGreen * ratio);
@@ -14,22 +14,22 @@ namespace Overcharge
         return HeatRGB{ blendedRed, blendedGreen, blendedBlue };
     }
 
-    std::vector<HeatRGB> ColorGroup::blendAll(float ratio) 
+    std::vector<HeatRGB> ColorGroup::BlendAll(float ratio)
     {
         std::vector<HeatRGB> blendedColors;
-        for (size_t i = 0; i < colorSet.size(); ++i) 
+        for (size_t i = 0; i < size; ++i)
         {
-            for (size_t j = i + 1; j < colorSet.size(); ++j) 
+            for (size_t j = i + 1; j < size; ++j)
             {
                 // Use the blend function to combine colors[i] and colors[j]
-                HeatRGB blendedColor = colorSet[i].blend(colorSet[j], ratio);
+                HeatRGB blendedColor = colorSet[i].Blend(colorSet[j], ratio);
                 blendedColors.push_back(blendedColor);
             }
         }
         return blendedColors;
     }
 
-    const std::vector<HeatRGB> PlasmaColor::plasmaColorSet = 
+    const HeatRGB plasmaColorSet[] =
     {
         HeatRGB(1.000f, 0.486f, 0.655f),         //plasmaRed: #ff7ca7
         HeatRGB(1.000f, 0.698f, 0.486f),         //plasmaOrange: #ffb27c
@@ -40,10 +40,7 @@ namespace Overcharge
         HeatRGB(0.878f, 0.969f, 1.000f)          //plasmaWhite: #e0f7ff
     };
 
-    const ColorGroup PlasmaColor::plasmaColors{ "Plasma", PlasmaColor::plasmaColorSet };
-    const HeatRGB PlasmaColor::defaultPlasma = PlasmaColor::plasmaColorSet[3];
-
-    const std::vector<HeatRGB> LaserColor::laserColorSet = 
+    const HeatRGB laserColorSet[] =
     {
         HeatRGB(1.000f, 0.235f, 0.235f),         //laserRed: #ff3c3c
         HeatRGB(1.000f, 0.620f, 0.235f),         //laserOrange: #ff9e3c
@@ -54,10 +51,7 @@ namespace Overcharge
         HeatRGB(0.878f, 0.969f, 1.000f)          //laserWhite: #e0f7ff
     };
 
-    const ColorGroup LaserColor::laserColors{ "Laser", LaserColor::laserColorSet };
-    const HeatRGB LaserColor::defaultLaser = LaserColor::laserColorSet[0];
-
-    const std::vector<HeatRGB> FlameColor::flameColorSet = 
+    const HeatRGB flameColorSet[] =
     {
         HeatRGB(1.000f, 0.341f, 0.133f),         //flameRed: #ff5722
         HeatRGB(1.000f, 0.549f, 0.000f),         //flameOrange: #ff8c00 
@@ -68,10 +62,7 @@ namespace Overcharge
         HeatRGB(0.961f, 0.961f, 0.961f)          //flameWhite: #f5f5f5
     };
 
-    const ColorGroup FlameColor::flameColors{ "Flame", FlameColor::flameColorSet };
-    const HeatRGB FlameColor::defaultFlame = FlameColor::flameColorSet[1];
-
-    const std::vector<HeatRGB> ZapColor::zapColorSet = 
+    const HeatRGB zapColorSet[] =
     {
         HeatRGB(1.000f, 0.235f, 0.235f),         //zapRed: #ff3c3c
         HeatRGB(1.000f, 0.620f, 0.235f),         //zapOrange: #ff9e3c
@@ -82,8 +73,12 @@ namespace Overcharge
         HeatRGB(0.878f, 0.969f, 1.000f)          //zapWhite: #e0f7ff
     };
 
-    const ColorGroup ZapColor::zapColors{ "Zap", ZapColor::zapColorSet };
-    const HeatRGB ZapColor::defaultZap = ZapColor::zapColorSet[4];
+    const ColorGroup ColorGroup::plasmaColors{ "Plasma", plasmaColorSet, sizeof(plasmaColorSet) / sizeof(plasmaColorSet[0]) };
+    const ColorGroup ColorGroup::laserColors{ "Laser", laserColorSet, sizeof(laserColorSet) / sizeof(laserColorSet[0]) };
+    const ColorGroup ColorGroup::flameColors{ "Flame", flameColorSet, sizeof(flameColorSet) / sizeof(flameColorSet[0]) };
+    const ColorGroup ColorGroup::zapColors{ "Zap", zapColorSet, sizeof(zapColorSet) / sizeof(zapColorSet[0]) };
+
+    const std::unordered_map<std::string, ColorGroup> ColorGroup::colorMap = ColorGroup::InitializeColorMap();
 
     //Overheating System
     void WeaponHeat::HeatOnFire()       //Responsible for heating a weapon up
@@ -116,4 +111,5 @@ namespace Overcharge
             }
         }
     }
-} 
+}
+

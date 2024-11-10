@@ -15,9 +15,8 @@ namespace Overcharge
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();				//Needed so that all instances won't change color when a single weapon fires
 
 	std::vector<WeaponHeat> heatedWeapons;														//Vector containing all weapons that are currently heating up
-
-	ColorShift shiftedColor(PlasmaColor::plasmaColorSet[1], PlasmaColor::plasmaColorSet[5], 0.15f);
 	
+	std::vector<const char*> blockNames;
 
 	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName, HeatRGB blendedColor)	//Rewritten SetMaterialProperty function
 	{
@@ -51,83 +50,118 @@ namespace Overcharge
 		}
 	}
 
-	void devKitFork(TESForm* rWeap, TESObjectREFR* rActor)
+	void DevKitFork(TESForm* rWeap, TESObjectREFR* rActor, ColorShift& matColorShift)
 	{
-		/*
-		AuxVector* ColorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
+		//Color Data: color type, start color, target color, increment
+		AuxVector* colorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
+		const char* colorType;
+		int colorStart;
+		int colorTarget;
+		float colorIncrement;
 
-		if (ColorDataArgs == nullptr || ColorDataArgs->size() <= 3)
-		{
-			ThisStdCall<int>(originalAddress, rWeap, rActor); 
-			return;
-		}
-		if ((*ColorDataArgs)[0].type == kRetnType_String)
-		{
-			const char* overchargeColorType = (*ColorDataArgs)[0].str;
-		}
-		if ((*ColorDataArgs)[1].type == kRetnType_Default)
-		{
-			UInt32 overchargeColorStart = (*ColorDataArgs)[1].num;
-		}
-		if ((*ColorDataArgs)[2].type == kRetnType_Default)
-		{
-			UInt32 overchargeColorTarget = (*ColorDataArgs)[2].num;
-		}
-
-		AuxVector* HeatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
-
-		if (HeatDataArgs == nullptr || HeatDataArgs->size() <= 3)
+		if (colorDataArgs == nullptr || colorDataArgs->size() <= 4)				//Returns if invalid number of arguments are entered
 		{
 			ThisStdCall<int>(originalAddress, rWeap, rActor);
 			return;
 		}
-		if ((*HeatDataArgs)[0].type == kRetnType_Default)
+		if ((*colorDataArgs)[0].type == kRetnType_String)						//"Plasma", "Laser", "Flame", "Zap"
 		{
-			UInt32 overchargeHeatStart = (*HeatDataArgs)[0].num;
-		}
-		if ((*HeatDataArgs)[1].type == kRetnType_Default)
-		{
-			UInt32 overchargeHeatPerShot = (*HeatDataArgs)[1].num;
-		}
-		if ((*HeatDataArgs)[2].type == kRetnType_Default)
-		{
-			UInt32 overchargeCooldown = (*HeatDataArgs)[2].num;
+			colorType = (*colorDataArgs)[0].str;
+			const ColorGroup& selectedCG = ColorGroup::GetColorSet(colorType);
+
+			if ((*colorDataArgs)[1].type == kRetnType_Default)					//0 (Red), 1 (Orange), 2 (Yellow), 3 (Green), 4 (Blue), 5 (Violet), 6 (White)
+			{
+				colorStart = (*colorDataArgs)[1].num;
+				if (colorStart >= selectedCG.size)
+				{
+					colorStart = 0;												//0 if invalid color is selected
+				}
+			}
+			if ((*colorDataArgs)[2].type == kRetnType_Default)					//0 (Red), 1 (Orange), 2 (Yellow), 3 (Green), 4 (Blue), 5 (Violet), 6 (White)
+			{
+				colorTarget = (*colorDataArgs)[2].num;
+				if (colorTarget >= selectedCG.size)
+				{
+					colorTarget = 0;											//0 if invalid color is selected
+				}
+			}
+			if ((*colorDataArgs)[3].type == kRetnType_Default)					//Percent that color shifts out of 100
+			{
+				colorIncrement = ((*colorDataArgs)[3].num) / 100.0f;
+				matColorShift = ColorShift(selectedCG.colorSet[colorStart], selectedCG.colorSet[colorTarget], colorIncrement);
+			}
 		}
 
-		AuxVector* NodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
-		if (NodeDataArgs == nullptr || NodeDataArgs->size() <= 1)
+		//Heat Data: starting heat, heat per shot, cooldown rate (per second)
+		AuxVector* heatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
+		float overchargeHeatStart;
+		float overchargeHeatPerShot;
+		float overchargeCooldown;
+
+		if (heatDataArgs == nullptr || heatDataArgs->size() <= 3)				//Returns if invalid number of arguments are entered
 		{
 			ThisStdCall<int>(originalAddress, rWeap, rActor);
 			return;
 		}
-		if ((*NodeDataArgs)[0].type == kRetnType_String)
+		if ((*heatDataArgs)[0].type == kRetnType_Default)						//Starting [Default] Heat Level when you pull out the gun or the number it cools down to
 		{
-			const char* overchargeBlockName = (*NodeDataArgs)[0].str;
+			overchargeHeatStart = (*heatDataArgs)[0].num;
 		}
-		*/
+		if ((*heatDataArgs)[1].type == kRetnType_Default)						//The amount of heat that is added when you fire, max is 300
+		{
+			overchargeHeatPerShot = (*heatDataArgs)[1].num;
+		}
+		if ((*heatDataArgs)[2].type == kRetnType_Default)						//The amount of heat that decays per second, never below starting heat level
+		{
+			overchargeCooldown = (*heatDataArgs)[2].num;
+		}
+		if (heatedWeapons.empty())
+		{
+			heatedWeapons.emplace_back(WeaponHeat(overchargeHeatStart, overchargeHeatPerShot, overchargeCooldown));
+		}
+
+		//Node Data: names of node(s) being put into SetEmmissiveRGB()
+		AuxVector* nodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
+		const char* overchargeBlockName;
+		blockNames.clear();
+
+		if (nodeDataArgs == nullptr)
+		{
+			ThisStdCall<int>(originalAddress, rWeap, rActor);
+			return;
+		}
+		for (size_t i = 0; i < nodeDataArgs->size(); ++i)						//Iterates through and adds all items to blockNames
+		{
+			if ((*nodeDataArgs)[i].type == kRetnType_String)					//Block names (i.e. "##PLRPlane1:0" for zap effect in Plasma Rifle
+			{
+				const char* overchargeBlockName = (*nodeDataArgs)[i].str;
+
+				blockNames.emplace_back(overchargeBlockName);
+			}
+		}
 	}
 
 	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)
 	{
 		TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
-		const char* blockName = "##PLRPlane1:0";								//Plasma Rifle zap effect in the barrel 
 
-		if (PluginFunctions::pNVSE == true) 
+		if (PluginFunctions::pNVSE == true)
 		{
-			devKitFork(rWeap, rActor);
+			ColorShift shiftedColor;
+
+			DevKitFork(rWeap, rActor, shiftedColor);
+			heatedWeapons[0].HeatOnFire();
+			HeatRGB blendedColor = shiftedColor.Shift();
+
+			for (const char* blockName : blockNames)
+			{
+				SetEmissiveRGB(actorRef, blockName, blendedColor);
+			}
+
+			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
 		}
 		else
 		{
-			if (heatedWeapons.empty())
-			{
-				heatedWeapons.emplace_back(WeaponHeat(50.0f, 40.0f, 20.0f));
-			}
-			heatedWeapons[0].HeatOnFire();
-
-
-			HeatRGB blendedColor = shiftedColor.Shift();
-
-			SetEmissiveRGB(actorRef, blockName, blendedColor);
 			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
 		}
 	}

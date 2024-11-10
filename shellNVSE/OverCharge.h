@@ -16,59 +16,6 @@ extern int g_isOverheated;
 
 namespace Overcharge
 {
-    enum OverChargeWeaps
-    {
-        kUnknownEnergyWeapon = 0,
-        kAlienBlaster, 
-        kArcWelder,
-        kFlamer,
-        kFlamerCleansingF,
-        kGatlingLaser,
-        kGatlingLaserSprtelW,
-        kGaussRifle,
-        kGaussRifleYCS,
-        kHoloRifle,
-        kIncinerator,
-        kIncineratorHeavy,
-        kLAER,
-        kLAERElijah,
-        kLaserPistol,
-        kLaserPistolGRA,
-        kLaserPistolPewPew,
-        kLaserRCW,
-        kLaserRifle,
-        kLaserRifleAER14,
-        kLaserRifleVanG,
-        kMultiplasRifle,
-        kPlasmaCaster,
-        kPlasmaCasterSmittyS,
-        kPlasmaDefender,
-        kPlasmaDefenderGRA,
-        kPlasmaPistol,
-        kPlasmaPistolGRA,
-        kPlasmaRifle,
-        kPlasmaRifleQ35,
-        kPlasmaRifleVanG,
-        kPulseGun,
-        kRechargerPistol,
-        kRechargerPistolMFHA,
-        kRechargerRifle,
-        kSonicEmitterGabeB,
-        kSonicEmitterOperaS,
-        kSonicEmitterRev,
-        kSonicEmitterRoboS,
-        kSonicEmitterTar,
-        kTeslaCannon,
-        kTeslaCannonBeatonP,
-        kTeslaCannonElijah,
-        kTriBeamLaserRifle,
-        kTriBeamLaserRifleGRA,
-        kShishKebab,
-        kShishKebabGehenna,
-        kProtonAxe,
-        kProtonicInversalAxe
-    };
-
     //Color Changing Code
     struct HeatRGB
     {
@@ -78,49 +25,48 @@ namespace Overcharge
 
         HeatRGB(float r, float g, float b) : heatRed{ r }, heatGreen{ g }, heatBlue{ b } {}
 
-        HeatRGB blend(const HeatRGB& other, float ratio) const;
+        HeatRGB Blend(const HeatRGB& other, float ratio) const;
     };
 
     struct ColorGroup
     {
         std::string colorType;
-        std::vector<HeatRGB> colorSet;
+        HeatRGB* colorSet;
+        size_t size;
 
-        ColorGroup(const std::string& type, const std::vector<HeatRGB>& set) : colorType(type), colorSet(set) {}
+        ColorGroup(const std::string& type, const HeatRGB* set, size_t setSize) : colorType(type), colorSet(), size(setSize) {}
 
-        std::vector<HeatRGB> blendAll(float ratio);
-    };
+        std::vector<HeatRGB> BlendAll(float ratio);
 
-    struct PlasmaColor
-    {
-        static const std::vector<HeatRGB> plasmaColorSet;
+        static const ColorGroup& GetColorSet(const char* colorName)
+        {
+            auto it = ColorGroup::colorMap.find(colorName);
+
+            if (it != colorMap.end())
+            {
+                return it->second;
+            }
+        }
+
+    private:
+
+        static const std::unordered_map<std::string, ColorGroup> colorMap;
 
         static const ColorGroup plasmaColors;
-        static const HeatRGB defaultPlasma;
-    };
-
-    struct LaserColor
-    {
-        static const std::vector<HeatRGB> laserColorSet;
-
         static const ColorGroup laserColors;
-        static const HeatRGB defaultLaser;
-    };
-
-    struct FlameColor
-    {
-        static const std::vector<HeatRGB> flameColorSet;
-
         static const ColorGroup flameColors;
-        static const HeatRGB defaultFlame;
-    };
-
-    struct ZapColor
-    {
-        static const std::vector<HeatRGB> zapColorSet;
-
         static const ColorGroup zapColors;
-        static const HeatRGB defaultZap;
+
+        static const std::unordered_map<std::string, ColorGroup> InitializeColorMap()
+        {
+            return
+            {
+                {"Plasma", plasmaColors},
+                {"Laser", laserColors},
+                {"Flame", flameColors},
+                {"Zap", zapColors}
+            };
+        }
     };
 
     struct ColorShift
@@ -130,8 +76,14 @@ namespace Overcharge
         float currentRatio;
         float incRatio;
 
-        ColorShift(const HeatRGB& start, const HeatRGB& end, float step) : 
-            startColor(start), targetColor(end), currentRatio(0.0f), incRatio(step) {} 
+        ColorShift() :
+            startColor(0.0f, 0.0f, 0.0f),
+            targetColor(0.0f, 0.0f, 0.0f),
+            currentRatio(0.0f),
+            incRatio(0.0f) {}
+
+        ColorShift(const HeatRGB& start, const HeatRGB& end, float step) :
+            startColor(start), targetColor(end), currentRatio(0.0f), incRatio(step) {}
 
         HeatRGB Shift()
         {
@@ -140,14 +92,14 @@ namespace Overcharge
                 currentRatio = 1.0f;
             }
 
-            HeatRGB blendedColor = startColor.blend(targetColor, currentRatio);
+            HeatRGB blendedColor = startColor.Blend(targetColor, currentRatio);
 
             currentRatio += incRatio;
 
             return blendedColor;
         }
 
-        void resetColor()
+        void ResetColor()
         {
             currentRatio = 0.0f;
         }
@@ -157,16 +109,17 @@ namespace Overcharge
     struct WeaponHeat
     {
         float heatVal;
-        float heatPerShot; 
+        float heatPerShot;
         float cooldownRate;
 
         WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal) :
-            heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {} 
+            heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {}
 
         void HeatOnFire();
     };
 
-    extern std::vector<WeaponHeat> heatedWeapons; 
+    extern std::vector<WeaponHeat> heatedWeapons;
+    extern std::vector<const char*> blockNames;
 
     void WeaponCooldown();
 }
