@@ -16,7 +16,7 @@
 #include "MainHeader.h"
 #include "OverCharge.h"
 
-IDebugLog		gLog("ShellNVSE.log");
+IDebugLog		gLog("OverchargedNVSE.log");
 constexpr UInt32 g_PluginVersion = 1;
 
 PluginHandle	g_pluginHandle = kPluginHandle_Invalid;
@@ -148,7 +148,9 @@ void MessageHandler(NVSEMessagingInterface::Message* msg)
 	case NVSEMessagingInterface::kMessage_DeleteGameName: break;
 	case NVSEMessagingInterface::kMessage_RenameGameName: break;
 	case NVSEMessagingInterface::kMessage_RenameNewGameName: break;
-	case NVSEMessagingInterface::kMessage_DeferredInit: PluginFunctions::init_pNVSE(); break;
+	case NVSEMessagingInterface::kMessage_DeferredInit: {
+		PluginFunctions::init_pNVSE();
+	}break;
 	case NVSEMessagingInterface::kMessage_ClearScriptDataCache: break;
 	case NVSEMessagingInterface::kMessage_MainGameLoop: 
 		
