@@ -150,7 +150,7 @@ namespace Overcharge
 			ColorShift shiftedColor;
 
 			DevKitFork(rWeap, rActor, shiftedColor);
-			heatedWeapons[0].HeatOnFire();
+			heatedWeapons[0].HeatOnFire();					//Crashes if you fire any weapon that isn't in the OC system because heatedWeapons can be empty. 
 			HeatRGB blendedColor = shiftedColor.Shift();
 
 			for (const char* blockName : blockNames)
