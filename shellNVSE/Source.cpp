@@ -73,12 +73,12 @@ namespace Overcharge
 			if (selectedCG) {
 				//0 (Red), 1 (Orange), 2 (Yellow), 3 (Green), 4 (Blue), 5 (Violet), 6 (White)
 				UInt32 colorStart = (UInt32)(*colorDataArgs)[1].num;
-				if (colorStart >= selectedCG->size)
+				if (colorStart >= 6)
 				{
 					colorStart = 0;												//0 if invalid color is selected
 				}
 				UInt32 colorTarget = (UInt32)(*colorDataArgs)[2].num;
-				if (colorTarget >= selectedCG->size)
+				if (colorTarget >= 6)
 				{
 					colorTarget = 0;											//0 if invalid color is selected
 				}

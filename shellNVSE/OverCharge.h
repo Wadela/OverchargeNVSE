@@ -31,10 +31,9 @@ namespace Overcharge
     struct ColorGroup
     {
         std::string colorType;
-        HeatRGB* colorSet;
-        size_t size;
+        const HeatRGB* colorSet;
 
-        ColorGroup(const std::string& type, const HeatRGB* set, size_t setSize) : colorType(type), colorSet(), size(setSize) {}
+        ColorGroup(const std::string& type, const HeatRGB* colorSet) : colorType(type), colorSet(colorSet) {}
 
         std::vector<HeatRGB> BlendAll(float ratio);
 

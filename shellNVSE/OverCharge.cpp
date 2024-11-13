@@ -17,9 +17,9 @@ namespace Overcharge
     std::vector<HeatRGB> ColorGroup::BlendAll(float ratio)
     {
         std::vector<HeatRGB> blendedColors;
-        for (size_t i = 0; i < size; ++i)
+        for (size_t i = 0; i <= 6; ++i)
         {
-            for (size_t j = i + 1; j < size; ++j)
+            for (size_t j = i + 1; j <= 6; ++j)
             {
                 // Use the blend function to combine colors[i] and colors[j]
                 HeatRGB blendedColor = colorSet[i].Blend(colorSet[j], ratio);
@@ -73,10 +73,10 @@ namespace Overcharge
         HeatRGB(0.878f, 0.969f, 1.000f)          //zapWhite: #e0f7ff
     };
 
-    const ColorGroup ColorGroup::plasmaColors{ "Plasma", plasmaColorSet, sizeof(plasmaColorSet) / sizeof(plasmaColorSet[0]) };
-    const ColorGroup ColorGroup::laserColors{ "Laser", laserColorSet, sizeof(laserColorSet) / sizeof(laserColorSet[0]) };
-    const ColorGroup ColorGroup::flameColors{ "Flame", flameColorSet, sizeof(flameColorSet) / sizeof(flameColorSet[0]) };
-    const ColorGroup ColorGroup::zapColors{ "Zap", zapColorSet, sizeof(zapColorSet) / sizeof(zapColorSet[0]) };
+    const ColorGroup ColorGroup::plasmaColors{ "Plasma", plasmaColorSet };
+    const ColorGroup ColorGroup::laserColors{ "Laser", laserColorSet };
+    const ColorGroup ColorGroup::flameColors{ "Flame", flameColorSet };
+    const ColorGroup ColorGroup::zapColors{ "Zap", zapColorSet };
 
     const std::unordered_map<std::string, ColorGroup> ColorGroup::colorMap = ColorGroup::InitializeColorMap();
 
