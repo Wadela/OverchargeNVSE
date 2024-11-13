@@ -38,14 +38,15 @@ namespace Overcharge
 
         std::vector<HeatRGB> BlendAll(float ratio);
 
-        static const ColorGroup& GetColorSet(const char* colorName)
+        static const ColorGroup* GetColorSet(const char* colorName)
         {
             auto it = ColorGroup::colorMap.find(colorName);
 
             if (it != colorMap.end())
             {
-                return it->second;
+                return &it->second;
             }
+            return nullptr;         //We don't know if this is a valid color group or not.
         }
 
     private:
@@ -108,11 +109,11 @@ namespace Overcharge
     //Overheating Code
     struct WeaponHeat
     {
-        float heatVal;
-        float heatPerShot;
-        float cooldownRate;
+        double heatVal;
+        double heatPerShot;
+        double cooldownRate;
 
-        WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal) :
+        WeaponHeat(double initialHeatVal, double heatPerShotVal, double cooldownRateVal) :
             heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {}
 
         void HeatOnFire();

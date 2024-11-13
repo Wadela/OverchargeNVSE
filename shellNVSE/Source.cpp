@@ -14,7 +14,7 @@ namespace Overcharge
 	UInt32 originalAddress;																		//Needed for AppendToCallChain
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();				//Needed so that all instances won't change color when a single weapon fires
 
-	std::vector<WeaponHeat> heatedWeapons;														//Vector containing all weapons that are currently heating up
+	std::unordered_map<UInt32, WeaponHeat> heatedWeapons;														//Vector containing all weapons that are currently heating up
 	
 	std::vector<const char*> blockNames;
 
@@ -50,95 +50,69 @@ namespace Overcharge
 		}
 	}
 
-	void DevKitFork(TESForm* rWeap, TESObjectREFR* rActor, ColorShift& matColorShift)
+	void DevKitFork(TESForm* rWeap, TESObjectREFR* rActor)
 	{
+		ColorShift colorshift;
+
 		//Color Data: color type, start color, target color, increment
 		AuxVector* colorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
-		const char* colorType;
-		int colorStart;
-		int colorTarget;
-		float colorIncrement;
+		//Heat Data: starting heat, heat per shot, cooldown rate (per second)
+		AuxVector* heatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
+		//Node Data: names of node(s) being put into SetEmmissiveRGB()
+		AuxVector* nodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
 
-		if (colorDataArgs == nullptr || colorDataArgs->size() <= 4)				//Returns if invalid number of arguments are entered
-		{
-			ThisStdCall<int>(originalAddress, rWeap, rActor);
+		if (!colorDataArgs || !heatDataArgs || !nodeDataArgs) { //If any of these are null, skip.
+			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
 			return;
 		}
-		if ((*colorDataArgs)[0].type == kRetnType_String)						//"Plasma", "Laser", "Flame", "Zap"
-		{
-			colorType = (*colorDataArgs)[0].str;
-			const ColorGroup& selectedCG = ColorGroup::GetColorSet(colorType);
 
-			if ((*colorDataArgs)[1].type == kRetnType_Default)					//0 (Red), 1 (Orange), 2 (Yellow), 3 (Green), 4 (Blue), 5 (Violet), 6 (White)
-			{
-				colorStart = (*colorDataArgs)[1].num;
-				if (colorStart >= selectedCG.size)
+		if ((*colorDataArgs)[0].type == kRetnType_String)						
+		{
+			const char* colorType = (*colorDataArgs)[0].str;	//"Plasma", "Laser", "Flame", "Zap"
+			const ColorGroup* selectedCG = ColorGroup::GetColorSet(colorType);
+			if (selectedCG) {
+				//0 (Red), 1 (Orange), 2 (Yellow), 3 (Green), 4 (Blue), 5 (Violet), 6 (White)
+				UInt32 colorStart = (UInt32)(*colorDataArgs)[1].num;
+				if (colorStart >= selectedCG->size)
 				{
 					colorStart = 0;												//0 if invalid color is selected
 				}
-			}
-			if ((*colorDataArgs)[2].type == kRetnType_Default)					//0 (Red), 1 (Orange), 2 (Yellow), 3 (Green), 4 (Blue), 5 (Violet), 6 (White)
-			{
-				colorTarget = (*colorDataArgs)[2].num;
-				if (colorTarget >= selectedCG.size)
+				UInt32 colorTarget = (UInt32)(*colorDataArgs)[2].num;
+				if (colorTarget >= selectedCG->size)
 				{
 					colorTarget = 0;											//0 if invalid color is selected
 				}
-			}
-			if ((*colorDataArgs)[3].type == kRetnType_Default)					//Percent that color shifts out of 100
-			{
-				colorIncrement = ((*colorDataArgs)[3].num) / 100.0f;
-				matColorShift = ColorShift(selectedCG.colorSet[colorStart], selectedCG.colorSet[colorTarget], colorIncrement);
+				float colorIncrement = ((*colorDataArgs)[3].num) / 100.0f;	//Percent that color shifts out of 100
+				colorshift = ColorShift(selectedCG->colorSet[colorStart], selectedCG->colorSet[colorTarget], colorIncrement);
 			}
 		}
+					
+		double overchargeHeatStart = (*heatDataArgs)[0].num;      // Starting [Default] Heat Level when you pull out the gun or the number it cools down to
+		double overchargeHeatPerShot = (*heatDataArgs)[1].num;
+		double overchargeCooldown = (*heatDataArgs)[2].num;       // The amount of heat that decays per second, never below starting heat level
 
-		//Heat Data: starting heat, heat per shot, cooldown rate (per second)
-		AuxVector* heatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
-		float overchargeHeatStart;
-		float overchargeHeatPerShot;
-		float overchargeCooldown;
+		auto iter = heatedWeapons.find(rWeap->refID);
+		if (iter == heatedWeapons.end()) {
+			auto pair = heatedWeapons.emplace(rWeap->refID, WeaponHeat(overchargeHeatStart, overchargeHeatPerShot, overchargeCooldown));
+			iter = pair.first;
+		}
+		iter->second.HeatOnFire();
 
-		if (heatDataArgs == nullptr || heatDataArgs->size() <= 3)				//Returns if invalid number of arguments are entered
-		{
-			ThisStdCall<int>(originalAddress, rWeap, rActor);
-			return;
-		}
-		if ((*heatDataArgs)[0].type == kRetnType_Default)						//Starting [Default] Heat Level when you pull out the gun or the number it cools down to
-		{
-			overchargeHeatStart = (*heatDataArgs)[0].num;
-		}
-		if ((*heatDataArgs)[1].type == kRetnType_Default)						//The amount of heat that is added when you fire, max is 300
-		{
-			overchargeHeatPerShot = (*heatDataArgs)[1].num;
-		}
-		if ((*heatDataArgs)[2].type == kRetnType_Default)						//The amount of heat that decays per second, never below starting heat level
-		{
-			overchargeCooldown = (*heatDataArgs)[2].num;
-		}
-		if (heatedWeapons.empty())
-		{
-			heatedWeapons.emplace_back(WeaponHeat(overchargeHeatStart, overchargeHeatPerShot, overchargeCooldown));   
-		}
-
-		//Node Data: names of node(s) being put into SetEmmissiveRGB()
-		AuxVector* nodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
-		const char* overchargeBlockName;
-		blockNames.clear();
-
-		if (nodeDataArgs == nullptr)
-		{
-			ThisStdCall<int>(originalAddress, rWeap, rActor);
-			return;
-		}
+		//blockNames.clear();
+		HeatRGB blendedColor = colorshift.Shift();
 		for (size_t i = 0; i < nodeDataArgs->size(); ++i)						//Iterates through and adds all items to blockNames
 		{
 			if ((*nodeDataArgs)[i].type == kRetnType_String)					//Block names (i.e. "##PLRPlane1:0" for zap effect in Plasma Rifle
 			{
 				const char* overchargeBlockName = (*nodeDataArgs)[i].str;
-
-				blockNames.emplace_back(overchargeBlockName);
+				//blockNames.emplace_back(overchargeBlockName);
+				SetEmissiveRGB(rActor, overchargeBlockName, blendedColor);
 			}
 		}
+
+		ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
+		return;
+
 	}
 
 	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)
@@ -147,18 +121,7 @@ namespace Overcharge
 
 		if (PluginFunctions::pNVSE == true)
 		{
-			ColorShift shiftedColor;
-
-			DevKitFork(rWeap, rActor, shiftedColor);
-			heatedWeapons[0].HeatOnFire();					//Crashes if you fire any weapon that isn't in the OC system because heatedWeapons can be empty. 
-			HeatRGB blendedColor = shiftedColor.Shift();
-
-			for (const char* blockName : blockNames)
-			{
-				SetEmissiveRGB(actorRef, blockName, blendedColor);
-			}
-
-			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
+			DevKitFork(rWeap, rActor);
 		}
 		else
 		{
