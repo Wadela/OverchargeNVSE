@@ -119,7 +119,7 @@ namespace Overcharge
         void HeatOnFire();
     };
 
-    extern std::vector<WeaponHeat> heatedWeapons;
+    extern std::unordered_map<UInt32, WeaponHeat> heatedWeapons;
     extern std::vector<const char*> blockNames;
 
     void WeaponCooldown();

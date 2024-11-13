@@ -99,7 +99,7 @@ namespace Overcharge
         {
             for (auto it = Overcharge::heatedWeapons.begin(); it != Overcharge::heatedWeapons.end();)	//Iterates through vector containing all heating weapons 
             {
-                if ((it->heatVal -= (g_timeGlobal->secondsPassed * it->cooldownRate)) <= 50)			//Cools down heatVal by specified cooldown rate per second until starting heat level is reached
+                if ((it->second.heatVal -= (g_timeGlobal->secondsPassed * it->second.cooldownRate)) <= 50)			//Cools down heatVal by specified cooldown rate per second until starting heat level is reached
                 {
                     g_isOverheated = 0;																	//When starting value is reached remove Overheated flag
                     it = Overcharge::heatedWeapons.erase(it);											//Remove weapon from vector containing heating weapons 
