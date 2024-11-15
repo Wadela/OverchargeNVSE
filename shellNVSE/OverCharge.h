@@ -48,37 +48,43 @@ namespace Overcharge
 
     struct ColorShift
     {
-        HeatRGB startColor;
-        HeatRGB targetColor;
-        float currentRatio;
-        float incRatio;
+        const ColorGroup* colorType;
+        const HeatRGB startColor;
+        const HeatRGB targetColor;
+        int startIndex;
+        int targetIndex;
 
         ColorShift() :
+            colorType(0),
             startColor(0.0f, 0.0f, 0.0f),
             targetColor(0.0f, 0.0f, 0.0f),
-            currentRatio(0.0f),
-            incRatio(0.0f) {}
+            startIndex(0),
+            targetIndex(0) {}
 
-        ColorShift(const HeatRGB& start, const HeatRGB& end, float step) :
-            startColor(start), targetColor(end), currentRatio(0.0f), incRatio(step) {}
+        ColorShift(const ColorGroup* selectedCG, const HeatRGB& start, const HeatRGB& end, int setIndex1, int setIndex2) :
+            colorType(selectedCG), startColor(start), targetColor(end), startIndex(setIndex1), targetIndex(setIndex2) {}
 
-        HeatRGB Shift(float heatVal, int color1, int color2, const ColorGroup* set) 
+        HeatRGB Shift(float heatVal, int color1, int color2, const ColorGroup* set)
         {
-            int stepCount = abs(color2 - color1); 
+            int stepCount = (color2 - color1);
 
             float heatRatio = min(heatVal / 300.0f, 1.0f);
 
-            int currentStep = static_cast<int>(heatRatio * stepCount);
+            int currentStep = static_cast<int>(heatRatio * abs(stepCount));
+            currentStep = std::clamp(currentStep, 0, abs(stepCount));
 
             HeatRGB startColor = set->colorSet[color1];
             HeatRGB targetColor = set->colorSet[color2];
-            HeatRGB currentColor = set->colorSet[color1 + currentStep];
+
+
+            HeatRGB currentColor = (stepCount > 0)
+                ? set->colorSet[color1 + currentStep]
+                : set->colorSet[color1 - currentStep]; 
 
             HeatRGB blendedColor = startColor.Blend(currentColor, heatRatio);
 
             return blendedColor;
         }
-
     };
 
     //Overheating Code
@@ -95,8 +101,19 @@ namespace Overcharge
         void HeatOnFire();
     };
 
-    extern std::unordered_map<UInt32, WeaponHeat> heatedWeapons;
-    extern std::vector<const char*> blockNames;
+    struct WeaponData
+    {
+        ColorShift colorData;
+        WeaponHeat heatData; 
+        TESObjectREFR* actorRef;
+
+        WeaponData(ColorShift weaponColor, WeaponHeat weaponHeat, TESObjectREFR* actor) :
+            colorData(weaponColor), heatData(weaponHeat), actorRef(actor) {}
+
+        std::vector<const char*> blockNames;
+    };
+
+    extern std::unordered_map<UInt32, WeaponData> heatedWeapons;
 
     void WeaponCooldown();
 }
