@@ -52,8 +52,6 @@ namespace Overcharge
 
 	void DevKitFork(TESForm* rWeap, TESObjectREFR* rActor)
 	{
-		ColorShift colorshift;
-
 		//Color Data: color type, start color, target color, increment
 		AuxVector* colorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
 		//Heat Data: starting heat, heat per shot, cooldown rate (per second)
@@ -65,6 +63,17 @@ namespace Overcharge
 			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
 			return;
 		}
+
+		double overchargeHeatStart = (*heatDataArgs)[0].num;      // Starting [Default] Heat Level when you pull out the gun or the number it cools down to
+		double overchargeHeatPerShot = (*heatDataArgs)[1].num;
+		double overchargeCooldown = (*heatDataArgs)[2].num;       // The amount of heat that decays per second, never below starting heat level
+
+		auto iter = heatedWeapons.find(rWeap->refID);
+		if (iter == heatedWeapons.end()) {
+			auto pair = heatedWeapons.emplace(rWeap->refID, WeaponHeat(overchargeHeatStart, overchargeHeatPerShot, overchargeCooldown));
+			iter = pair.first;
+		}
+		iter->second.HeatOnFire();
 
 		if ((*colorDataArgs)[0].type == kRetnType_String)						
 		{
@@ -83,30 +92,19 @@ namespace Overcharge
 					colorTarget = 0;											//0 if invalid color is selected
 				}
 				float colorIncrement = ((*colorDataArgs)[3].num) / 100.0f;	//Percent that color shifts out of 100
-				colorshift = ColorShift(selectedCG->colorSet[colorStart], selectedCG->colorSet[colorTarget], colorIncrement);
-			}
-		}
-					
-		double overchargeHeatStart = (*heatDataArgs)[0].num;      // Starting [Default] Heat Level when you pull out the gun or the number it cools down to
-		double overchargeHeatPerShot = (*heatDataArgs)[1].num;
-		double overchargeCooldown = (*heatDataArgs)[2].num;       // The amount of heat that decays per second, never below starting heat level
+				ColorShift shiftedColor(selectedCG->colorSet[colorStart], selectedCG->colorSet[colorTarget], colorIncrement);
+				HeatRGB blendedColor = shiftedColor.Shift(iter->second.heatVal, colorStart, colorTarget, selectedCG);
 
-		auto iter = heatedWeapons.find(rWeap->refID);
-		if (iter == heatedWeapons.end()) {
-			auto pair = heatedWeapons.emplace(rWeap->refID, WeaponHeat(overchargeHeatStart, overchargeHeatPerShot, overchargeCooldown));
-			iter = pair.first;
-		}
-		iter->second.HeatOnFire();
-
-		//blockNames.clear();
-		HeatRGB blendedColor = colorshift.Shift();
-		for (size_t i = 0; i < nodeDataArgs->size(); ++i)						//Iterates through and adds all items to blockNames
-		{
-			if ((*nodeDataArgs)[i].type == kRetnType_String)					//Block names (i.e. "##PLRPlane1:0" for zap effect in Plasma Rifle
-			{
-				const char* overchargeBlockName = (*nodeDataArgs)[i].str;
-				//blockNames.emplace_back(overchargeBlockName);
-				SetEmissiveRGB(rActor, overchargeBlockName, blendedColor);
+				//blockNames.clear();
+				for (size_t i = 0; i < nodeDataArgs->size(); ++i)						//Iterates through and adds all items to blockNames 
+				{
+					if ((*nodeDataArgs)[i].type == kRetnType_String)					//Block names (i.e. "##PLRPlane1:0" for zap effect in Plasma Rifle 
+					{
+						const char* overchargeBlockName = (*nodeDataArgs)[i].str; 
+						//blockNames.emplace_back(overchargeBlockName); 
+						SetEmissiveRGB(rActor, overchargeBlockName, blendedColor); 
+					}
+				}
 			}
 		}
 
@@ -128,6 +126,32 @@ namespace Overcharge
 			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
 		}
 	}
+
+	void WeaponCooldown()                                                                               //Responsible for cooling a weapon down
+    {
+        if (!Overcharge::heatedWeapons.empty())															//If there are heating weapons...
+        {
+            for (auto it = Overcharge::heatedWeapons.begin(); it != Overcharge::heatedWeapons.end();)	//Iterates through vector containing all heating weapons 
+            {
+                if ((it->second.heatVal -= (g_timeGlobal->secondsPassed * it->second.cooldownRate)) <= it->second.baseHeatVal)			//Cools down heatVal by specified cooldown rate per second until starting heat level is reached
+                {
+                    g_isOverheated = 0;																	//When starting value is reached remove Overheated flag
+                    it = Overcharge::heatedWeapons.erase(it);											//Remove weapon from vector containing heating weapons 
+                }
+                else
+                {
+					const ColorGroup* selectedCG = ColorGroup::GetColorSet("Plasma");
+					ColorShift shiftedColor(selectedCG->colorSet[0], selectedCG->colorSet[6], 0.1);
+					HeatRGB blendedColor = shiftedColor.Shift(it->second.heatVal, 0, 6, selectedCG);
+					const char* overchargeBlockName = "##PLRPlane1:0";
+					TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
+					SetEmissiveRGB(actorRef, overchargeBlockName, blendedColor);
+
+                    ++it;																				//Move on to next heating weapons 
+                }
+            }
+        }
+    }
 
 	void InitHooks()
 	{

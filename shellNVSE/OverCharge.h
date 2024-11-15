@@ -30,25 +30,13 @@ namespace Overcharge
 
     struct ColorGroup
     {
-        std::string colorType;
         const HeatRGB* colorSet;
 
-        ColorGroup(const std::string& type, const HeatRGB* colorSet) : colorType(type), colorSet(colorSet) {}
+        ColorGroup(const HeatRGB* colorSet) : colorSet(colorSet) {}
 
         std::vector<HeatRGB> BlendAll(float ratio);
 
-        static const ColorGroup* GetColorSet(const char* colorName)
-        {
-            auto it = ColorGroup::colorMap.find(colorName);
-
-            if (it != colorMap.end())
-            {
-                return &it->second;
-            }
-            return nullptr;         //We don't know if this is a valid color group or not.
-        }
-
-    private:
+        static const ColorGroup* GetColorSet(const char* colorName); 
 
         static const std::unordered_map<std::string, ColorGroup> colorMap;
 
@@ -56,17 +44,6 @@ namespace Overcharge
         static const ColorGroup laserColors;
         static const ColorGroup flameColors;
         static const ColorGroup zapColors;
-
-        static const std::unordered_map<std::string, ColorGroup> InitializeColorMap()
-        {
-            return
-            {
-                {"Plasma", plasmaColors},
-                {"Laser", laserColors},
-                {"Flame", flameColors},
-                {"Zap", zapColors}
-            };
-        }
     };
 
     struct ColorShift
@@ -85,35 +62,35 @@ namespace Overcharge
         ColorShift(const HeatRGB& start, const HeatRGB& end, float step) :
             startColor(start), targetColor(end), currentRatio(0.0f), incRatio(step) {}
 
-        HeatRGB Shift()
+        HeatRGB Shift(float heatVal, int color1, int color2, const ColorGroup* set) 
         {
-            if (currentRatio > 1.0f)
-            {
-                currentRatio = 1.0f;
-            }
+            int stepCount = abs(color2 - color1); 
 
-            HeatRGB blendedColor = startColor.Blend(targetColor, currentRatio);
+            float heatRatio = min(heatVal / 300.0f, 1.0f);
 
-            currentRatio += incRatio;
+            int currentStep = static_cast<int>(heatRatio * stepCount);
+
+            HeatRGB startColor = set->colorSet[color1];
+            HeatRGB targetColor = set->colorSet[color2];
+            HeatRGB currentColor = set->colorSet[color1 + currentStep];
+
+            HeatRGB blendedColor = startColor.Blend(currentColor, heatRatio);
 
             return blendedColor;
         }
 
-        void ResetColor()
-        {
-            currentRatio = 0.0f;
-        }
     };
 
     //Overheating Code
     struct WeaponHeat
     {
+        double baseHeatVal;
         double heatVal;
         double heatPerShot;
         double cooldownRate;
 
         WeaponHeat(double initialHeatVal, double heatPerShotVal, double cooldownRateVal) :
-            heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {}
+            baseHeatVal(initialHeatVal), heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {}
 
         void HeatOnFire();
     };

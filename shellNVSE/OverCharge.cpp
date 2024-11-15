@@ -29,6 +29,15 @@ namespace Overcharge
         return blendedColors;
     }
 
+    const ColorGroup* ColorGroup::GetColorSet(const char* colorName)
+    {
+        auto it = ColorGroup::colorMap.find(colorName);
+        if (it != ColorGroup::colorMap.end())
+        {
+            return &it->second;
+        }
+    }
+
     const HeatRGB plasmaColorSet[] =
     {
         HeatRGB(1.000f, 0.486f, 0.655f),         //plasmaRed: #ff7ca7
@@ -73,12 +82,18 @@ namespace Overcharge
         HeatRGB(0.878f, 0.969f, 1.000f)          //zapWhite: #e0f7ff
     };
 
-    const ColorGroup ColorGroup::plasmaColors{ "Plasma", plasmaColorSet };
-    const ColorGroup ColorGroup::laserColors{ "Laser", laserColorSet };
-    const ColorGroup ColorGroup::flameColors{ "Flame", flameColorSet };
-    const ColorGroup ColorGroup::zapColors{ "Zap", zapColorSet };
+    const ColorGroup ColorGroup::plasmaColors{ plasmaColorSet };
+    const ColorGroup ColorGroup::laserColors{ laserColorSet };
+    const ColorGroup ColorGroup::flameColors{ flameColorSet };
+    const ColorGroup ColorGroup::zapColors{ zapColorSet };
 
-    const std::unordered_map<std::string, ColorGroup> ColorGroup::colorMap = ColorGroup::InitializeColorMap();
+    const std::unordered_map<std::string, ColorGroup> ColorGroup::colorMap = 
+    {
+        { "Plasma", ColorGroup::plasmaColors },
+        { "Laser", ColorGroup::laserColors },
+        { "Flame", ColorGroup::flameColors },
+        { "Zap", ColorGroup::zapColors }
+    };
 
     //Overheating System
     void WeaponHeat::HeatOnFire()       //Responsible for heating a weapon up
@@ -90,25 +105,6 @@ namespace Overcharge
         if (heatVal >= maxHeat)         //If heatVal reaches maximum heat threshold --> Weapon overheats
         {
             g_isOverheated = 1;         //When g_isOverheated == 1, Weapon does not fire.
-        }
-    }
-
-    void WeaponCooldown()                                                                               //Responsible for cooling a weapon down
-    {
-        if (!Overcharge::heatedWeapons.empty())															//If there are heating weapons...
-        {
-            for (auto it = Overcharge::heatedWeapons.begin(); it != Overcharge::heatedWeapons.end();)	//Iterates through vector containing all heating weapons 
-            {
-                if ((it->second.heatVal -= (g_timeGlobal->secondsPassed * it->second.cooldownRate)) <= 50)			//Cools down heatVal by specified cooldown rate per second until starting heat level is reached
-                {
-                    g_isOverheated = 0;																	//When starting value is reached remove Overheated flag
-                    it = Overcharge::heatedWeapons.erase(it);											//Remove weapon from vector containing heating weapons 
-                }
-                else
-                {
-                    ++it;																				//Move on to next heating weapons
-                }
-            }
         }
     }
 }
