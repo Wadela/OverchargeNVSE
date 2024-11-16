@@ -68,17 +68,11 @@ namespace Overcharge
 		{
 			const char* colorType = (*colorDataArgs)[0].str;
 			const ColorGroup* selectedCG = ColorGroup::GetColorSet(colorType);
+
 			if (selectedCG) {
 				UInt32 colorStart = (UInt32)(*colorDataArgs)[1].num;
-				if (colorStart >= 6)
-				{
-					colorStart = 0;										
-				}
 				UInt32 colorTarget = (UInt32)(*colorDataArgs)[2].num;
-				if (colorTarget >= 6)
-				{
-					colorTarget = 0;										
-				}
+
 				ColorShift shiftedColor(selectedCG, selectedCG->colorSet[colorStart], selectedCG->colorSet[colorTarget], colorStart, colorTarget);
 
 				auto iter = heatedWeapons.find(rWeap->refID);
@@ -89,7 +83,7 @@ namespace Overcharge
 				iter->second.heatData.HeatOnFire();
 
 				HeatRGB blendedColor = shiftedColor.Shift(iter->second.heatData.heatVal, colorStart, colorTarget, selectedCG);
-				for (size_t i = 0; i < nodeDataArgs->size(); ++i)						//Iterates through and adds all items to blockNames 
+				for (size_t i = 0; i < nodeDataArgs->size(); ++i)
 				{
 					const char* overchargeBlockName = (*nodeDataArgs)[i].str; 
 					iter->second.blockNames.emplace_back(overchargeBlockName); 
@@ -97,15 +91,12 @@ namespace Overcharge
 				}
 			}
 		}
-
 		ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
 		return;
 	}
 
 	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)
 	{
-		TESObjectREFR* actorRef = PlayerCharacter::GetSingleton();
-
 		if (PluginFunctions::pNVSE == true)
 		{
 			DevKitFork(rWeap, rActor);
@@ -129,7 +120,7 @@ namespace Overcharge
                 }
                 else
                 {
-					HeatRGB blendedColor = it->second.colorData.Shift(it->second.heatData.heatVal, it->second.colorData.targetIndex, it->second.colorData.startIndex, it->second.colorData.colorType);
+					HeatRGB blendedColor = it->second.colorData.Shift(it->second.heatData.heatVal, it->second.colorData.startIndex, it->second.colorData.targetIndex, it->second.colorData.colorType);
 					TESObjectREFR* actorRef = it->second.actorRef;
 					for (const char* overchargeBlockName : it->second.blockNames) 
 					{

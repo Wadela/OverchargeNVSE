@@ -14,21 +14,6 @@ namespace Overcharge
         return HeatRGB{ blendedRed, blendedGreen, blendedBlue };
     }
 
-    std::vector<HeatRGB> ColorGroup::BlendAll(float ratio)
-    {
-        std::vector<HeatRGB> blendedColors;
-        for (size_t i = 0; i <= 6; ++i)
-        {
-            for (size_t j = i + 1; j <= 6; ++j)
-            {
-                // Use the blend function to combine colors[i] and colors[j]
-                HeatRGB blendedColor = colorSet[i].Blend(colorSet[j], ratio);
-                blendedColors.push_back(blendedColor);
-            }
-        }
-        return blendedColors;
-    }
-
     const ColorGroup* ColorGroup::GetColorSet(const char* colorName)
     {
         auto it = ColorGroup::colorMap.find(colorName);
@@ -36,6 +21,8 @@ namespace Overcharge
         {
             return &it->second;
         }
+        else
+            return &plasmaColors;
     }
 
     const HeatRGB plasmaColorSet[] =

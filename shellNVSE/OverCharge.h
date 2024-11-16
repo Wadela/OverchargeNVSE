@@ -66,22 +66,23 @@ namespace Overcharge
 
         HeatRGB Shift(float heatVal, int color1, int color2, const ColorGroup* set)
         {
-            int stepCount = (color2 - color1);
-
+            int stepCount = abs(color2 - color1);
             float heatRatio = min(heatVal / 300.0f, 1.0f);
+            int currentStep = static_cast<int>(heatRatio * stepCount);
+            currentStep = std::clamp(currentStep, 0, stepCount); 
 
-            int currentStep = static_cast<int>(heatRatio * abs(stepCount));
-            currentStep = std::clamp(currentStep, 0, abs(stepCount));
+            bool forward = color2 > color1;
 
-            HeatRGB startColor = set->colorSet[color1];
-            HeatRGB targetColor = set->colorSet[color2];
+            int currentIndex = forward ? color1 + currentStep : color1 - currentStep;
+            int nextIndex = forward ? currentIndex + 1 : currentIndex - 1;
+            nextIndex = std::clamp(nextIndex, 0, 6);
 
+            HeatRGB currentColor = set->colorSet[currentIndex];
+            HeatRGB nextColor = set->colorSet[nextIndex];
 
-            HeatRGB currentColor = (stepCount > 0)
-                ? set->colorSet[color1 + currentStep]
-                : set->colorSet[color1 - currentStep]; 
+            float localHeatRatio = (heatRatio * stepCount) - currentStep; 
 
-            HeatRGB blendedColor = startColor.Blend(currentColor, heatRatio);
+            HeatRGB blendedColor = currentColor.Blend(nextColor, localHeatRatio);
 
             return blendedColor;
         }
