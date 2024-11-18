@@ -104,12 +104,14 @@ namespace Overcharge
 
     struct WeaponData
     {
+        TESForm* weaponRef;
+        TESObjectREFR* actorRef;
+        NiMaterialProperty* matProperty;
         ColorShift colorData;
         WeaponHeat heatData; 
-        TESObjectREFR* actorRef;
 
-        WeaponData(ColorShift weaponColor, WeaponHeat weaponHeat, TESObjectREFR* actor) :
-            colorData(weaponColor), heatData(weaponHeat), actorRef(actor) {}
+        WeaponData(TESForm* weap, TESObjectREFR* actor, NiMaterialProperty* matProp, ColorShift weaponColor, WeaponHeat weaponHeat) :
+            weaponRef(weap), actorRef(actor), matProperty(matProp), colorData(weaponColor), heatData(weaponHeat) {}
 
         std::vector<const char*> blockNames;
     };

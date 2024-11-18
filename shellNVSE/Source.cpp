@@ -11,18 +11,18 @@
 
 namespace Overcharge
 {
-	UInt32 originalAddress;																		//Needed for AppendToCallChain
-	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();				//Needed so that all instances won't change color when a single weapon fires
+	UInt32 originalFireAddr;			
+	UInt32 originalEquipAddr;
 
 	std::unordered_map<UInt32, WeaponData> heatedWeapons;										//Vector containing all weapons that are currently heating up
 
-	void SetEmissiveRGB(TESObjectREFR* actorRef, const char* blockName, HeatRGB blendedColor)	//Rewritten SetMaterialProperty function
+	void SetEmissiveRGB(TESObjectREFR* actorRef, NiMaterialProperty* matProp, const char* blockName, HeatRGB blendedColor)	//Rewritten SetMaterialProperty function
 	{
 		if (NiNode* niNode = actorRef->GetNiNode())
 		{
 			if (NiAVObject* block = niNode->GetBlock(blockName))
 			{
-				((NiGeometry*)block)->materialProp = g_customPlayerMatProperty; 
+				((NiGeometry*)block)->materialProp = matProp; 
 				((NiGeometry*)block)->materialProp->emissiveRGB.r = blendedColor.heatRed;
 				((NiGeometry*)block)->materialProp->emissiveRGB.g = blendedColor.heatGreen;
 				((NiGeometry*)block)->materialProp->emissiveRGB.b = blendedColor.heatBlue;
@@ -48,96 +48,149 @@ namespace Overcharge
 		}
 	}
 
-	void DevKitFork(TESForm* rWeap, TESObjectREFR* rActor)
+	void DevKitOnFire(TESForm* rWeap, TESObjectREFR* rActor)
+	{
+		auto it = heatedWeapons.find(rActor->refID);
+
+		if (it == heatedWeapons.end())
+		{
+			AuxVector* colorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
+			AuxVector* heatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
+			AuxVector* nodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
+
+			if (!colorDataArgs || !heatDataArgs || !nodeDataArgs)
+			{
+				ThisStdCall<int>(originalFireAddr, rWeap, rActor);
+				return;
+			}
+			if ((*colorDataArgs)[0].type == kRetnType_String)
+			{
+				const ColorGroup* selectedCG = ColorGroup::GetColorSet((*colorDataArgs)[0].str);
+				if (selectedCG)
+				{
+					UInt32 colorStart = (UInt32)(*colorDataArgs)[1].num;
+					UInt32 colorTarget = (UInt32)(*colorDataArgs)[2].num;
+					ColorShift shiftedColor(selectedCG, selectedCG->colorSet[colorStart], selectedCG->colorSet[colorTarget], colorStart, colorTarget);
+
+					WeaponHeat heatData = { (*heatDataArgs)[0].num, (*heatDataArgs)[1].num, (*heatDataArgs)[2].num };
+					it = heatedWeapons.emplace(rActor->refID, WeaponData(rWeap, rActor, NiMaterialProperty::Create(), shiftedColor, heatData)).first;
+					it->second.heatData.HeatOnFire();
+
+					HeatRGB blendedColor = shiftedColor.Shift(it->second.heatData.heatVal, colorStart, colorTarget, selectedCG);
+					for (size_t i = 0; i < nodeDataArgs->size(); ++i)
+					{
+						const char* overchargeBlockName = (*nodeDataArgs)[i].str;
+						it->second.blockNames.emplace_back(overchargeBlockName);
+						SetEmissiveRGB(rActor, it->second.matProperty, overchargeBlockName, blendedColor);
+					}
+				}
+			}
+		}
+		else
+		{
+			it->second.heatData.HeatOnFire();
+		}
+		ThisStdCall<int>(originalFireAddr, rWeap, rActor);
+		return;
+	}
+
+	void DevKitOnReady(TESForm* rWeap, TESObjectREFR* rActor)
 	{
 		AuxVector* colorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
 		AuxVector* heatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
 		AuxVector* nodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
 
-		if (!colorDataArgs || !heatDataArgs || !nodeDataArgs) {						//If any of these are null, skip.
-			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
+		if (!colorDataArgs || !heatDataArgs || !nodeDataArgs) 
+		{
+			ThisStdCall<int>(originalEquipAddr, rActor);
 			return;
 		}
-
-		double overchargeHeatStart = (*heatDataArgs)[0].num;  
-		double overchargeHeatPerShot = (*heatDataArgs)[1].num;
-		double overchargeCooldown = (*heatDataArgs)[2].num;      
-		WeaponHeat heatData = { overchargeHeatStart, overchargeHeatPerShot, overchargeCooldown };
-
-		if ((*colorDataArgs)[0].type == kRetnType_String)						
+		if ((*colorDataArgs)[0].type == kRetnType_String)
 		{
-			const char* colorType = (*colorDataArgs)[0].str;
-			const ColorGroup* selectedCG = ColorGroup::GetColorSet(colorType);
-
-			if (selectedCG) {
+			const ColorGroup* selectedCG = ColorGroup::GetColorSet((*colorDataArgs)[0].str);
+			if (selectedCG)
+			{
 				UInt32 colorStart = (UInt32)(*colorDataArgs)[1].num;
 				UInt32 colorTarget = (UInt32)(*colorDataArgs)[2].num;
-
 				ColorShift shiftedColor(selectedCG, selectedCG->colorSet[colorStart], selectedCG->colorSet[colorTarget], colorStart, colorTarget);
 
-				auto iter = heatedWeapons.find(rWeap->refID);
-				if (iter == heatedWeapons.end()) {
-					auto pair = heatedWeapons.emplace(rWeap->refID, WeaponData(shiftedColor, heatData, rActor));
-					iter = pair.first;
+				WeaponHeat heatData = { (*heatDataArgs)[0].num, (*heatDataArgs)[1].num, (*heatDataArgs)[2].num };
+				auto iter = heatedWeapons.find(rActor->refID);
+				if (iter == heatedWeapons.end())
+				{
+					iter = heatedWeapons.emplace(rActor->refID, WeaponData(rWeap, rActor, NiMaterialProperty::Create(), shiftedColor, heatData)).first;
 				}
-				iter->second.heatData.HeatOnFire();
-
-				HeatRGB blendedColor = shiftedColor.Shift(iter->second.heatData.heatVal, colorStart, colorTarget, selectedCG);
+				HeatRGB blendedColor = shiftedColor.Shift(iter->second.heatData.heatVal += 1, colorStart, colorTarget, selectedCG);
 				for (size_t i = 0; i < nodeDataArgs->size(); ++i)
 				{
-					const char* overchargeBlockName = (*nodeDataArgs)[i].str; 
-					iter->second.blockNames.emplace_back(overchargeBlockName); 
-					SetEmissiveRGB(rActor, overchargeBlockName, blendedColor);
+					const char* overchargeBlockName = (*nodeDataArgs)[i].str;
+					iter->second.blockNames.emplace_back(overchargeBlockName);
+					SetEmissiveRGB(rActor, iter->second.matProperty, overchargeBlockName, blendedColor);
 				}
 			}
 		}
-		ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
+		ThisStdCall<int>(originalEquipAddr, rActor);
 		return;
+	}
+
+	void WeaponCooldown()                                                                   
+	{
+		for (auto it = Overcharge::heatedWeapons.begin(); it != Overcharge::heatedWeapons.end();)
+		{
+			auto& weaponData = it->second;
+			float cooldownStep = g_timeGlobal->secondsPassed * it->second.heatData.cooldownRate;
+			if ((weaponData.heatData.heatVal -= cooldownStep) <= weaponData.heatData.baseHeatVal)
+			{
+				g_isOverheated = 0;
+				it = Overcharge::heatedWeapons.erase(it);
+			}
+			else
+			{
+				HeatRGB blendedColor = weaponData.colorData.Shift(weaponData.heatData.heatVal, weaponData.colorData.startIndex, weaponData.colorData.targetIndex, weaponData.colorData.colorType);
+				for (const char* overchargeBlockName : weaponData.blockNames)
+				{
+					SetEmissiveRGB(weaponData.actorRef, weaponData.matProperty, overchargeBlockName, blendedColor);
+				}
+				++it;
+			}
+		}
 	}
 
 	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)
 	{
 		if (PluginFunctions::pNVSE == true)
 		{
-			DevKitFork(rWeap, rActor);
+			DevKitOnFire(rWeap, rActor); 
 		}
 		else
 		{
-			ThisStdCall<int>(originalAddress, rWeap, rActor);						//Plays original Actor::FireWeapon
+			ThisStdCall<int>(originalFireAddr, rWeap, rActor);						//Plays original Actor::FireWeapon
 		}
 	}
 
-	void WeaponCooldown()                                                                               //Responsible for cooling a weapon down
-    {
-        if (!Overcharge::heatedWeapons.empty())															//If there are heating weapons...
-        {
-            for (auto it = Overcharge::heatedWeapons.begin(); it != Overcharge::heatedWeapons.end();)	//Iterates through vector containing all heating weapons 
-            {
-                if ((it->second.heatData.heatVal -= (g_timeGlobal->secondsPassed * it->second.heatData.cooldownRate)) <= it->second.heatData.baseHeatVal)			//Cools down heatVal by specified cooldown rate per second until starting heat level is reached
-                {
-                    g_isOverheated = 0;																	//When starting value is reached remove Overheated flag
-                    it = Overcharge::heatedWeapons.erase(it);											//Remove weapon from vector containing heating weapons 
-                }
-                else
-                {
-					HeatRGB blendedColor = it->second.colorData.Shift(it->second.heatData.heatVal, it->second.colorData.startIndex, it->second.colorData.targetIndex, it->second.colorData.colorType);
-					TESObjectREFR* actorRef = it->second.actorRef;
-					for (const char* overchargeBlockName : it->second.blockNames) 
-					{
-						SetEmissiveRGB(actorRef, overchargeBlockName, blendedColor);
-					}
-                    ++it;																				//Move on to next heating weapons 
-                }
-            }
-        }
-    }
+	void __fastcall EquipItemWrapper(TESObjectREFR* rActor, void* edx)  
+	{
+		TESForm* weapon = ThisStdCall<TESForm*>(originalEquipAddr, rActor); 
+		if (PluginFunctions::pNVSE == true)
+		{
+			DevKitOnReady(weapon, rActor);
+		}
+		else
+		{
+			ThisStdCall<int>(originalEquipAddr, rActor);
+		}
+	} 
+
 
 	void InitHooks()
 	{
 		UInt32 actorFireAddr = 0x8BADE9; //0x8BADE9 Actor:FireWeapon
 		UInt32 startFireAnim = 0x949CEA; //0x949CF1 Start Fire Animation
+		UInt32 EquipItem = 0x95DCAC;	 //0x88CAEB Equip Item Function
+		UInt32 readyWeapAddr = 0x8A5F93;
 
-		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalAddress); 
-		WriteRelJump(startFireAnim, UInt32(FireAnimDetour));  
+		AppendToCallChain(readyWeapAddr, UInt32(EquipItemWrapper), originalEquipAddr);
+		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalFireAddr);
+		//WriteRelJump(startFireAnim, UInt32(FireAnimDetour));  
 	} 
 }
