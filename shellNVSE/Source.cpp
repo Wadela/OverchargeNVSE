@@ -13,6 +13,12 @@ namespace Overcharge
 {
 	UInt32 originalFireAddr;			
 	UInt32 originalEquipAddr;
+	UInt32 originalProjAddr;
+	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
+
+	TESObjectREFR* projectile;
+	Actor* projOwner;
+	TESObjectWEAP* weap;
 
 	std::unordered_map<UInt32, WeaponData> heatedWeapons;										//Vector containing all weapons that are currently heating up
 
@@ -27,6 +33,20 @@ namespace Overcharge
 				((NiGeometry*)block)->materialProp->emissiveRGB.g = blendedColor.heatGreen;
 				((NiGeometry*)block)->materialProp->emissiveRGB.b = blendedColor.heatBlue;
 				((NiGeometry*)block)->materialProp->emitMult = 2.0;
+			}
+		}
+	}
+	void SetProjRGB(TESObjectREFR* proj, const char* blockName)	//Rewritten SetMaterialProperty function
+	{
+		if (NiNode* niNode = proj->GetNiNode())
+		{
+			if (NiAVObject* block = niNode->GetBlock(blockName))
+			{
+				((NiGeometry*)block)->materialProp = g_customPlayerMatProperty;
+				((NiGeometry*)block)->materialProp->emissiveRGB.r = 1.0f;
+				((NiGeometry*)block)->materialProp->emissiveRGB.g = 0.0f;
+				((NiGeometry*)block)->materialProp->emissiveRGB.b = 0.0f;
+				((NiGeometry*)block)->materialProp->emitMult = 3.0;
 			}
 		}
 	}
@@ -48,7 +68,44 @@ namespace Overcharge
 		}
 	}
 
-	void DevKitOnFire(TESForm* rWeap, TESObjectREFR* rActor)
+	__declspec(naked) void __stdcall ProjHook()
+	{
+		static UInt32 const retnAddr = 0x9BD52F;
+
+		__asm
+		{
+			mov		edx, [ebp - 0x14]	// liveProjectile (arg1)
+			mov		ebx, [ebp + 0xC]	// actor (arg2)
+			mov		edi, [ebp + 0x14]	// weapon (arg3)
+			mov		projectile, edx
+			mov		projOwner, ebx
+			mov		weap, edi
+
+			// do the regular code
+			pop		ecx
+			pop		edi
+			pop		esi
+			mov		esp, ebp
+			jmp		retnAddr
+		}
+	}
+
+
+	void __fastcall ProjColorTemp(TESObjectREFR* proj)
+	{
+		if (proj == nullptr)
+		{
+			return;
+		}
+		else
+		{
+			SetProjRGB(proj, "CoreHot01:1");
+			SetProjRGB(proj, "pWisps01");
+			return;
+		}
+	}
+
+	void DevKitOnFire(TESObjectWEAP* rWeap, TESObjectREFR* rActor)
 	{
 		auto it = heatedWeapons.find(rActor->refID);
 
@@ -89,6 +146,7 @@ namespace Overcharge
 		else
 		{
 			it->second.heatData.HeatOnFire();
+
 		}
 		ThisStdCall<int>(originalFireAddr, rWeap, rActor);
 		return;
@@ -156,7 +214,7 @@ namespace Overcharge
 		}
 	}
 
-	void __fastcall FireWeaponWrapper(TESForm* rWeap, void* edx, TESObjectREFR* rActor)
+	void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, TESObjectREFR* rActor)
 	{
 		if (PluginFunctions::pNVSE == true)
 		{
@@ -165,6 +223,7 @@ namespace Overcharge
 		else
 		{
 			ThisStdCall<int>(originalFireAddr, rWeap, rActor);						//Plays original Actor::FireWeapon
+
 		}
 	}
 
@@ -181,6 +240,16 @@ namespace Overcharge
 		}
 	} 
 
+	void __fastcall ProjectileWrapper(void* a1, TESObjectREFR* projectile) //void * ecx 
+	{
+		SetProjRGB(projectile, "CoreHot01:1");
+		SetProjRGB(projectile, "pWisps01");
+		SetProjRGB(projectile, "OuterWisps:0");
+		SetProjRGB(projectile, "CoreWispyEnergy02:0");
+
+		ThisStdCall<int>(originalProjAddr, a1, projectile); 
+	}
+
 
 	void InitHooks()
 	{
@@ -188,9 +257,18 @@ namespace Overcharge
 		UInt32 startFireAnim = 0x949CEA; //0x949CF1 Start Fire Animation
 		UInt32 EquipItem = 0x95DCAC;	 //0x88CAEB Equip Item Function
 		UInt32 readyWeapAddr = 0x8A5F93;
+		UInt32 projectileData = 0x9BD52A;
+		UInt32 Do3DLoadedAddr = 0x9B7CC0;
+		UInt32 CreateProjectile = 0x9BD518;
+		UInt32 CreateProjectile1 = 0x9BF22D;
+		UInt32 AddProj = 0x9BD511;
+		UInt32 Do3DLoaded = 0x9BDA10;
+		UInt32 getProjBaseForm = 0x9B7CE1;
 
 		AppendToCallChain(readyWeapAddr, UInt32(EquipItemWrapper), originalEquipAddr);
 		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalFireAddr);
+		AppendToCallChain(CreateProjectile, UInt32(ProjectileWrapper), originalProjAddr); 
+		//WriteRelJump(projectileData, UInt32(ProjHook));
 		//WriteRelJump(startFireAnim, UInt32(FireAnimDetour));  
 	} 
 }

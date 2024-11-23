@@ -1110,3 +1110,28 @@ __declspec(naked) void Actor::RefreshAnimData()
 		retn
 	}
 }
+
+// From JIP
+TESObjectREFR* Projectile::GetImpactRef() const
+{
+	if (hasImpacted)
+	{
+		const ListNode<ImpactData>* traverse = impactDataList.Head();
+		do
+		{
+			ImpactData* impactData = traverse->data;
+			if (impactData && impactData->refr)
+			{
+				return impactData->refr;
+			}
+		} while (traverse = traverse->next);
+	}
+	return nullptr;
+}
+
+// From Tweaks
+Projectile* __cdecl Projectile::Spawn(BGSProjectile* projectile, Actor* source, CombatController* combatCtrl, TESObjectWEAP* sourceWeap,
+	NiPoint3 pos, float rotZ, float rotX, float angularMomentumZ, float angularMomentumX, TESObjectCELL* cell, bool ignoreGravity)
+{
+	return CdeclCall<Projectile*>(0x9BCA60, projectile, source, combatCtrl, sourceWeap, pos, rotZ, rotX, 0, 0, 0, ignoreGravity, angularMomentumZ, angularMomentumX, cell);
+}
