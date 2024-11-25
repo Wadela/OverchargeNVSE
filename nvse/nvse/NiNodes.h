@@ -2363,7 +2363,6 @@ public:
 	UInt8			unk24;			// 24	from ActiveEffect.EffectFlag
 	UInt8			pad25[3];
 };
-
 // 6C
 class MagicShaderHitEffect : public MagicHitEffect
 {

@@ -14,6 +14,7 @@ namespace Overcharge
 	UInt32 originalFireAddr;			
 	UInt32 originalEquipAddr;
 	UInt32 originalProjAddr;
+	UInt32 originalMuzzleAddr;
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
 
 	TESObjectREFR* projectile;
@@ -36,22 +37,19 @@ namespace Overcharge
 			}
 		}
 	}
-	void SetProjRGB(TESObjectREFR* proj, const char* blockName)	//Rewritten SetMaterialProperty function
+
+	void SetMuzzleRGB(NiNode* node, NiMaterialProperty* matProp, const char* blockName, HeatRGB blendedColor)	//Rewritten SetMaterialProperty function
 	{
-		if (NiNode* niNode = proj->GetNiNode())
+		if (NiAVObject* block = node->GetBlock(blockName))
 		{
-			if (NiAVObject* block = niNode->GetBlock(blockName))
-			{
-				((NiGeometry*)block)->materialProp = g_customPlayerMatProperty;
-				((NiGeometry*)block)->materialProp->emissiveRGB.r = 1.0f;
-				((NiGeometry*)block)->materialProp->emissiveRGB.g = 0.0f;
-				((NiGeometry*)block)->materialProp->emissiveRGB.b = 0.0f;
-				((NiGeometry*)block)->materialProp->emitMult = 3.0;
-			}
+			((NiGeometry*)block)->materialProp = matProp;
+			((NiGeometry*)block)->materialProp->emissiveRGB.r = blendedColor.heatRed;
+			((NiGeometry*)block)->materialProp->emissiveRGB.g = blendedColor.heatGreen;
+			((NiGeometry*)block)->materialProp->emissiveRGB.b = blendedColor.heatBlue;
+			((NiGeometry*)block)->materialProp->emitMult = 2.0;
 		}
 	}
-
-	__declspec(naked) void __stdcall FireAnimDetour()
+	void __declspec(naked) FireAnimDetour()
 	{
 		static const UInt32 returnAddr = 0x949CF1;
 
@@ -68,44 +66,115 @@ namespace Overcharge
 		}
 	}
 
-	__declspec(naked) void __stdcall ProjHook()
+	void DevKitOnProj(TESObjectWEAP* rWeap, TESObjectREFR* projectile, TESObjectREFR* rActor)
 	{
-		static UInt32 const retnAddr = 0x9BD52F;
+		auto it = heatedWeapons.find(rActor->refID);
 
-		__asm
+		if (it == heatedWeapons.end())
 		{
-			mov		edx, [ebp - 0x14]	// liveProjectile (arg1)
-			mov		ebx, [ebp + 0xC]	// actor (arg2)
-			mov		edi, [ebp + 0x14]	// weapon (arg3)
-			mov		projectile, edx
-			mov		projOwner, ebx
-			mov		weap, edi
+			AuxVector* colorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
+			AuxVector* heatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
+			AuxVector* nodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
 
-			// do the regular code
-			pop		ecx
-			pop		edi
-			pop		esi
-			mov		esp, ebp
-			jmp		retnAddr
-		}
-	}
+			if (!colorDataArgs || !heatDataArgs || !nodeDataArgs)
+			{
+				return;
+			}
+			if ((*colorDataArgs)[0].type == kRetnType_String)
+			{
+				const ColorGroup* selectedCG = ColorGroup::GetColorSet((*colorDataArgs)[0].str);
+				if (selectedCG)
+				{
+					UInt32 colorStart = (UInt32)(*colorDataArgs)[1].num;
+					UInt32 colorTarget = (UInt32)(*colorDataArgs)[2].num;
+					ColorShift shiftedColor(selectedCG, selectedCG->colorSet[colorStart], selectedCG->colorSet[colorTarget], colorStart, colorTarget);
 
+					WeaponHeat heatData = { (*heatDataArgs)[0].num, (*heatDataArgs)[1].num, (*heatDataArgs)[2].num };
+					it = heatedWeapons.emplace(rActor->refID, WeaponData(rWeap, projectile, rActor, NiMaterialProperty::Create(), shiftedColor, heatData)).first;
+					it->second.heatData.HeatOnFire();
 
-	void __fastcall ProjColorTemp(TESObjectREFR* proj)
-	{
-		if (proj == nullptr)
-		{
-			return;
+					HeatRGB blendedColor = shiftedColor.Shift(it->second.heatData.heatVal, colorStart, colorTarget, selectedCG);
+					for (size_t i = 0; i < nodeDataArgs->size(); ++i)
+					{
+						const char* overchargeBlockName = (*nodeDataArgs)[i].str;
+						it->second.blockNames.emplace_back(overchargeBlockName);
+						SetEmissiveRGB(rActor, it->second.matProperty, overchargeBlockName, blendedColor);
+					}
+
+				}
+			}
 		}
 		else
 		{
-			SetProjRGB(proj, "CoreHot01:1");
-			SetProjRGB(proj, "pWisps01");
-			return;
+			auto& weaponData = it->second;
+			//weaponData.heatData.HeatOnFire();
+			HeatRGB blendedColor = weaponData.colorData.Shift(weaponData.heatData.heatVal, weaponData.colorData.startIndex, weaponData.colorData.targetIndex, weaponData.colorData.colorType);
+			SetEmissiveRGB(projectile, it->second.matProperty, "CoreHot01:1", blendedColor);
+			SetEmissiveRGB(projectile, it->second.matProperty, "pWisps01", blendedColor);
+			SetEmissiveRGB(projectile, it->second.matProperty, "CoreWispyEnergy02:0", blendedColor);
+			SetEmissiveRGB(projectile, it->second.matProperty, "Plane03:0", blendedColor);
+			SetEmissiveRGB(projectile, it->second.matProperty, "LaserGeometry:0", blendedColor);
+			SetEmissiveRGB(projectile, it->second.matProperty, "LaserGeometry:1", blendedColor);
 		}
+		return;
 	}
 
-	void DevKitOnFire(TESObjectWEAP* rWeap, TESObjectREFR* rActor)
+	void DevKitOnMuzzleFlash(MuzzleFlash* muzzle, TESObjectWEAP* rWeap, TESObjectREFR* rActor)
+	{
+		auto it = heatedWeapons.find(rActor->refID);
+
+		if (it == heatedWeapons.end())
+		{
+			AuxVector* colorDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorData", nullptr, nullptr, 0);
+			AuxVector* heatDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeHeatData", nullptr, nullptr, 0);
+			AuxVector* nodeDataArgs = PluginFunctions::GetMemberVar(rWeap, "OverchargeColorNodes", nullptr, nullptr, 0);
+
+			if (!colorDataArgs || !heatDataArgs || !nodeDataArgs)
+			{
+				return;
+			}
+			if ((*colorDataArgs)[0].type == kRetnType_String)
+			{
+				const ColorGroup* selectedCG = ColorGroup::GetColorSet((*colorDataArgs)[0].str);
+				if (selectedCG)
+				{
+					UInt32 colorStart = (UInt32)(*colorDataArgs)[1].num;
+					UInt32 colorTarget = (UInt32)(*colorDataArgs)[2].num;
+					ColorShift shiftedColor(selectedCG, selectedCG->colorSet[colorStart], selectedCG->colorSet[colorTarget], colorStart, colorTarget);
+
+					WeaponHeat heatData = { (*heatDataArgs)[0].num, (*heatDataArgs)[1].num, (*heatDataArgs)[2].num };
+					it = heatedWeapons.emplace(rActor->refID, WeaponData(rWeap, projectile, rActor, NiMaterialProperty::Create(), shiftedColor, heatData)).first;
+					it->second.heatData.HeatOnFire();
+
+					HeatRGB blendedColor = shiftedColor.Shift(it->second.heatData.heatVal, colorStart, colorTarget, selectedCG);
+					for (size_t i = 0; i < nodeDataArgs->size(); ++i)
+					{
+						const char* overchargeBlockName = (*nodeDataArgs)[i].str;
+						it->second.blockNames.emplace_back(overchargeBlockName);
+						SetEmissiveRGB(rActor, it->second.matProperty, overchargeBlockName, blendedColor);
+					}
+
+				}
+			}
+		}
+		else
+		{
+			auto& weaponData = it->second;
+			weaponData.heatData.HeatOnFire();
+			HeatRGB blendedColor = weaponData.colorData.Shift(weaponData.heatData.heatVal, weaponData.colorData.startIndex, weaponData.colorData.targetIndex, weaponData.colorData.colorType);
+			SetMuzzleRGB(muzzle->spNode, it->second.matProperty, "Plane01:0", blendedColor);
+			SetMuzzleRGB(muzzle->spNode, it->second.matProperty, "Plane02:0", blendedColor);
+			SetMuzzleRGB(muzzle->spNode, it->second.matProperty, "CoreWispyEnergy02:0", blendedColor);
+			SetMuzzleRGB(muzzle->spNode, it->second.matProperty, "CoreWispyEnergy03", blendedColor);
+			SetMuzzleRGB(muzzle->spNode, it->second.matProperty, "HorizontalFlash06", blendedColor);
+			SetMuzzleRGB(muzzle->spNode, it->second.matProperty, "BigGlow:0", blendedColor);
+			SetMuzzleRGB(muzzle->spNode, it->second.matProperty, "PlaneBurst:0", blendedColor);
+			SetMuzzleRGB(muzzle->spNode, it->second.matProperty, "PlaneBurst:1", blendedColor);
+		}
+		return;
+	}
+
+	/*void DevKitOnFire(TESObjectWEAP* rWeap, TESObjectREFR* rActor)
 	{
 		auto it = heatedWeapons.find(rActor->refID);
 
@@ -189,7 +258,7 @@ namespace Overcharge
 		}
 		ThisStdCall<int>(originalEquipAddr, rActor);
 		return;
-	}
+	}*/
 
 	void WeaponCooldown()                                                                   
 	{
@@ -209,6 +278,7 @@ namespace Overcharge
 				{
 					SetEmissiveRGB(weaponData.actorRef, weaponData.matProperty, overchargeBlockName, blendedColor);
 				}
+
 				++it;
 			}
 		}
@@ -218,12 +288,44 @@ namespace Overcharge
 	{
 		if (PluginFunctions::pNVSE == true)
 		{
-			DevKitOnFire(rWeap, rActor); 
+			//DevKitOnFire(rWeap, rActor); 
 		}
 		else
 		{
 			ThisStdCall<int>(originalFireAddr, rWeap, rActor);						//Plays original Actor::FireWeapon
 
+		}
+	}
+	void __fastcall ProjRGB(TESObjectREFR* projectile, Actor* actor, TESObjectWEAP* weap)
+	{
+		if (PluginFunctions::pNVSE == true)
+		{
+			DevKitOnProj(weap, projectile, actor);
+		}
+		else
+		{
+			return;						//Plays original Actor::FireWeapon
+		}
+	}
+
+	void __declspec(naked) ProjHook()
+	{
+		static UInt32 const retnAddr = 0x9BD52F;
+
+		__asm
+		{
+			mov		ecx, [ebp - 0x14]	// liveProjectile (arg1)
+			mov		edx, [ebp + 0xC]	// actor (arg2)
+			mov		esi, [ebp + 0x14]	// weapon (arg3)
+			push	esi
+			call	ProjRGB
+
+			// do the regular code
+			pop		ecx
+			pop		edi
+			pop		esi
+			mov		esp, ebp
+			jmp		retnAddr
 		}
 	}
 
@@ -232,21 +334,34 @@ namespace Overcharge
 		TESForm* weapon = ThisStdCall<TESForm*>(originalEquipAddr, rActor); 
 		if (PluginFunctions::pNVSE == true)
 		{
-			DevKitOnReady(weapon, rActor);
+			//DevKitOnReady(weapon, rActor);
 		}
 		else
 		{
 			ThisStdCall<int>(originalEquipAddr, rActor);
 		}
 	} 
-
-	void __fastcall ProjectileWrapper(void* a1, TESObjectREFR* projectile) //void * ecx 
+	void __fastcall MuzzleFlashWrapper(MuzzleFlash* muzzleFlash)
 	{
-		SetProjRGB(projectile, "CoreHot01:1");
-		SetProjRGB(projectile, "pWisps01");
-		SetProjRGB(projectile, "OuterWisps:0");
-		SetProjRGB(projectile, "CoreWispyEnergy02:0");
+		if (PluginFunctions::pNVSE == true)
+		{
+			DevKitOnMuzzleFlash(muzzleFlash, muzzleFlash->pSourceWeapon, muzzleFlash->pSourceActor);
+		}
 
+
+		ThisStdCall<int>(originalMuzzleAddr, muzzleFlash);
+	}
+
+	void __fastcall ProjectileWrapper(void* a1, void* edx, TESObjectREFR* projectile) //void * ecx 
+	{
+		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress(), false);
+		auto ref = *reinterpret_cast<TESForm**>(ebp + 0xC);
+
+		auto it = heatedWeapons.find(ref->refID);
+		auto& weaponData = it->second;
+		HeatRGB blendedColor = weaponData.colorData.Shift(weaponData.heatData.heatVal, weaponData.colorData.startIndex, weaponData.colorData.targetIndex, weaponData.colorData.colorType);
+		SetEmissiveRGB(projectile, it->second.matProperty, "CoreHot01:1", blendedColor);
+		SetEmissiveRGB(projectile, it->second.matProperty, "pWisps01", blendedColor);
 		ThisStdCall<int>(originalProjAddr, a1, projectile); 
 	}
 
@@ -264,11 +379,13 @@ namespace Overcharge
 		UInt32 AddProj = 0x9BD511;
 		UInt32 Do3DLoaded = 0x9BDA10;
 		UInt32 getProjBaseForm = 0x9B7CE1;
+		UInt32 MuzzleFlashEnable = 0x9BB7CD; //MuzzleFlash::Enable
 
-		AppendToCallChain(readyWeapAddr, UInt32(EquipItemWrapper), originalEquipAddr);
-		AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalFireAddr);
-		AppendToCallChain(CreateProjectile, UInt32(ProjectileWrapper), originalProjAddr); 
-		//WriteRelJump(projectileData, UInt32(ProjHook));
+		//AppendToCallChain(readyWeapAddr, UInt32(EquipItemWrapper), originalEquipAddr);
+		//AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalFireAddr);
+		//AppendToCallChain(CreateProjectile, UInt32(ProjectileWrapper), originalProjAddr); 
+		WriteRelJump(projectileData, UInt32(ProjHook)); 
+		AppendToCallChain(MuzzleFlashEnable, UInt32(MuzzleFlashWrapper), originalMuzzleAddr);
 		//WriteRelJump(startFireAnim, UInt32(FireAnimDetour));  
 	} 
 }

@@ -535,6 +535,7 @@ public:
 	float		flt15C;			// 15C
 };
 
+
 // 00C
 class MagicCaster
 {

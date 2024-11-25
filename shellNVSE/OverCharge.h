@@ -88,6 +88,20 @@ namespace Overcharge
         }
     };
 
+    struct MuzzleFlash
+    {
+        bool bEnabled;
+        bool bMPSEnabled;
+        bool bUpdateLight;
+        float fEnableTimer;
+        float fDurationTimer;
+        NiNode* spNode;
+        void* spLight; //NiPointLight* spLight, go grab the type. 
+        BGSProjectile* pProjectile;
+        TESObjectWEAP* pSourceWeapon;
+        Actor* pSourceActor;
+    };
+
     //Overheating Code
     struct WeaponHeat
     {
@@ -105,13 +119,14 @@ namespace Overcharge
     struct WeaponData
     {
         TESForm* weaponRef;
+        TESObjectREFR* projectileRef;
         TESObjectREFR* actorRef;
         NiMaterialProperty* matProperty;
         ColorShift colorData;
         WeaponHeat heatData; 
 
-        WeaponData(TESForm* weap, TESObjectREFR* actor, NiMaterialProperty* matProp, ColorShift weaponColor, WeaponHeat weaponHeat) :
-            weaponRef(weap), actorRef(actor), matProperty(matProp), colorData(weaponColor), heatData(weaponHeat) {}
+        WeaponData(TESForm* weap, TESObjectREFR* proj, TESObjectREFR* actor, NiMaterialProperty* matProp, ColorShift weaponColor, WeaponHeat weaponHeat) :
+            weaponRef(weap), projectileRef(proj), actorRef(actor), matProperty(matProp), colorData(weaponColor), heatData(weaponHeat) {}
 
         std::vector<const char*> blockNames;
     };
