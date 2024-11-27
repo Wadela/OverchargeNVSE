@@ -357,6 +357,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\NVSE\nvse\nvse\ParamInfos.h" />
+    <ClInclude Include="..\CommonLib\CommonPrefix.hpp" />
     <ClInclude Include="..\nvse\nvse\Commands_Script.h" />
     <ClInclude Include="..\nvse\nvse\CommandTable.h" />
     <ClInclude Include="..\nvse\nvse\containers.h" />

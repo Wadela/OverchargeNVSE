@@ -788,6 +788,127 @@ public:
 	operator T*() { return data; }
 };
 
+namespace NiPointerNew
+{
+	//via CommonPrefix.hpp
+	template <typename T_Ret = UInt32, typename ...Args>
+	__forceinline T_Ret ThisCall(UInt32 _addr, void* _this, Args ...args)
+	{
+		class T {};
+		union {
+			UInt32  addr;
+			T_Ret(T::* func)(Args...);
+		} u = { _addr };
+		return ((T*)_this->*u.func)(std::forward<Args>(args)...);
+	}
+
+	template <typename T_Ret = UInt32, typename ...Args>
+	__forceinline T_Ret ThisStdCall(UInt32 _addr, const void* _this, Args ...args)
+	{
+		return ((T_Ret(__thiscall*)(const void*, Args...))_addr)(_this, std::forward<Args>(args)...);
+	}
+
+	template <typename T_Ret = void, typename ...Args>
+	__forceinline T_Ret StdCall(UInt32 _addr, Args ...args)
+	{
+		return ((T_Ret(__stdcall*)(Args...))_addr)(std::forward<Args>(args)...);
+	}
+
+	template <typename T_Ret = void, typename ...Args>
+	__forceinline T_Ret CdeclCall(UInt32 _addr, Args ...args)
+	{
+		return ((T_Ret(__cdecl*)(Args...))_addr)(std::forward<Args>(args)...);
+	}
+#define ASSERT_SIZE(a, b) static_assert(sizeof(a) == b, "Wrong structure size!");
+#define ASSERT_OFFSET(a, b, c) static_assert(offsetof(a, b) == c, "Wrong member offset!");
+#define CREATE_OBJECT(CLASS, ADDRESS) static CLASS* CreateObject() { return StdCall<CLASS*>(ADDRESS); };
+
+	template <class T_Data>
+	class NiPointer {
+	public:
+		NiPointer(T_Data* pObject = (T_Data*)0);
+		NiPointer(const NiPointer& ptr);
+		~NiPointer();
+
+		T_Data* m_pObject;
+
+		operator T_Data* () const;
+		T_Data& operator*() const;
+		T_Data* operator->() const;
+
+		__forceinline NiPointer<T_Data>& operator =(const NiPointer& ptr) {
+			if (m_pObject != ptr.m_pObject) {
+				if (m_pObject)
+					m_pObject->DecRefCount();
+				m_pObject = ptr.m_pObject;
+				if (m_pObject)
+					m_pObject->IncRefCount();
+			}
+			return *this;
+		}
+
+		__forceinline NiPointer<T_Data>& operator =(T_Data* pObject) {
+			if (m_pObject != pObject) {
+				if (m_pObject)
+					m_pObject->DecRefCount();
+				m_pObject = pObject;
+				if (m_pObject)
+					m_pObject->IncRefCount();
+			}
+			return *this;
+		}
+
+		__forceinline bool operator==(T_Data* pObject) const { return (m_pObject == pObject); }
+
+		//__forceinline bool operator!=(T_Data* pObject) const { return (m_pObject != pObject); }
+
+		__forceinline bool operator==(const NiPointer& ptr) const { return (m_pObject == ptr.m_pObject); }
+
+		//__forceinline bool operator!=(const NiPointer& ptr) const { return (m_pObject != ptr.m_pObject); }
+
+		__forceinline operator bool() const { return m_pObject != nullptr; }
+	};
+
+#define NiSmartPointer(className) \
+	class className; \
+	typedef NiPointer<className> className##Ptr;
+
+
+	template <class T_Data>
+	inline NiPointer<T_Data>::NiPointer(T_Data* pObject) {
+		m_pObject = pObject;
+		if (m_pObject)
+			m_pObject->IncRefCount();
+	}
+
+	template <class T_Data>
+	inline NiPointer<T_Data>::NiPointer(const NiPointer& ptr) {
+		m_pObject = ptr.m_pObject;
+		if (m_pObject)
+			m_pObject->IncRefCount();
+	}
+
+	template <class T_Data>
+	inline NiPointer<T_Data>::~NiPointer() {
+		if (m_pObject)
+			m_pObject->DecRefCount();
+	}
+
+	template <class T_Data>
+	inline NiPointer<T_Data>::operator T_Data* () const {
+		return m_pObject;
+	}
+
+	template <class T_Data>
+	inline T_Data& NiPointer<T_Data>::operator*() const {
+		return *m_pObject;
+	}
+
+	template <class T_Data>
+	inline T_Data* NiPointer<T_Data>::operator->() const {
+		return m_pObject;
+	}
+}
 // 14
 template <typename T>
 class BSTPersistentList

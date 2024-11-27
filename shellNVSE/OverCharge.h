@@ -102,6 +102,20 @@ namespace Overcharge
         Actor* pSourceActor;
     };
 
+    struct BSTempEffectGeometryDecal
+    {
+        char pad[0x20];
+        NiNode* pParentNode;
+        char pad2[0x8];
+        NiGeometry* spOwnerGeometry;
+        NiNode* spOwnerGeometryParent;
+    };
+
+    struct BSTempEffectParticle : BSTempEffect
+    {
+        NiAVObject* spParticleObject; 
+    };
+
     //Overheating Code
     struct WeaponHeat
     {

@@ -471,6 +471,11 @@ struct NiPoint3;
 
 class TESSound;
 
+//via CommonPrefix.hpp
+#define ASSERT_SIZE(a, b) static_assert(sizeof(a) == b, "Wrong structure size!");
+#define ASSERT_OFFSET(a, b, c) static_assert(offsetof(a, b) == c, "Wrong member offset!");
+#define CREATE_OBJECT(CLASS, ADDRESS) static CLASS* CreateObject() { return StdCall<CLASS*>(ADDRESS); };
+
 // member fn addresses
 #if RUNTIME
 	const UInt32 kNiObjectNET_GetExtraData = 0x006FF9C0;
@@ -2390,8 +2395,8 @@ public:
 	virtual void			UpdateControllers(NiUpdateData& arData);
 	virtual void			ApplyTransform(NiMatrix33& arMat, NiVector3& arTrn, bool abOnLeft);
 	virtual void			Unk_39();
-	virtual NiAVObject* GetObject_(const void* arName);
-	virtual NiAVObject* GetObjectByName(const char* arName);
+	virtual NiAVObject*		GetObject_(const void* arName);
+	virtual NiAVObject*		GetObjectByName(const char* arName);
 	virtual void			SetSelectiveUpdateFlags(UInt8* bSelectiveUpdate, UInt32 bSelectiveUpdateTransform, UInt8* bRigid);
 	virtual void			UpdateDownwardPass(const NiUpdateData& arData, UInt32 auiFlags);
 	virtual void			UpdateSelectedDownwardPass(const NiUpdateData& arData, UInt32 auiFlags);
@@ -2407,6 +2412,41 @@ public:
 	/*D0*/virtual void		UpdateUpwardPassParent();
 	virtual void			OnVisible(NiCullingProcess* apCuller);
 	virtual void			PurgeRendererData(void* apRenderer);
+
+	enum NiFlags : DWORD {
+		APP_CULLED = 1u << 0,
+		SELECTIVE_UPDATE = 1u << 1,
+		SELECTIVE_UPDATE_TRANSFORMS = 1u << 2,
+		SELECTIVE_UPDATE_CONTROLLER = 1u << 3,
+		SELECTIVE_UPDATE_RIGID = 1u << 4,
+		DISPLAY_OBJECT = 1u << 5,
+		DISABLE_SORTING = 1u << 6,	// Gamebryo's sorter is used only on Tiles
+		SELECTIVE_UPDATE_TRANSFORMS_OVERRIDE = 1u << 7,
+		UNK_8 = 1u << 8,
+		SAVE_EXTERNAL_GEOM_DATA = 1u << 9,
+		NO_DECALS = 1u << 10,
+		ALWAYS_DRAW = 1u << 11,
+		ACTOR_NODE = 1u << 12,
+		FIXED_BOUND = 1u << 13,
+		FADED_IN = 1u << 14,
+		IGNORE_FADE = 1u << 15,
+		LOD_FADING_OUT = 1u << 16,
+		HAS_MOVING_SOUND = 1u << 17,
+		HAS_PROPERTY_CONTROLLER = 1u << 18,
+		HAS_BOUND = 1u << 19,
+		ACTOR_CULLED = 1u << 20,
+		IGNORES_PICKING = 1u << 21,
+		RENDER_USE = 1u << 22,
+		UNK_23 = 1u << 23,
+		HIGH_DETAIL = 1u << 24, // Unused, meant for actors 0x936F75
+		UNK_25 = 1u << 25,
+		UNK_26 = 1u << 26,
+		UNK_27 = 1u << 27,
+		UNK_28 = 1u << 28,
+		IS_POINTLIGHT = 1u << 29, // Added by JIP
+		DONE_INIT_LIGHTS = 1u << 30, // Added by JIP
+		IS_INSERTED = 1u << 31  // Added by JIP
+	};
 
 	NiNode* m_parent;				// 18
 	void* m_collisionObject;		// 1C
@@ -2425,6 +2465,103 @@ public:
 	void DumpProperties();
 	void DumpParents();
 	
+	// FLAGS
+
+	void SetBit(bool bVal, UInt32 uMask);
+	bool GetBit(UInt32 uMask) const;
+
+	void SetAppCulled(bool bVal);
+	bool GetAppCulled() const;
+
+	void SetSelectiveUpdate(bool bVal);
+	bool GetSelectiveUpdate() const;
+
+	void SetSelUpdTransforms(bool bVal);
+	bool GetSelUpdTransforms() const;
+
+	void SetSelUpdController(bool bVal);
+	bool GetSelUpdController() const;
+
+	void SetSelUpdRigid(bool bVal);
+	bool GetSelUpdRigid() const;
+
+	void SetDisplayObject(bool bVal);
+	bool GetDisplayObject() const;
+
+	void SetDisableSorting(bool bVal);
+	bool GetDisableSorting() const;
+
+	void SetSelUpdTransformsOverride(bool bVal);
+	bool GetSelUpdTransformsOverride() const;
+
+	void SetSaveExternalGeomData(bool bVal);
+	bool GetSaveExternalGeomData() const;
+
+	void SetNoDecals(bool bVal);
+	bool GetNoDecals() const;
+
+	void SetAlwaysDraw(bool bVal);
+	bool GetAlwaysDraw() const;
+
+	void SetActorNode(bool bVal);
+	bool GetActorNode() const;
+
+	void SetFixedBound(bool bVal);
+	bool GetFixedBound() const;
+
+	void SetFadedIn(bool bVal);
+	bool GetFadedIn() const;
+
+	void SetIgnoreFade(bool bVal);
+	bool GetIgnoreFade() const;
+
+	void SetLODFadingOut(bool bVal);
+	bool GetLODFadingOut() const;
+
+	void SetHasMovingSound(bool bVal);
+	bool GetHasMovingSound() const;
+
+	void SetHasPropertyController(bool bVal);
+	bool GetHasPropertyController() const;
+
+	void SetHasBound(bool bVal);
+	bool GetHasBound() const;
+
+	void SetActorCulled(bool bVal);
+	bool GetActorCulled() const;
+
+	void SetIgnoresPicking(bool bVal);
+	bool GetIgnoresPicking() const;
+
+
+	NiNode* GetParent();
+	const NiNode* GetParent() const;
+	NiProperty* GetProperty(UInt32 iType) const;
+	__forceinline NiBound* GetWorldBound() const;
+	NiAVObject* GetObjectByNameEx(const char* apName);
+	void Cull(NiCullingProcess* apCuller);
+
+	NiNode* FindRootNode();
+
+	bool HasPropertyController() const;
+
+	void CreateWorldBoundIfMissing();
+	void CreateWorldBoundIfMissing(bool abAlwaysDraw);
+	void AddProperty(NiProperty* apProperty);
+	void RemoveProperty(UInt32 auiPropertyType);
+	void DetachProperty(NiProperty* apProperty);
+	void UpdateProperties();
+	void PushLocalProperties(NiPropertyState* apParentState, bool abCopyOnChange, NiPropertyState*& apOut);
+	void UpdateObjectControllers(NiUpdateData& apData, bool abUpdateProperties);
+	void UpdateWorldTransform();
+	void AssignShaders(bool a = false, bool b = false);
+	void StartAnimations();
+
+	void CopyWorldRotateFromParent();
+
+	bool IsInFrustum(NiCamera* apCamera) const;
+	bool IsVisualObject() const;
+
 	void UpdateJIP();
 
 	//void Update(NiUpdateData& arData) {
@@ -2797,6 +2934,66 @@ public:
 		return ((NiProperty**)&alphaProp)[propID];
 	}
 
+
+	NiPoint2* GetTextures();
+
+	UInt16 GetVertCount() const;
+	UInt16 GetTextureSets();
+	NiPoint2* GetTextureSet(UInt16 ausSet);
+
 	void __fastcall AddProperty(NiProperty* niProperty);
 };
 static_assert(sizeof(NiGeometry) == 0xC4); 
+
+class NiParticleSystem;
+
+NiSmartPointer(NiPSysModifier);
+
+class NiPSysModifier : public NiObject {
+public:
+	NiPSysModifier();
+	virtual ~NiPSysModifier();
+
+	virtual void Unk23();
+	virtual void Unk24();
+	virtual void Unk25();
+	virtual void SetActive(bool bActive);
+	virtual void SetSystemPointer(NiParticleSystem* pkTarget);
+	virtual void HandleReset();
+
+	NiFixedString		m_kName;
+	UInt32				m_uiOrder;
+	NiParticleSystem*	m_pkTarget;
+	bool				m_bActive;
+};
+
+ASSERT_SIZE(NiPSysModifier, 0x18)
+
+NiSmartPointer(NiParticles);
+
+class NiParticles : public NiGeometry {
+public:
+	NiParticles();
+	virtual ~NiParticles();
+
+	CREATE_OBJECT(NiParticles, 0xA9B150)
+};
+
+ASSERT_SIZE(NiParticles, 0xC4)
+
+NiSmartPointer(NiParticleSystem);
+
+class NiParticleSystem : public NiParticles {
+public:
+	NiParticleSystem();
+	virtual ~NiParticleSystem();
+
+	bool								m_bWorldSpace;
+	NiTPointerList<NiPSysModifierPtr>	m_kModifierList;
+	float								m_fLastTime;
+	bool								m_bResetSystem;
+	bool								m_bDynamicBounds;
+	NiTransform							m_kUnmodifiedWorld;
+
+	CREATE_OBJECT(NiParticleSystem, 0xC1B7F0); 
+};

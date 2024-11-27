@@ -140,6 +140,14 @@ class Bitfield
 		void	Write(UInt32 data, bool state)
 											{ if(state) Set(data); else Clear(data); }
 		
+		void	SetField(T data, T mask, T pos) {
+			field = (field & ~mask) | (data << pos);
+		}
+
+		T		GetField(T mask, T pos) const {
+			return (field & mask) >> pos;
+		}
+
 		T		Get(void) const				{ return field; }					//!< Gets all bits
 		T		Get(UInt32 data) const		{ return field & data; }			//!< Gets individual bits
 		T		Extract(UInt32 bit) const	{ return (field >> bit) & 1; }		//!< Extracts a bit

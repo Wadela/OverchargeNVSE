@@ -8,13 +8,14 @@
 #include "OverCharge.h"
 #include <vector>
 #include "ShellNVSE.h"
-
 namespace Overcharge
 {
 	UInt32 originalFireAddr;			
 	UInt32 originalEquipAddr;
 	UInt32 originalProjAddr;
 	UInt32 originalMuzzleAddr;
+	UInt32 originalImpactAddr;
+	UInt32 originalGetImpactAddr;
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
 
 	TESObjectREFR* projectile;
@@ -115,6 +116,7 @@ namespace Overcharge
 			SetEmissiveRGB(projectile, it->second.matProperty, "Plane03:0", blendedColor);
 			SetEmissiveRGB(projectile, it->second.matProperty, "LaserGeometry:0", blendedColor);
 			SetEmissiveRGB(projectile, it->second.matProperty, "LaserGeometry:1", blendedColor);
+			SetEmissiveRGB(projectile, it->second.matProperty, "pShockTrail", blendedColor);
 		}
 		return;
 	}
@@ -365,7 +367,59 @@ namespace Overcharge
 		ThisStdCall<int>(originalProjAddr, a1, projectile); 
 	}
 
+	BSTempEffectParticle* __cdecl hkTempEffectParticle(void* a1, float a2, char* a3, NiPoint3 a4, NiPoint3 a5, float a6, char a7, void* a8) {
+		auto result = CdeclCall<BSTempEffectParticle*>(0x6890B0, a1, a2, a3, a4, a5, a6, a7, a8);
+		// do shit
+		NiObjectNET* result1 = result->spParticleObject;
+		NiNode* resultNode = result1->GetNiNode();
+		SetMuzzleRGB(resultNode, g_customPlayerMatProperty, "Plane01:0", { 0.0f, 0.0f, 1.0f });
+		SetMuzzleRGB(resultNode, g_customPlayerMatProperty, "pRingImpact", { 0.0f, 0.0f, 1.0f });
+		SetMuzzleRGB(resultNode, g_customPlayerMatProperty, "pEnergyHit", { 0.0f, 0.0f, 1.0f });
 
+		return result;
+	}
+
+	/*void __cdecl hk_AddMasterParticleAddonNodes(NiNode* node) {
+		CdeclCall(0x578060, node);
+		// Process after addon nodes are created
+		auto& children = node->m_children;
+		for (int i = 1; i < children.capacity; i++) {
+			if (auto child = children.Get(i)) {
+				if (auto childNode = (NiNode*)child) {
+					NiAVObject* block = childNode->GetBlock("pShockTrail");
+						((NiGeometry*)block)->materialProp = g_customPlayerMatProperty;
+						((NiGeometry*)block)->materialProp->emissiveRGB.r = 1.0f;
+						((NiGeometry*)block)->materialProp->emissiveRGB.g = 0.0f;
+						((NiGeometry*)block)->materialProp->emissiveRGB.b = 0.0f;
+						((NiGeometry*)block)->materialProp->emitMult = 5;
+				}
+			}
+		}
+		return;
+	}*/
+	/*void __fastcall SpawnImpactWrapper(Projectile* projectile, void* edx, TESObjectREFR* a2, NiPoint3* aCoord, NiPoint3* a4, int _330, unsigned __int32 Material_1)
+	{
+		ThisStdCall<int>(originalImpactAddr, projectile, a2, aCoord, a4, _330, Material_1);
+		const ListNode<Projectile::ImpactData>* traverse = projectile->impactDataList.Head();
+	}*/
+
+	void __fastcall InitNewParticle(NiParticleSystem* system, void* edx, int newParticle)
+	{
+		//if (system->GetNiGeometry() && strcmp(system->m_pcName, "pShockTrail") == 0) {
+
+			if (auto matprop = system->GetNiGeometry()->materialProp) {
+				matprop->emissiveRGB = NiColor(1, 0, 0);
+				matprop->emitMult = 1.2f;
+			}
+		//}
+
+		ThisStdCall(0xC1AEE0, system, newParticle);
+	}
+
+	TESObjectREFR* __cdecl GetImpact(NiObjectNET* apObject)
+	{
+		return ThisStdCall<TESObjectREFR*>(originalGetImpactAddr, apObject);
+	}
 	void InitHooks()
 	{
 		UInt32 actorFireAddr = 0x8BADE9; //0x8BADE9 Actor:FireWeapon
@@ -380,12 +434,20 @@ namespace Overcharge
 		UInt32 Do3DLoaded = 0x9BDA10;
 		UInt32 getProjBaseForm = 0x9B7CE1;
 		UInt32 MuzzleFlashEnable = 0x9BB7CD; //MuzzleFlash::Enable
-
+		UInt32 SpawnImpactAddr = 0x9C2058;	//Projectile::SpawnCollisionEffects @ Projectile::ProcessImpacts
+		UInt32 ImpactAddr = 0x9C2617;
+		UInt32 BGSTempFXAddr = 0x9C2AC3;
+		UInt32 someParticleAddr = 0xC247D9;
+		WriteRelCall(0x9C2AC3, UInt32(hkTempEffectParticle));
+		WriteRelCall(0xC2237A, UInt32(InitNewParticle)); 
+		//WriteRelCall(0x9BE07A, UInt32(hk_AddMasterParticleAddonNodes));
 		//AppendToCallChain(readyWeapAddr, UInt32(EquipItemWrapper), originalEquipAddr);
 		//AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalFireAddr);
 		//AppendToCallChain(CreateProjectile, UInt32(ProjectileWrapper), originalProjAddr); 
 		WriteRelJump(projectileData, UInt32(ProjHook)); 
+		//AppendToCallChain(ImpactAddr, UInt32(GetImpact), originalGetImpactAddr);
 		AppendToCallChain(MuzzleFlashEnable, UInt32(MuzzleFlashWrapper), originalMuzzleAddr);
+		//AppendToCallChain(BGSTempFXAddr, UInt32(SpawnImpactWrapper), originalImpactAddr);
 		//WriteRelJump(startFireAnim, UInt32(FireAnimDetour));  
 	} 
 }
