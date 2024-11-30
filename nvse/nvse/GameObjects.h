@@ -410,7 +410,7 @@ public:
 		TESObjectREFR* refr;			// 00
 		NiVector3		pos;			// Gotten from JIP
 		NiVector3		rot;			// Gotten from JIP
-		void*			rigidBody;		// 1C
+		void* rigidBody;		// 1C
 		UInt32			materialType;	// 20, gotten from JIP
 		SInt32			hitLocation;	// 24
 		UInt32			unk28;			// 28
@@ -428,32 +428,30 @@ public:
 	tList<ImpactData>	impactDataList;	// 088
 	UInt8				hasImpacted;	// 090
 	UInt8				pad091[3];		// 091
-	float				unk094[13];		// 094
+	NiTransform			kFollowOffset;	// 0x094
 	UInt32				projFlags;		// 0C8
-	float				speedMult1;		// 0CC
-	float				speedMult2;		// 0D0
-	float				flt0D4;			// 0D4
+	float				fPower;			// 0CC
+	float				speedMult;		// 0D0
+	float				fRange;			// 0D4
 	float				elapsedTime;	// 0D8
 	float				hitDamage;		// 0DC
-	float				flt0E0;			// 0E0
+	float				fAlpha;			// 0E0
 	float				detonationTime;	// 0E4
-	float				flt0E8;			// 0E8
-	float				flt0EC;			// 0EC
-	float				flt0F0;			// 0F0
+	float				fBlinkTimer;			// 0E8
+	float				fSpreadZ;			// 0EC
+	float				fSpreadX;			// 0F0
 	float				wpnHealthPerc;	// 0F4
-	TESObjectWEAP* sourceWeap;	// 0F8
-	TESObjectREFR* sourceRef;		// 0FC
-	UInt32				unk100;			// 100
-	float				flt104;			// 104
-	float				flt108;			// 108
-	float				flt10C;			// 10C
+	TESObjectWEAP*		sourceWeap;	// 0F8
+	TESObjectREFR*		sourceRef;		// 0FC
+	TESObjectREFR*		pLiveGrenadeTargetRef;	// 0x100 live grenade target
+	NiPoint3			kVector;
 	float				distTravelled;	// 110
-	NiRefObject* object114;		// 114
+	NiPointer<void*>	spLight;				// 0x114
 	UInt8				byte118;		// 118
 	UInt8				pad119[3];		// 119
-	NiNode* node11C;		// 11C
+	NiNode*				node11C;		// 11C
 	UInt32				unk120;			// 120
-	float				flt124;			// 124
+	float				fDecalSize;			// 124
 	Struct128			unk128;			// 128
 	Struct128			unk134;			// 134
 	UInt32				unk140;			// 140

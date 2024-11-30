@@ -471,6 +471,8 @@ struct NiPoint3;
 
 class TESSound;
 
+class NiParticles;
+
 //via CommonPrefix.hpp
 #define ASSERT_SIZE(a, b) static_assert(sizeof(a) == b, "Wrong structure size!");
 #define ASSERT_OFFSET(a, b, c) static_assert(offsetof(a, b) == c, "Wrong member offset!");
@@ -517,7 +519,7 @@ public:
 	/*24*/ virtual NiTriShape* GetTriShape();               // 0x14
 	/*28*/ virtual void* GetSegmentedTriShape();			// 0x15
 	/*2C*/ virtual void* GetResizableTriShape();			// 0x16
-	/*30*/ virtual void* GetNiParticles();					// 0x17 
+	/*30*/ virtual NiParticles* GetNiParticles();			// 0x17 
 	/*34*/ virtual void* GetNiLines();						// 0x18
 	/*38*/ virtual void* GetCollisionObject();				// 0x19
 	/*3C*/ virtual void* GetBlendCollisionObject();			// 0x1A
@@ -2580,7 +2582,7 @@ public:
 	virtual void			DetachChild(NiAVObject* apChild, NiAVObject*& aspAVObject);
 	virtual void			DetachChildAlt(NiAVObject* apChild);
 	virtual void			DetachChildAt(UInt32 i, NiAVObject*& aspAVObject);
-	virtual NiAVObject* DetachChildAtAlt(UInt32 i);
+	virtual NiAVObject*		DetachChildAtAlt(UInt32 i);
 	virtual void			SetAt(UInt32 i, NiAVObject* apChild, NiAVObject*& aspAVObject);
 	virtual void			SetAtAlt(UInt32 i, NiAVObject* apChild);
 	virtual void			UpdateUpwardPass();
@@ -2997,3 +2999,26 @@ public:
 
 	CREATE_OBJECT(NiParticleSystem, 0xC1B7F0); 
 };
+
+class BSNiNode : public NiNode {
+public:
+	virtual ~BSNiNode();
+	virtual void ReparentSkinInstances(NiNode* apNode, NiAVObject* apParent);
+};
+
+NiSmartPointer(BSValueNode);
+
+class BSValueNode : public BSNiNode {
+public:
+	BSValueNode();
+	~BSValueNode();
+
+	Bitfield8	ucFlags;
+	SInt32		iValue;
+	NiObject* spReservedObject;
+
+	CREATE_OBJECT(BSValueNode, 0xC43A30);
+	static inline const NiRTTI* const ms_RTTI = (NiRTTI*)0x1202DE8;;
+};
+
+ASSERT_SIZE(BSValueNode, 0xB8)

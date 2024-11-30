@@ -17,7 +17,7 @@ namespace Overcharge
 	UInt32 originalImpactAddr;
 	UInt32 originalGetImpactAddr;
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::Create();
-
+	NiMaterialProperty* g_customActorMatProperty = NiMaterialProperty::Create();
 	TESObjectREFR* projectile;
 	Actor* projOwner;
 	TESObjectWEAP* weap;
@@ -354,17 +354,18 @@ namespace Overcharge
 		ThisStdCall<int>(originalMuzzleAddr, muzzleFlash);
 	}
 
-	void __fastcall ProjectileWrapper(void* a1, void* edx, TESObjectREFR* projectile) //void * ecx 
+	void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* projectile) //void * ecx 
 	{
-		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress(), false);
-		auto ref = *reinterpret_cast<TESForm**>(ebp + 0xC);
+		//auto* ebp = GetParentBasePtr(_AddressOfReturnAddress(), false);
+		//auto ref = *reinterpret_cast<TESForm**>(ebp + 0xC);
 
-		auto it = heatedWeapons.find(ref->refID);
-		auto& weaponData = it->second;
-		HeatRGB blendedColor = weaponData.colorData.Shift(weaponData.heatData.heatVal, weaponData.colorData.startIndex, weaponData.colorData.targetIndex, weaponData.colorData.colorType);
-		SetEmissiveRGB(projectile, it->second.matProperty, "CoreHot01:1", blendedColor);
-		SetEmissiveRGB(projectile, it->second.matProperty, "pWisps01", blendedColor);
-		ThisStdCall<int>(originalProjAddr, a1, projectile); 
+		//auto it = heatedWeapons.find(ref->refID);
+		//auto& weaponData = it->second;
+		//HeatRGB blendedColor = weaponData.colorData.Shift(weaponData.heatData.heatVal, weaponData.colorData.startIndex, weaponData.colorData.targetIndex, weaponData.colorData.colorType);
+		//SetEmissiveRGB(projectile, it->second.matProperty, "CoreHot01:1", blendedColor);
+		//SetEmissiveRGB(projectile, it->second.matProperty, "pWisps01", blendedColor);
+		//ThisStdCall<int>(originalProjAddr, a1, projectile); 
+		return;
 	}
 
 	BSTempEffectParticle* __cdecl hkTempEffectParticle(void* a1, float a2, char* a3, NiPoint3 a4, NiPoint3 a5, float a6, char a7, void* a8) {
@@ -372,31 +373,28 @@ namespace Overcharge
 		// do shit
 		NiObjectNET* result1 = result->spParticleObject;
 		NiNode* resultNode = result1->GetNiNode();
-		SetMuzzleRGB(resultNode, g_customPlayerMatProperty, "Plane01:0", { 0.0f, 0.0f, 1.0f });
-		SetMuzzleRGB(resultNode, g_customPlayerMatProperty, "pRingImpact", { 0.0f, 0.0f, 1.0f });
-		SetMuzzleRGB(resultNode, g_customPlayerMatProperty, "pEnergyHit", { 0.0f, 0.0f, 1.0f });
 
+		SetMuzzleRGB(resultNode, NiMaterialProperty::Create(), "Plane01:0", { 0.0f, 0.0f, 1.0f });
+		SetMuzzleRGB(resultNode, NiMaterialProperty::Create(), "pRingImpact", { 0.0f, 0.0f, 1.0f });
+		SetMuzzleRGB(resultNode, NiMaterialProperty::Create(), "pEnergyHit", { 0.0f, 0.0f, 1.0f });
 		return result;
 	}
 
-	/*void __cdecl hk_AddMasterParticleAddonNodes(NiNode* node) {
+	void __cdecl hk_AddMasterParticleAddonNodes(NiNode* node) {
 		CdeclCall(0x578060, node);
 		// Process after addon nodes are created
 		auto& children = node->m_children;
 		for (int i = 1; i < children.capacity; i++) {
 			if (auto child = children.Get(i)) {
-				if (auto childNode = (NiNode*)child) {
-					NiAVObject* block = childNode->GetBlock("pShockTrail");
-						((NiGeometry*)block)->materialProp = g_customPlayerMatProperty;
-						((NiGeometry*)block)->materialProp->emissiveRGB.r = 1.0f;
-						((NiGeometry*)block)->materialProp->emissiveRGB.g = 0.0f;
-						((NiGeometry*)block)->materialProp->emissiveRGB.b = 0.0f;
-						((NiGeometry*)block)->materialProp->emitMult = 5;
+				if (auto childNode = (BSValueNode*)child) {
+					NiNode* childNode1 = childNode->GetNiNode();
+					NiAVObject* childBlock = childNode1->GetBlock("pShockTrail");
+					//((NiGeometry*)childBlock)->materialProp->emissiveRGB = NiColor(0, 0, 1);
 				}
 			}
 		}
 		return;
-	}*/
+	}
 	/*void __fastcall SpawnImpactWrapper(Projectile* projectile, void* edx, TESObjectREFR* a2, NiPoint3* aCoord, NiPoint3* a4, int _330, unsigned __int32 Material_1)
 	{
 		ThisStdCall<int>(originalImpactAddr, projectile, a2, aCoord, a4, _330, Material_1);
@@ -405,13 +403,13 @@ namespace Overcharge
 
 	void __fastcall InitNewParticle(NiParticleSystem* system, void* edx, int newParticle)
 	{
-		//if (system->GetNiGeometry() && strcmp(system->m_pcName, "pShockTrail") == 0) {
+		if (system->GetNiGeometry() && strcmp(system->m_pcName, "pShockTrail") == 0) {
 
 			if (auto matprop = system->GetNiGeometry()->materialProp) {
-				matprop->emissiveRGB = NiColor(1, 0, 0);
+				matprop->emissiveRGB = NiColor(0, 0, 1);
 				matprop->emitMult = 1.2f;
 			}
-		//}
+		}
 
 		ThisStdCall(0xC1AEE0, system, newParticle);
 	}
@@ -438,13 +436,14 @@ namespace Overcharge
 		UInt32 ImpactAddr = 0x9C2617;
 		UInt32 BGSTempFXAddr = 0x9C2AC3;
 		UInt32 someParticleAddr = 0xC247D9;
+		WriteRelCall(CreateProjectile, UInt32(ProjectileWrapper)); 
 		WriteRelCall(0x9C2AC3, UInt32(hkTempEffectParticle));
 		WriteRelCall(0xC2237A, UInt32(InitNewParticle)); 
-		//WriteRelCall(0x9BE07A, UInt32(hk_AddMasterParticleAddonNodes));
+		WriteRelCall(0x9BE07A, UInt32(hk_AddMasterParticleAddonNodes));
 		//AppendToCallChain(readyWeapAddr, UInt32(EquipItemWrapper), originalEquipAddr);
 		//AppendToCallChain(actorFireAddr, UInt32(FireWeaponWrapper), originalFireAddr);
 		//AppendToCallChain(CreateProjectile, UInt32(ProjectileWrapper), originalProjAddr); 
-		WriteRelJump(projectileData, UInt32(ProjHook)); 
+		//WriteRelJump(projectileData, UInt32(ProjHook)); 
 		//AppendToCallChain(ImpactAddr, UInt32(GetImpact), originalGetImpactAddr);
 		AppendToCallChain(MuzzleFlashEnable, UInt32(MuzzleFlashWrapper), originalMuzzleAddr);
 		//AppendToCallChain(BGSTempFXAddr, UInt32(SpawnImpactWrapper), originalImpactAddr);
