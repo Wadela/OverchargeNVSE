@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="dllmain.c" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="..\nvse\SafeWrite.cpp">
+      <Filter>nvse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nvse\Utilities.cpp">
+      <Filter>nvse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nvse\dinput8.cpp">
+      <Filter>nvse</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nvse\Logging.cpp">
+      <Filter>nvse</Filter>
+    </ClCompile>
+    <ClCompile Include="definitions.cpp" />
+    <ClCompile Include="Source.cpp">
+      <Filter>Wadelz</Filter>
+    </ClCompile>
+    <ClCompile Include="Overcharge.cpp">
+      <Filter>Wadelz</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nvse\utility.cpp">
+      <Filter>nvse</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="main.hpp" />
+    <ClInclude Include="..\libraries\SimpleINILibrary.h">
+      <Filter>libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\json.h">
+      <Filter>libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\Safewrite.hpp">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\prefix.hpp">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\PluginAPI.hpp">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\dinput8.hpp">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\Utilities.hpp">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\Logging.hpp">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\Formatter.hpp">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\CommandTable.hpp">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="definitions.h" />
+    <ClInclude Include="InitHooks.h">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="MainHeader.h">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Overcharge.h">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\utility.h">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="Defines.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="exports.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="nvse">
+      <UniqueIdentifier>{f1afc55a-6e0f-43b8-86b1-67dbd88c1490}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libraries">
+      <UniqueIdentifier>{42cf9c9c-4ade-4f54-8cfd-9a8c9c5a321f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wadelz">
+      <UniqueIdentifier>{948cd585-de1c-46b4-8f8c-5058e2faf26f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wadelz\Headers">
+      <UniqueIdentifier>{5b8de170-6773-47a7-b4fb-f93d5d434a2f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
