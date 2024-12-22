@@ -1,4 +1,5 @@
 #pragma once
+
 #include "TESForm.hpp"
 
 class NiNode;
@@ -7,35 +8,38 @@ class TESBoundObject;
 class TESWaterForm;
 class TESObjectList;
 
-// 0x24
-class TESObject : public TESForm
-{
+class TESObject : public TESForm {
 public:
 	TESObject();
-	~TESObject() override;
+	virtual ~TESObject();
 
 	virtual UInt32			Unk_4E();
 	virtual bool			Unk_4F();
 	virtual TESWaterForm*	GetWaterType();
-	virtual bool			Unk_51();
-	virtual void			Unk_52(void* arg);
+	virtual bool			IsAutoCalc() const;
+	virtual void			SetAutoCalc(bool);
 	virtual NiNode*			Clone3D(TESObjectREFR* apRequester, bool abDeepCopy);
 	virtual void			UnClone3D(TESObjectREFR* apRequester);
 	virtual bool			IsMarker();
 	virtual bool			IsOcclusionMarker();
 	virtual void			Unk_57();
-	virtual bool			ReplaceModel();
+	virtual bool			ReloadModel();
 	virtual bool			Unk_59(void* arg);
 	virtual void			Unk_5A(void* arg0, void* arg1);
 	virtual UInt32			Unk_5B();
 	virtual UInt32			Unk_5C();
 	virtual NiNode*			LoadGraphics(TESObjectREFR* apRef);
 
-	TESObjectList*			pList;		// 018
-	TESBoundObject*			pkPrev;		// 01C
-	TESBoundObject*			pkNext;		// 020
+	TESObjectList*	pList;
+	TESObject*		pPrev;
+	TESObject*		pNext;
 
 	TESObject* GetNext() const;
 	TESObject* GetPrev() const;
+
+	const char* GetModelFileName(TESObjectREFR* apRef = nullptr) const {
+		return ThisStdCall<const char*>(0x50FD90, this, apRef);
+	};
 };
-static_assert(sizeof(TESObject) == 0x24);
+
+ASSERT_SIZE(TESObject, 0x24)

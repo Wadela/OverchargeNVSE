@@ -9,9 +9,10 @@ public:
 	BSPSysMultiTargetEmitterCtlr();
 	~BSPSysMultiTargetEmitterCtlr();
 
-	UInt32 unk5C;
-	UInt16 unk60;
+	BSMasterParticleSystem	*pMasterParticleSystem;
+	UInt16					usMaxFullEmitters;
 
+	NIRTTI_ADDRESS(0x1203340);
 	CREATE_OBJECT(BSPSysMultiTargetEmitterCtlr, 0xC5CBB0);
 };
 

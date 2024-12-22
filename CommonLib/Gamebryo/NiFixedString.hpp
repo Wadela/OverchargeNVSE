@@ -14,17 +14,19 @@ public:
 	NiGlobalStringTable::GlobalStringHandle m_kHandle;
 
 	NiFixedString& operator=(const char* pcString);
-	NiFixedString& operator=(NiFixedString& arString);
+	NiFixedString& operator=(const NiFixedString& arString);
 	bool operator==(const NiFixedString& akString);
 	bool operator==(const char* pcString);
 
+	operator const char* () const;
+
+	operator bool() const;
+
+	const char* c_str() const;
+
 	UInt32 GetLength() const;
 
-	std::string GetStd() const {
-		if (m_kHandle[0] != 0 && m_kHandle[0] != ' ')
-			return m_kHandle;
-		return "";
-	}
+	bool Includes(const char* apToFind) const;
 };
 
 ASSERT_SIZE(NiFixedString, 0x4)

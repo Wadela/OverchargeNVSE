@@ -75,8 +75,10 @@ public:
 	void LockRenderer();
 	void UnlockRenderer();
 
-	static bool EndOffScreenFrame();
+	void LockPrecacheCriticalSection();
+	void UnlockPrecacheCriticalSection();
 
+	static bool EndOffScreenFrame();
 	static void DisplayFrame();
 };
 

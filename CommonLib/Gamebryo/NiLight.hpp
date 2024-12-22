@@ -12,12 +12,6 @@ public:
 	NiLight();
 	virtual ~NiLight();
 
-	struct JIPLightData {
-		float			flt0FC;
-		NiPoint3		kNewPos;
-		bool 			bResetTraits;
-		Bitfield8		ucFlags;
-	};
 
 	float	m_fDimmer;
 	NiColor m_kAmb;
@@ -27,16 +21,18 @@ public:
 		struct {
 			float			m_fRadius;
 			float			empty;
-			TESObjectLIGH*	pJIPLight;
+			TESObjectLIGH*  pLightForm;
 		};
 	};
 
-	union {
-		JIPLightData*	pJIPData;
-		void*			m_pvRendererData;
-	};
+	void* m_pvRendererData;
 
 	NIRTTI_ADDRESS(0x11F4A28);
+
+	void SetAmbientColor(const NiColor& arColor);
+	void SetDiffuseColor(const NiColor& arColor);
+	void SetSpecularColor(const NiColor& arColor);
+	void SetRadius(float afRadius);
 };
 
 ASSERT_SIZE(NiLight, 0xF0)

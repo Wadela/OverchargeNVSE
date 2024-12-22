@@ -35,7 +35,7 @@ public:
 		Explosion*		pkExplosion;
 		Actor*			pkActor;			// TODO:: test again
 	};
-	EnumActorValueCode	eWeaponActorValue;		// 0C
+	ActorValue::Index	eWeaponActorValue;	// 0C
 	SInt32				hitLocation;		// 10
 	Float32				fHealthDamage;		// 14
 	Float32				fBaseWeaponDamage;	// 18	Skill and weapon condition modifiers included

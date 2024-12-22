@@ -1,4 +1,4 @@
-#pragma once
+#pragma once 
 
 #include "NiObjectNET.hpp"
 #include "NiTPointerList.hpp"
@@ -7,12 +7,13 @@
 
 class NiCullingProcess;
 class NiNode;
+class NiCamera;
 class bhkNiCollisionObject;
 class NiFixedString;
 class NiBound;
 class NiProperty;
 class NiPropertyState;
-
+class NiDX9Renderer;
 
 NiSmartPointer(NiAVObject);
 NiSmartPointer(NiProperty);
@@ -43,51 +44,55 @@ public:
 	virtual void			OnVisible(NiCullingProcess* apCuller);
 	virtual void			PurgeRendererData(NiDX9Renderer* apRenderer);
 
-	enum NiFlags : UInt32
-	{
-		APP_CULLED = 0x1,
-		SELECTIVE_UPDATE = 0x2,
-		SELECTIVE_UPDATE_TRANSFORMS = 0x4,
-		SELECTIVE_UPDATE_CONTROLLER = 0x8,
-		SELECTIVE_UPDATE_RIGID = 0x10,
-		DISPLAY_OBJECT = 0x20,
-		DISABLE_SORTING = 0x40,
-		SELECTIVE_UPDATE_TRANSFORMS_OVERRIDE = 0x80,
-		IS_NODE = 0x100,
-		SAVE_EXTERNAL_GEOM_DATA = 0x200,
-		NO_DECALS = 0x400,
-		ALWAYS_DRAW = 0x800,
-		MESH_LOD = 0x1000,
-		FIXED_BOUND = 0x2000,
-		TOP_FADE_NODE = 0x4000,
-		IGNORE_FADE = 0x8000,
-		NO_ANIM_SYNC_X = 0x10000,
-		NO_ANIM_SYNC_Y = 0x20000,
-		NO_ANIM_SYNC_Z = 0x40000,
-		NO_ANIM_SYNC_S = 0x80000,
-		NO_DISMEMBER = 0x100000,
-		NO_DISMEMBER_VALIDITY = 0x200000,
-		RENDER_USE = 0x400000,
-		MATERIALS_APPLIED = 0x800000,
-		HIGH_DETAIL = 0x1000000,
-		FORCE_UPDATE = 0x2000000,
-		PREPROCESSED_NODE = 0x4000000,
-		UNK_27 = 0x8000000,
-		UNK_28 = 0x10000000,
-		IS_POINTLIGHT = 0x20000000,
-		DONE_INIT_LIGHTS = 0x40000000,
-		IS_INSERTED = 0x80000000,
+	enum NiFlags : DWORD {
+		APP_CULLED								= 1u <<  0, // Forces culled state
+		SELECTIVE_UPDATE						= 1u <<  1, // Allows selective updates - see flags below
+		SELECTIVE_UPDATE_TRANSFORMS				= 1u <<  2, // Allows transform controller update
+		SELECTIVE_UPDATE_CONTROLLER				= 1u <<  3, // Allows controller update
+		SELECTIVE_UPDATE_RIGID					= 1u <<  4, // Forces the use of UpdateRigidDownwardPass
+		DISPLAY_OBJECT							= 1u <<  5, // Used only by sky objects
+		DISABLE_SORTING							= 1u <<  6,	// Unused, just like Gamebryo's sorter
+		SELECTIVE_UPDATE_TRANSFORMS_OVERRIDE	= 1u <<  7, // Forces UPDATE_TRANSFORMS even if node has no transform controllers
+		IS_NODE									= 1u <<  8, // ??
+		SAVE_EXTERNAL_GEOM_DATA					= 1u <<  9, // Resets transformations
+		NO_DECALS								= 1u << 10,	// Disables decals for this object
+		ALWAYS_DRAW								= 1u << 11, // Forces light inclusion, and skips culling
+		ACTOR_NODE								= 1u << 12, // Used to mark actor nodes, for actor culling
+		FIXED_BOUND								= 1u << 13, // Prevents bound updates
+		FADED_IN								= 1u << 14, // BSFadeNode only; Marks the fade state
+		IGNORE_FADE								= 1u << 15, // BSFadeNode only; Disables fading
+		LOD_FADING_OUT							= 1u << 16, // BSFadeNode only; Looks unused
+		HAS_MOVING_SOUND						= 1u << 17, // Used for sound updates
+		HAS_PROPERTY_CONTROLLER					= 1u << 18, // Marks the presence of a property controller
+		HAS_BOUND								= 1u << 19, // Marks the presence of a bound
+		ACTOR_CULLED							= 1u << 20, // Used for actor culling
+		IGNORES_PICKING							= 1u << 21, // Disables picking for this object
+		UPDATE_MULTIBOUNDS						= 1u << 22,	// ?? Bound and light related, seems to force multibound update/attachment?
+		NO_SHADOWS								= 1u << 23, // Set if bActorSelfShadowing == false, checks for it look broken (maybe why the setting doesn't work?)
+		HIGH_DETAIL								= 1u << 24, // BSFadeNode only; Unused, meant for actors 0x936F75
+		FORCE_UPDATE							= 1u << 25, // ??
+		PREPROCESSED_NODE						= 1u << 26, // ??
+		PLAYER_BONE								= 1u << 27,	// Marks player's bones, not read anywhere?
+		IMPOSTER_LOADED							= 1u << 28, // BSFadeNode only; Marks the imposter state to override fading
+		IS_POINTLIGHT							= 1u << 29, // Added by JIP
+		DONE_INIT_LIGHTS						= 1u << 30, // Added by JIP
+		IS_INSERTED								= 1u << 31  // Added by JIP
 	};
 
 	NiNode*							m_pkParent;
 	NiPointer<bhkNiCollisionObject> m_spCollisionObject;
 	NiBound*						m_pWorldBound;
 	NiTPointerList<NiPropertyPtr>	m_kPropertyList;
-	UInt32							m_uiFlags;
+	Bitfield32						m_uiFlags;
 	NiTransform						m_kLocal;
 	NiTransform						m_kWorld;
 
 	static BSSpinLock* pPropertyStateLock;
+
+	NIRTTI_ADDRESS(0x11f4280);
+
+	void UpdateDownwardPassEx(NiUpdateData& arData, UInt32 auiFlags);
+	void UpdateWorldDataEx(NiUpdateData& arData);
 
 	NiTransform* GetLocalTransform();
 	NiTransform* GetWorldTransform();
@@ -107,8 +112,10 @@ public:
 	void SetWorldTranslate(const NiPoint3* pos);
 	const NiPoint3& GetWorldTranslate() const;
 
+	void SetLocalRotate(float x, float y, float z);
 	void SetLocalRotate(const NiMatrix3& kRot);
 	void SetLocalRotate(const NiMatrix3* rot);
+	void SetLocalRotateDeg(float x, float y, float z);
 	const NiMatrix3& GetLocalRotate() const;
 
 	void SetWorldRotate(const NiMatrix3& rot);
@@ -118,87 +125,107 @@ public:
 
 	// FLAGS
 
-	void SetBit(bool bVal, int uMask);
-	bool GetBit(int uMask);
+	void SetBit(UInt32 auData, bool abVal);
+	bool GetBit(UInt32 auData) const;
 
-	void SetAppCulled(bool bVal);
-	bool GetAppCulled();
+	void SetAppCulled(bool abVal);
+	bool GetAppCulled() const;
 
-	void SetSelectiveUpdate(bool bVal);
-	bool GetSelectiveUpdate();
+	void SetSelectiveUpdate(bool abVal);
+	bool GetSelectiveUpdate() const;
 
-	void SetSelUpdTransforms(bool bVal);
-	bool GetSelUpdTransforms();
+	void SetSelUpdTransforms(bool abVal);
+	bool GetSelUpdTransforms() const;
 
-	void SetSelUpdController(bool bVal);
-	bool GetSelUpdController();
+	void SetSelUpdController(bool abVal);
+	bool GetSelUpdController() const;
 
-	void SetSelUpdRigid(bool bVal);
-	bool GetSelUpdRigid();
+	void SetSelUpdRigid(bool abVal);
+	bool GetSelUpdRigid() const;
 
-	void SetDisplayObject(bool bVal);
-	bool GetDisplayObject();
+	void SetDisplayObject(bool abVal);
+	bool GetDisplayObject() const;
 
-	void SetDisableSorting(bool bVal);
-	bool GetDisableSorting();
+	void SetDisableSorting(bool abVal);
+	bool GetDisableSorting() const;
 
-	void SetSelUpdTransformsOverride(bool bVal);
-	bool GetSelUpdTransformsOverride();
+	void SetSelUpdTransformsOverride(bool abVal);
+	bool GetSelUpdTransformsOverride() const;
 
-	void SetIsNode(bool bVal);
-	bool GetIsNode();
+	void SetSaveExternalGeomData(bool abVal);
+	bool GetSaveExternalGeomData() const;
 
-	void SetSaveExternalGeomData(bool bVal);
-	bool GetSaveExternalGeomData();
+	void SetNoDecals(bool abVal);
+	bool GetNoDecals() const;
 
-	void SetNoDecals(bool bVal);
-	bool GetNoDecals();
+	void SetAlwaysDraw(bool abVal);
+	bool GetAlwaysDraw() const;
 
-	void SetAlwaysDraw(bool bVal);
-	bool GetAlwaysDraw();
+	void SetActorNode(bool abVal);
+	bool GetActorNode() const;
 
-	void SetMeshLOD(bool bVal);
-	bool GetMeshLOD();
+	void SetFixedBound(bool abVal);
+	bool GetFixedBound() const;
 
-	void SetFixedBound(bool bVal);
-	bool GetFixedBound();
+	void SetFadedIn(bool abVal);
+	bool GetFadedIn() const;
 
-	void SetTopFadeNode(bool bVal);
-	bool GetTopFadeNode();
+	void SetIgnoreFade(bool abVal);
+	bool GetIgnoreFade() const;
 
-	void SetIgnoreFade(bool bVal);
-	bool GetIgnoreFade();
+	void SetLODFadingOut(bool abVal);
+	bool GetLODFadingOut() const;
 
-	void SetNoAnimSyncX(bool bVal);
-	bool GetNoAnimSyncX();
+	void SetHasMovingSound(bool abVal);
+	bool GetHasMovingSound() const;
 
-	void SetNoAnimSyncY(bool bVal);
-	bool GetNoAnimSyncY();
+	void SetHasPropertyController(bool abVal);
+	bool GetHasPropertyController() const;
 
-	void SetNoAnimSyncZ(bool bVal);
-	bool GetNoAnimSyncZ();
+	void SetHasBound(bool abVal);
+	bool GetHasBound() const;
 
-	void SetNoAnimSyncS(bool bVal);
-	bool GetNoAnimSyncS();
+	void SetActorCulled(bool abVal);
+	bool GetActorCulled() const;
 
-	void SetNoDismember(bool bVal);
-	bool GetNoDismember();
+	void SetIgnoresPicking(bool abVal);
+	bool GetIgnoresPicking() const;
 
-	void SetNoDismemberValidity(bool bVal);
-	bool GetNoDismemberValidity();
+	void SetNoShadows(bool abVal);
+	bool GetNoShadows() const;
 
+	void SetPlayerBone(bool abVal);
+	bool GetIsPlayerBone() const;
 
+	void SetImposterLoaded(bool abVal);
+	bool GetImposterLoaded() const;
 
-	void Update(NiUpdateData& arData);
+	void Update(NiUpdateData& arData = NiUpdateData::kDefaultUpdateData);
 	NiNode* GetParent();
 	const NiNode* GetParent() const;
-	NiProperty* GetProperty(UInt32 iType);
-	NiBound* GetWorldBound();
-	NiAVObject* GetObjectByNameEx(const char* apName);
+	NiProperty* GetProperty(UInt32 iType) const;
+	bhkNiCollisionObject* GetCollisionObject() const;
+	void SetCollisionObject(bhkNiCollisionObject* apCollisionObject);
+	void Cull(NiCullingProcess* apCuller);
 
 	NiNode* FindRootNode();
 
-	void AttachProperty(NiPropertyPtr* aspProperty);
+	bool HasPropertyController() const;
+
+	void CreateWorldBoundIfMissing();
+	void CreateWorldBoundIfMissing(bool abAlwaysDraw);
+	void AttachProperty(NiProperty* apProperty);
+	void AddProperty(NiProperty* apProperty);
+	void RemoveProperty(UInt32 auiPropertyType);
+	void DetachProperty(NiProperty* apProperty);
+	void UpdateProperties();
+	void PushLocalProperties(NiPropertyState* apParentState, bool abCopyOnChange, NiPropertyState*& apOut);
+	void UpdateObjectControllers(NiUpdateData& arData, bool abUpdateProperties);
+	void UpdateWorldTransform();
+	void PrepareObject(bool a = false, bool b = false);
+	void StartAnimations();
+
+	static void __cdecl UpdateGeomMorphTimeRecurse(NiAVObject* apNode);
 };
 
 ASSERT_OFFSET(NiAVObject, m_pkParent, 0x18);

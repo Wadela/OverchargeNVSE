@@ -1,7 +1,9 @@
 #pragma once
 
-#include "NiNode.hpp"
 #include "DList.hpp"
+#include "NiTArray.hpp"
+#include "NiNode.hpp"
+#include "NiTList.hpp"
 
 NiSmartPointer(BSMasterParticleSystem);
 
@@ -10,13 +12,13 @@ public:
 	BSMasterParticleSystem();
 	virtual ~BSMasterParticleSystem();
 
-	NiTListItem<NiAVObjectPtr>		kEmitterObjList;
+	NiTList<NiAVObjectPtr>			kEmitterObjList;
 	UInt16							usActiveEmitterObjCount;
 	UInt16							usMaxEmitterObj;
 	UInt16							wordBC;
-	NiTListItem<NiAVObjectPtr>*		kEmitterIterator;
+	NiAVObjectPtr*					kEmitterIterator;
 	UInt32							uiIndex;
-	DWORD							dwordC8;
+	UInt32							uiNodeIndex;
 	NiTPrimitiveArray<NiParticles*> kChildParticles;
 	float							fMasterPSysTime;
 

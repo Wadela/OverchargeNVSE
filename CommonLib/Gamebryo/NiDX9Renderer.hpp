@@ -9,6 +9,7 @@
 #include "NiSkinPartition.hpp"
 #include "NiTexture.hpp"
 #include "NiTPointerMap.hpp"
+#include "NiTMap.hpp"
 
 class NiPalette;
 class NiSourceTexture;
@@ -43,6 +44,7 @@ class NiSourceCubeMap;
 class NiPixelFormat;
 class NiPixelData;
 class NiDepthStencilBuffer;
+class NiVBBlock;
 struct NiViewport;
 
 NiSmartPointer(NiDX9Renderer);
@@ -168,18 +170,31 @@ public:
 		DEVDESC_NUM = 0x7,
 	};
 
+	class PrePackObject : public NiMemObject {
+	public:
+		NiGeometryData*					m_pkData;
+		NiSkinInstance*					m_pkSkin;
+		NiSkinPartition::Partition*		m_pkPartition;
+		NiD3DShaderDeclaration*			m_pkShaderDecl;
+		UInt32							m_uiBonesPerPartition;
+		UInt32							m_uiBonesPerVertex;
+		NiGeometryBufferData*			m_pkBuffData;
+		UInt32							m_uiStream;
+		PrePackObject*					m_pkNext;
+	};
+
 	virtual void					SetDefaultProgramCache();
-	virtual NiPixelFormat*			FindClosestDepthStencilFormat(const NiPixelFormat* pkFrontBufferFormat, UInt32 uiDepthBPP, UInt32 uiStencilBPP);
+	virtual NiPixelFormat*			FindClosestDepthStencilFormat(const NiPixelFormat* apFrontBufferFormat, UInt32 uiDepthBPP, UInt32 uiStencilBPP);
 	virtual void					FindClosestPixelFormat();
 	virtual void					GetDriverInfo();
-	virtual UInt32					GetFlags();
+	virtual UInt32					GetFlags() const;
 	virtual void					SetDepthClear(float afValue);
-	virtual float					GetDepthClear();
+	virtual float					GetDepthClear() const;
 	virtual void					SetBackgroundColorAlpha(const NiColorA&);
 	virtual void					SetBackgroundColor(const NiColor&);
 	virtual void					GetBackgroundColor(NiColorA&);
 	virtual void					SetStencilClear(UInt32 uiClear);
-	virtual UInt32					GetStencilClear();
+	virtual UInt32					GetStencilClear() const;
 	virtual void					ValidateRenderTargetGroup();
 	virtual void					IsDepthBufferCompatible();
 	virtual NiRenderTargetGroup*	GetDefaultRenderTargetGroup();
@@ -188,21 +203,21 @@ public:
 	virtual Ni2DBuffer*				GetDefaultBackBuffer();
 	virtual UInt32					GetMaxBuffersPerRenderTargetGroup();
 	virtual bool					GetIndependentBufferBitDepths();
-	virtual bool					PrecacheTexture(NiTexture* pkIm, bool bForceLoad, bool bLocked);
+	virtual bool					PrecacheTexture(NiTexture* apIm, bool abForceLoad = false, bool abLocked = false);
 	virtual bool					SetMipmapSkipLevel();
-	virtual UInt32					GetMipmapSkipLevel();
-	virtual bool					PrecacheGeometry(NiGeometry* pkGeometry, UInt32 uiBonesPerPartition, UInt32 uiBonesPerVertex, NiD3DShaderDeclaration* apShaderDeclaration);
+	virtual UInt32					GetMipmapSkipLevel() const;
+	virtual bool					PrecacheGeometry(NiGeometry* apGeometry, UInt32 uiBonesPerPartition, UInt32 uiBonesPerVertex, NiD3DShaderDeclaration* apShaderDeclaration);
 	virtual void					PurgeGeometryData(NiGeometryData*);
 	virtual void					PurgeMaterial(NiMaterialProperty*);
 	virtual void					PurgeEffect(NiDynamicEffect*);
 	virtual void					PurgeScreenTexture();
-	virtual void					PurgeSkinPartition(NiSkinPartition* pkSkinPartition);
-	virtual void					PurgeSkinInstance(NiSkinInstance* pkSkinInstance);
-	virtual bool					PurgeTexture();
+	virtual void					PurgeSkinPartition(NiSkinPartition* apSkinPartition);
+	virtual void					PurgeSkinInstance(NiSkinInstance* apSkinInstance);
+	virtual bool					PurgeTexture(NiTexture* apTexture);
 	virtual bool					PurgeAllTextures();
-	virtual NiPixelData*			TakeScreenShot(const NiRect<UInt32>* pkScreenRect, const NiRenderTargetGroup* pkTarget);
-	virtual bool					FastCopy(const Ni2DBuffer* pkSrc, Ni2DBuffer* pkDest, const NiRect<UInt32>* pkSrcRect = 0, UInt32 uiDestX = 0, UInt32 uiDestY = 0);
-	virtual bool					Copy(const Ni2DBuffer* pkSrc, Ni2DBuffer* pkDest, NiRect<UInt32>* pkSrcRect, NiRect<UInt32>* pkDestRect, Ni2DBuffer::CopyFilterPreference ePref);
+	virtual NiPixelData*			TakeScreenShot(const NiRect<UInt32>* apScreenRect, const NiRenderTargetGroup* apTarget);
+	virtual bool					FastCopy(const Ni2DBuffer* apSrc, Ni2DBuffer* apDest, const NiRect<UInt32>* apSrcRect = 0, UInt32 uiDestX = 0, UInt32 uiDestY = 0);
+	virtual bool					Copy(const Ni2DBuffer* apSrc, Ni2DBuffer* apDest, NiRect<UInt32>* apSrcRect, NiRect<UInt32>* apDestRect, Ni2DBuffer::CopyFilterPreference ePref);
 	virtual bool					GetLeftRightSwap();
 	virtual bool					SetLeftRightSwap(bool bSwap);
 	virtual float					GetMaxFogValue();
@@ -211,19 +226,19 @@ public:
 	virtual void					Unk_4C(UInt8* apucDataBlock, UInt32 auiBlockSize); // Empty
 	virtual void					Unk_4D(UInt8* apucDataBlock, UInt32 auiBlockSize); // Empty
 	virtual void					Deallocate_4E(void*);
-	virtual bool					CreateSourceTextureRendererData(NiSourceTexture* pkTexture);
-	virtual bool					CreateRenderedTextureRendererData(NiRenderedTexture* pkTexture, Ni2DBuffer::MultiSamplePreference eMSAAPref);
+	virtual bool					CreateSourceTextureRendererData(NiSourceTexture* apTexture);
+	virtual bool					CreateRenderedTextureRendererData(NiRenderedTexture* apTexture, Ni2DBuffer::MultiSamplePreference eMSAAPref);
 	virtual bool					CreateSourceCubeMapRendererData(NiSourceCubeMap*);
-	virtual bool					CreateRenderedCubeMapRendererData(NiRenderedCubeMap* pkCubeMap);
+	virtual bool					CreateRenderedCubeMapRendererData(NiRenderedCubeMap* apCubeMap);
 	virtual bool					CreateDynamicTextureRendererData(void*);
-	virtual bool					CreatePaletteRendererData(NiPalette* pkPalette);
-	virtual bool					CreateDepthStencilRendererData(NiDepthStencilBuffer* pkDSBuffer, const NiPixelFormat* pkFormat, int eMSAAPref);
-	virtual void					RemoveRenderedCubeMapData(NiRenderedCubeMap* pkCubeMap);
-	virtual void					RemoveRenderedTextureData(NiRenderedTexture* pkTexture);
-	virtual void					RemoveDynamicTextureData(void* pkTexture);
-	virtual void					LockDynamicTexture(const NiTexture::RendererData* pkRData, int* iPitch);
-	virtual bool					UnLockDynamicTexture(const NiTexture::RendererData* pkRData);
-	virtual NiShader*				GetFragmentShader(NiMaterialDescriptor* pkMaterialDescriptor);
+	virtual bool					CreatePaletteRendererData(NiPalette* apPalette);
+	virtual bool					CreateDepthStencilRendererData(NiDepthStencilBuffer* apDSBuffer, const NiPixelFormat* apFormat, int eMSAAPref);
+	virtual void					RemoveRenderedCubeMapData(NiRenderedCubeMap* apCubeMap);
+	virtual void					RemoveRenderedTextureData(NiRenderedTexture* apTexture);
+	virtual void					RemoveDynamicTextureData(void* apTexture);
+	virtual void					LockDynamicTexture(const NiTexture::RendererData* apRData, int* iPitch);
+	virtual bool					UnLockDynamicTexture(const NiTexture::RendererData* apRData);
+	virtual NiShader*				GetFragmentShader(NiMaterialDescriptor* apMaterialDescriptor);
 	virtual void					Unk_5C();
 	virtual void					DrawIndexedPrimitive_TRIANGLELIST();
 	virtual void					DrawIndexedPrimitive_TRIANGLESTRIP();
@@ -232,21 +247,21 @@ public:
 	virtual bool					Do_DisplayFrame();
 	virtual void					Do_ClearBuffer(const NiRect<float>*, UInt32 uiMode);
 	virtual void					Do_SetCameraData(const NiPoint3* kWorldLoc, const NiPoint3* kWorldDir, const NiPoint3* kWorldUp, const NiPoint3* kWorldRight, const NiFrustum* kFrustum, const NiRect<float>* kPort);
-	virtual void					Do_SetScreenSpaceCameraData(const NiRect<float>* pkPort);
-	virtual bool					Do_BeginUsingRenderTargetGroup(NiRenderTargetGroup* pkTarget, NiDX9Renderer::ClearFlags uiClearMode);
+	virtual void					Do_SetScreenSpaceCameraData(const NiRect<float>* apPort);
+	virtual bool					Do_BeginUsingRenderTargetGroup(NiRenderTargetGroup* apTarget, NiDX9Renderer::ClearFlags uiClearMode);
 	virtual bool					Do_EndUsingRenderTargetGroup();
-	virtual void					Do_BeginBatch(NiPropertyState* pkPropertyState, NiDynamicEffectState* pkEffectState);
+	virtual void					Do_BeginBatch(const NiPropertyState* apProperties, NiDynamicEffectState* apEffectState);
 	virtual void					Do_EndBatch();
-	virtual void					Do_BatchRenderShape(NiTriShape* pkTriShape);
-	virtual void					Do_BatchRenderStrips(NiTriStrips* pkTriStrips);
-	virtual void					Do_RenderShape(NiTriShape* pkTriShape);
-	virtual void					Do_RenderTristrips(NiTriStrips* pkTriStrips);
-	virtual void					Do_RenderShapeAlt(NiTriShape* pkTriShape);
-	virtual void					Do_RenderTristripsAlt(NiTriStrips* pkTriStrips);
+	virtual void					Do_BatchRenderShape(NiTriShape* apTriShape);
+	virtual void					Do_BatchRenderStrips(NiTriStrips* apTriStrips);
+	virtual void					Do_RenderShape(NiTriShape* apTriShape);
+	virtual void					Do_RenderTristrips(NiTriStrips* apTriStrips);
+	virtual void					Do_RenderShapeAlt(NiTriShape* apTriShape);
+	virtual void					Do_RenderTristripsAlt(NiTriStrips* apTriStrips);
 	virtual void					E70140(void*);
-	virtual void					Do_RenderPoints(NiParticles* pkParticles);
-	virtual void					Do_RenderLines(NiLines* pkLines);
-	virtual void					Do_RenderScreenTexture(NiScreenTexture* pkScreenTexture);
+	virtual void					Do_RenderPoints(NiParticles* apParticles);
+	virtual void					Do_RenderLines(NiLines* apLines);
+	virtual void					Do_RenderScreenTexture(NiScreenTexture* apScreenTexture);
 
 	class BatchedObject {
 	public:
@@ -257,7 +272,7 @@ public:
 		BatchedObject*			ms_pkFreeList;
 	};
 
-	LPDIRECT3DVERTEXDECLARATION9									hParticleVertedDecls[2];
+	LPDIRECT3DVERTEXDECLARATION9									hParticleVertexDecls[2];
 	LPDIRECT3DDEVICE9												m_pkD3DDevice9;
 	D3DCAPS9														m_kD3DCaps9;
 	HWND															m_kWndDevice;
@@ -276,7 +291,7 @@ public:
 	UInt32															m_uiStencilClear;
 	UInt32															m_uiRendFlags;
 	char															m_acBehavior[32];
-	NiTPointerMap<void*, void*>										m_kPrePackObjects;
+	NiTPointerMap<NiVBBlock*, PrePackObject*>						m_kPrePackObjects;
 	BatchedObject*													m_pkBatchHead;
 	BatchedObject*													m_pkBatchTail;
 	NiPropertyState*												m_pkBatchedPropertyState;
@@ -290,7 +305,7 @@ public:
 	const NiBound													m_kDefaultBound;
 	float															m_fNearDepth;
 	float															m_fDepthRange;
-	D3DXMATRIX														m_kD3DIdentity;
+	char															m_kD3DIdentity[64];
 	D3DVIEWPORT9													m_kD3DPort;
 	UInt32															m_uiHWBones;
 	UInt32															m_uiMaxStreams;
@@ -327,11 +342,11 @@ public:
 	NiTPointerList<NiDX92DBufferData*>								m_kBuffersToUseAtDisplayFrame;
 	NiTPointerList<NiD3DShaderInterface*>							m_kD3DShaders;
 	NiD3DShaderLibraryVersion										m_kShaderLibraryVersion;
-	D3DXMATRIX														m_kD3DMat;
-	D3DXMATRIX														m_kD3DView;
-	D3DXMATRIX														m_kD3DProj;
-	D3DXMATRIX														m_kViewProj;
-	D3DXMATRIX														m_kInvView;
+	char															m_kD3DMat[64];
+	char															m_kD3DView[64];
+	char															m_kD3DProj[64];
+	char															m_kViewProj[64];
+	char															m_kInvView[64];
 	NiPoint2*														m_pkScreenTextureVerts;
 	NiColorA*														m_pkScreenTextureColors;
 	NiPoint2*														m_pkScreenTextureTexCoords;
@@ -363,22 +378,17 @@ public:
 	void*															unkB50[12];
 
 	// Debug counters
-// TODO: do something regarding perf_counter
-//	static PerfCounter RenderCounter;
 
+	// TODO: do something regarding perf_counter
+	// static PerfCounter RenderCounter;
+
+	static bool	  bInvertDepth;
 	static bool	  bTrackMeshData;
 	static UInt32 uiIndexedPrimitiveCount;
 	static UInt32 uiPrimitiveCount;
 	static UInt32 uiTotalStripCount;
 	static UInt32 uiTotalVertCount;
 	static UInt32 uiTotalTriCount;
-
-	const D3DXMATRIX* GetD3DIdentity() const { return &m_kD3DIdentity; }
-	const D3DXMATRIX* GetD3DMat() const { return &m_kD3DMat; }
-	const D3DXMATRIX* GetD3DView() const { return &m_kD3DView; }
-	const D3DXMATRIX* GetD3DProj() const { return &m_kD3DProj; }
-	const D3DXMATRIX* GetViewProj() const { return &m_kViewProj; }
-	const D3DXMATRIX* GetInvView() const { return &m_kInvView; }
 
 	static NiDX9Renderer* Create(UInt32 auiWidth, UInt32 auiHeight, UInt32 auiUseFlags, HWND akWndDevice, HWND akWndFocus, UInt32 auiAdapter, DeviceDesc aeDesc, FrameBufferFormat aeFBFormat, DepthStencilFormat aeDSFormat, PresentationInterval aePresentationInterval, SwapEffect aeSwapEffect, UInt32 auiFBMode, UInt32 auiBackBufferCount, UInt32 auiRefreshRate, bool abUseD3D9ex);
 
@@ -390,43 +400,51 @@ public:
 
 	static bool IsFrameStateOutsideFrame();
 
-	void ClearBuffer(const NiRect<float>* pkR, ClearFlags uiMode);
+	void ClearBuffer(const NiRect<float>* apR, ClearFlags uiMode);
 
 	UInt32 GetScreenWidth();
 	UInt32 GetScreenHeight();
 
 	bool BeginUsingRenderTargetGroup(NiRenderTargetGroup* apTarget, NiRenderer::ClearFlags uiClearMode);
-	void EndUsingRenderTargetGroup() { ThisStdCall(0xB6B330, this);}
+	void EndUsingRenderTargetGroup() { ThisStdCall(0xB6B330, this); }
 
-	bool IsHardwareSkinned(const NiGeometry* pkGeometry, NiD3DShaderInterface* pkShader) const;
+	bool IsHardwareSkinned(const NiGeometry* apGeometry, const NiD3DShaderInterface* apShader = nullptr) const;
 
 	static D3DMULTISAMPLE_TYPE GetMultiSampleType(UInt32 auiMode);
 
-	static bool __fastcall IsHardwareSkinnedEx(NiDX9Renderer* apThis, void*, const NiGeometry* pkGeometry, NiD3DShaderInterface* pkShader);
+	void SetModelTransform(const NiTransform& arTransform, bool abPushToDevice = false);
+	void SetSkinnedModelTransforms(const NiSkinInstance* apSkin, const NiSkinPartition::Partition* apPartition, const NiTransform& arTransform);
 
-	void SetModelTransform(const NiTransform& kXform, bool bPushToDevice = false);
-
-	void SetScreenSpaceCameraData(const NiRect<float>* pkPort);
+	void SetScreenSpaceCameraData(const NiRect<float>* apPort);
 
 	void SetCameraData(const NiCamera* apCamera);
 	void SetCameraData(const NiPoint3* kWorldLoc, const NiPoint3* kWorldDir, const NiPoint3* kWorldUp, const NiPoint3* kWorldRight, const NiFrustum* kFrustum, const NiRect<float>* kPort);
 
-	static void __fastcall Do_RenderTristripsAltEx(NiDX9Renderer* apThis, void*, NiTriStrips* apStrip);
-	static void __fastcall Do_RenderShapeAltEx(NiDX9Renderer* apThis, void*, NiTriShape* apShapep);
+	void Do_RenderTriStripsAltEx(NiTriStrips* apStrip);
+	void Do_RenderShapeAltEx(NiTriShape* apShape);
 
-	static void __fastcall Do_SetCameraDataEx(NiDX9Renderer* apThis, void*, const NiPoint3& kWorldLoc, const NiPoint3& kWorldDir, const NiPoint3& kWorldUp, const NiPoint3& kWorldRight, const NiFrustum& kFrustum, const NiRect<float>& kPort);
+	void Do_SetCameraDataEx(const NiPoint3& kWorldLoc, const NiPoint3& kWorldDir, const NiPoint3& kWorldUp, const NiPoint3& kWorldRight, const NiFrustum& kFrustum, const NiRect<float>& kPort);
 
+	void DrawSkinnedGeometry(NiGeometryBufferData* apBuffData, const NiSkinPartition::Partition* apSkinPartition, NiGeometryData* apGeoData) const;
+
+	bool PrecacheGeometryEx(NiGeometry* apGeometry, UInt32 uiBonesPerPartition, UInt32 uiBonesPerVertex, NiD3DShaderDeclaration* apShaderDeclaration);
 	void PerformPrecache();
+	void FreeGeometricData(NiGeometryData* apData, NiSkinInstance* apSkin, NiSkinPartition::Partition* apPartition);
 
 	UInt32 CreateVertexFlags(bool abHasColors, bool abHasNormals, bool abHasBinormalsTangents, UInt32 auiUVCount = 1);
+	bool PrePackSkinnedGeometryBuffer(NiGeometry* apGeom, NiGeometryData* apData, NiSkinInstance* apSkin, NiD3DShaderDeclaration* apShaderDecl, UInt32 auiBonesPerPartition, UInt32 auiBonesPerVertex);
+	bool PrePackGeometryBuffer(NiGeometry* apGeom, NiGeometryData* apData, UInt16 ausTriCount, UInt16 ausMaxTriCount, const UInt16* apusIndexArray, const UInt16* apusArrayLengths, UInt16 ausArrayCount, NiD3DShaderDeclaration* apShaderDecl);
 	bool PackGeometryBuffer(NiGeometryBufferData* apBufferData, NiGeometryData* apData, NiSkinInstance* apSkinInstance, NiD3DShaderDeclaration* apShaderDecl, bool abForce);
 	bool PackSkinnedGeometryBuffer(NiGeometryBufferData* apBufferData, NiGeometryData* apData, NiSkinInstance* apSkinInstance, NiSkinPartition::Partition* apPartition, NiD3DShaderDeclaration* apShaderDecl, bool abForce);
+
+	void CalculateBoneMatrices(const NiSkinInstance* apSkinInstance, const NiTransform& arWorld, bool abTranspose, UInt32 auiBoneMatrixRegisters, bool abPalettizedBones);
+
+	bool MapWindowPointToBufferPoint(UInt32 auiX, UInt32 auiY, float& arfX, float& arfY, NiRenderTargetGroup* apTarget);
 };
 
-// TODO: deal with renderer nonsense later
-// ASSERT_SIZE(NiDX9Renderer, 0xB80);
-// ASSERT_OFFSET(NiDX9Renderer, m_pkAdapterDesc, 0x5D8);
-// ASSERT_OFFSET(NiDX9Renderer, m_kDefaultBound, 0x674);
-// ASSERT_OFFSET(NiDX9Renderer, m_eReplacementDataFormat, 0x880);
-// ASSERT_OFFSET(NiDX9Renderer, m_kBuffersToUseAtDisplayFrame, 0x900);
-// ASSERT_OFFSET(NiDX9Renderer, m_kD3DShaders, 0x90C);
+//ASSERT_SIZE(NiDX9Renderer, 0xB80);
+//ASSERT_OFFSET(NiDX9Renderer, m_pkAdapterDesc, 0x5D8);
+//ASSERT_OFFSET(NiDX9Renderer, m_kDefaultBound, 0x674);
+//ASSERT_OFFSET(NiDX9Renderer, m_eReplacementDataFormat, 0x880);
+//ASSERT_OFFSET(NiDX9Renderer, m_kBuffersToUseAtDisplayFrame, 0x900);
+//ASSERT_OFFSET(NiDX9Renderer, m_kD3DShaders, 0x90C);

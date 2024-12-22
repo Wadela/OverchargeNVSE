@@ -3,23 +3,7 @@
 #include "NiRect.hpp"
 #include "NiPoint3.hpp"
 
-#ifdef USE_DX_MATH
-class NiPoint4 : public XMFLOAT4 {
-public:
-	NiPoint4() : XMFLOAT4(0.f, 0.f, 0.f, 0.f) {};
-	NiPoint4(const float x, const float y, const float z, const float w) : XMFLOAT4(x, y, z, w) {};
-	NiPoint4(const float f) : XMFLOAT4(f, f, f, f) {};
-	NiPoint4(const XMFLOAT2& src) : XMFLOAT4(src.x, src.y, 0.f, 0.f)		 {};
-	NiPoint4(const XMFLOAT2* src) : XMFLOAT4(src->x, src->y, 0.f, 0.f)		 {};
-	NiPoint4(const XMFLOAT3& src) : XMFLOAT4(src.x, src.y, src.z, 0.f)		 {};
-	NiPoint4(const XMFLOAT3* src) : XMFLOAT4(src->x, src->y, src->z, 0.f)	{};
-	NiPoint4(const XMFLOAT4& src) : XMFLOAT4(src.x, src.y, src.z, src.w)	 {};
-	NiPoint4(const XMFLOAT4* src) : XMFLOAT4(src->x, src->y, src->z, src->w) {};
-	NiPoint4(const XMVECTOR& src) { XMStoreFloat4(this, src); };
-	NiPoint4(const XMVECTOR* src) { XMStoreFloat4(this, *src); };
-	~NiPoint4() {};
-#else
-class NiPoint4 {
+class NiPoint4 : public BSMemObject {
 public:
 	float x;
 	float y;
@@ -29,9 +13,10 @@ public:
 	NiPoint4() : x(0.f), y(0.f), z(0.f), w(0.f) {};
 	NiPoint4(const float x, const float y, const float z, const float w) : x(x), y(y), z(z), w(w) {};
 	NiPoint4(const NiPoint3& src) : x(src.x), y(src.y), z(src.z), w(0.f) {};
+	NiPoint4(const NiPoint3& src, float w) : x(src.x), y(src.y), z(src.z), w(w) {};
 
 	auto operator<=>(const NiPoint4&) const = default;
-#endif
+
 	inline const float operator[] (UInt32 i) const { return ((float*)&x)[i]; };
 	inline float operator[] (UInt32 i) { return ((float*)&x)[i]; };
 
@@ -72,6 +57,29 @@ public:
 	NiPoint4* operator-(const NiPoint3* pt) const {
 		return new NiPoint4(x - pt->x, y - pt->y, z - pt->z, w);
 	};
+
+	NiPoint4 operator+ (const NiPoint4& pt) const { return NiPoint4(x + pt.x, y + pt.y, z + pt.z, w + pt.w); };
+	NiPoint4& operator+= (const NiPoint4& pt) {
+		x += pt.x;
+		y += pt.y;
+		z += pt.z;
+		w += pt.w;
+		return *this;
+	};
+
+	NiPoint4 operator*(const float afScalar) {
+		return NiPoint4(x * afScalar, y * afScalar, z * afScalar, w * afScalar);
+	}
+
+	NiPoint4& operator*= (float afScalar) {
+		x *= afScalar;
+		y *= afScalar;
+		z *= afScalar;
+		w *= afScalar;
+		return *this;
+	};
+
+	static const NiPoint4 ZERO;
 };
 
 ASSERT_SIZE(NiPoint4, 0x10);

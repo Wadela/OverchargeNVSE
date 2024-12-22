@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MainHeader.h"
+#include "MainHeader.hpp"
 
 namespace Overcharge
 {

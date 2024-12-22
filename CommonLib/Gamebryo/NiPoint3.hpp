@@ -1,41 +1,33 @@
 #pragma once
 
-#include "NiMemObject.hpp"
+#include "BSMemObject.hpp"
 
-#ifdef USE_DX_MATH
-class NiPoint3 : public XMFLOAT3 {
-public:
-	NiPoint3() : XMFLOAT3(0.f, 0.f, 0.f) {};
-	NiPoint3(const float x, const float y, const float z) : XMFLOAT3(x, y, z) {};
-	NiPoint3(const float f) : XMFLOAT3(f, f, f) {};
-	NiPoint3(const XMFLOAT2& src) : XMFLOAT3(src.x, src.y, 0.f)	  {};
-	NiPoint3(const XMFLOAT2* src) : XMFLOAT3(src->x, src->y, 0.f)	{};
-	NiPoint3(const XMFLOAT3& src) : XMFLOAT3(src.x, src.y, src.z)	{};
-	NiPoint3(const XMFLOAT3* src) : XMFLOAT3(src->x, src->y, src->z) {};
-	NiPoint3(const XMFLOAT4& src) : XMFLOAT3(src.x, src.y, src.z)	{};
-	NiPoint3(const XMFLOAT4* src) : XMFLOAT3(src->x, src->y, src->z) {};
-	NiPoint3(const XMVECTOR& src) { XMStoreFloat3(this, src); };
-	NiPoint3(const XMVECTOR* src) { XMStoreFloat3(this, *src); };
-	~NiPoint3() {};
-#else
-class NiPoint3 {
+class NiStream;
+
+class NiPoint3 : public BSMemObject {
 public:
 	float x;
 	float y;
 	float z;
-	
+
 
 	NiPoint3() : x(0.f), y(0.f), z(0.f) {};
 	NiPoint3(const float x, const float y, const float z) : x(x), y(y), z(z) {};
 	NiPoint3(const float f) : x(f), y(f), z(f) {};
+	NiPoint3(const int x, const int y, const int z) : x(x), y(y), z(z) {};
+	NiPoint3(const int f) : x(f), y(f), z(f) {};
 	NiPoint3(const NiPoint3& src) : x(src.x), y(src.y), z(src.z) {};
 	NiPoint3(const NiPoint3* src) : x(src->x), y(src->y), z(src->z) {};
-	
-	auto operator<=>(const NiPoint3&) const = default;
-#endif
 
-// TODO: ask wall
-//	D3DXVECTOR3 AsD3DXVECTOR3() const { return (D3DXVECTOR3)*this; };
+	auto operator<=>(const NiPoint3&) const = default;
+
+	bool operator==(const NiPoint3& pt) const {
+		return x == pt.x && y == pt.y && z == pt.z;
+	}
+
+#ifdef __D3DX9MATH_INL__
+	D3DXVECTOR3 AsD3DXVECTOR3() const { return (D3DXVECTOR3)*this; };
+#endif
 
 	inline const float operator[] (UInt32 i) const { return ((float*)&x)[i]; };
 	inline float operator[] (UInt32 i) { return ((float*)&x)[i]; };
@@ -104,13 +96,8 @@ public:
 
 	// 0x457990
 	__forceinline float Length() const {
-		[[msvc::flatten]]
 		return std::sqrt(x * x + y * y + z * z);
 	}
-
-	static float __fastcall Length_Hook(NiPoint3* apThis) {
-		return apThis->Length();
-	};
 
 	__forceinline float SqrLength() const {
 		return x * x + y * y + z * z;
@@ -183,6 +170,25 @@ public:
 			largest = z;
 		return largest;
 	}
+
+	static float Sign(NiPoint3 p1, NiPoint3 p2, NiPoint3 p3) {
+		return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+	}
+
+	static bool PointInTriangle(NiPoint3 pt, NiPoint3 v1, NiPoint3 v2, NiPoint3 v3) {
+		bool b1 = Sign(pt, v1, v2) < 0.0;
+		bool b2 = Sign(pt, v2, v3) < 0.0;
+		bool b3 = Sign(pt, v3, v1) < 0.0;
+
+		return (b1 == b2) && (b2 == b3);
+	}
+
+	static NiPoint3 GetTriangleCenter(NiPoint3 v1, NiPoint3 v2, NiPoint3 v3) {
+		return NiPoint3((v1.x + v2.x + v3.x) / 3.0f, (v1.y + v2.y + v3.y) / 3.0f, (v1.z + v2.z + v3.z) / 3.0f);
+	}
+
+	void LoadBinary(NiStream& arStream);
+	void SaveBinary(NiStream& arStream) const;
 
 	static const NiPoint3 UNIT_X;
 	static const NiPoint3 UNIT_Y;

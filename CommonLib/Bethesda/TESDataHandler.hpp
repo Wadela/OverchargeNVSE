@@ -200,5 +200,9 @@ public:
 	static TESForm* CreateFormFromID(UInt8 aucID);
 
 	TESObjectCELL* GetCellFromCellCoord(SInt32 aiX, SInt32 aiY, TESWorldSpace* apWorldSpace, bool abUnk);
+
+	BGSAddonNode* GetAddonNode(uint32_t type) {
+		return ThisStdCall<BGSAddonNode*>(0x4617E0, this, type);
+	}
 };
 static_assert(sizeof(TESDataHandler) == 0x63C);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MainHeader.h"
+#include "MainHeader.hpp"
 
 
 extern int g_isOverheated;

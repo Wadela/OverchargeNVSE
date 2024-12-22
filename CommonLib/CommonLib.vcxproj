@@ -123,7 +123,6 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Bethesda\AutoMemContext.cpp" />
     <ClCompile Include="Bethesda\bhkUtilFunctions.cpp" />
     <ClCompile Include="Bethesda\BSFaceGenManager.cpp" />
     <ClCompile Include="Bethesda\BSMemory.cpp" />
@@ -131,19 +130,36 @@
     <ClCompile Include="Bethesda\ModelLoader.cpp" />
     <ClCompile Include="Bethesda\TESForm.cpp" />
     <ClCompile Include="Bethesda\TLSData.cpp" />
+    <ClCompile Include="BSInputManager.cpp" />
+    <ClCompile Include="BSRenderedTexture.cpp" />
+    <ClCompile Include="BSSemaphore.cpp" />
+    <ClCompile Include="BSSpinLock.cpp" />
     <ClCompile Include="BSStream.cpp" />
     <ClCompile Include="Gamebryo\NiMemManager.cpp" />
     <ClCompile Include="Gamebryo\NiMemory.cpp" />
     <ClCompile Include="Bethesda\BSWin32TaskletManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NiAvObject.cpp" />
+    <ClCompile Include="NiBillboardNode.cpp" />
+    <ClCompile Include="NiBinaryStream.cpp" />
     <ClCompile Include="NiBound.cpp" />
+    <ClCompile Include="NiCloningProcess.cpp" />
+    <ClCompile Include="NiDX9Renderer.cpp" />
     <ClCompile Include="NiFixedString.cpp" />
     <ClCompile Include="NiGlobalStringTable.cpp" />
+    <ClCompile Include="NiLight.cpp" />
+    <ClCompile Include="NiMatrix3.cpp" />
+    <ClCompile Include="NiMemObject.cpp" />
     <ClCompile Include="NiNode.cpp" />
     <ClCompile Include="NiObject.cpp" />
     <ClCompile Include="NiObjectNET.cpp" />
+    <ClCompile Include="NiPoint3.cpp" />
+    <ClCompile Include="NiPoint4.cpp" />
+    <ClCompile Include="NiPropertyState.cpp" />
+    <ClCompile Include="NiRenderer.cpp" />
     <ClCompile Include="NiStream.cpp" />
+    <ClCompile Include="NiTimeController.cpp" />
+    <ClCompile Include="NiTransform.cpp" />
     <ClCompile Include="PlayerCharacter.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -181,7 +197,6 @@
     <ClInclude Include="Bethesda\Atmosphere.hpp" />
     <ClInclude Include="Bethesda\AttachDistant3DTask.hpp" />
     <ClInclude Include="Bethesda\AudioLoadTask.hpp" />
-    <ClInclude Include="Bethesda\AutoMemContext.hpp" />
     <ClInclude Include="Bethesda\BackgroundCloneThread.hpp" />
     <ClInclude Include="Bethesda\BackUpPackage.hpp" />
     <ClInclude Include="Bethesda\BarterMenu.hpp" />
@@ -1025,6 +1040,8 @@
     <ClInclude Include="Bethesda\XGameSetting.hpp" />
     <ClInclude Include="Bethesda\ZeroOverheadHeap.hpp" />
     <ClInclude Include="Bitwise.hpp" />
+    <ClInclude Include="BSParticleSystemManager.h" />
+    <ClInclude Include="FastModifierCollection.hpp" />
     <ClInclude Include="Gamebryo\Ni2DBuffer.hpp" />
     <ClInclude Include="Gamebryo\NiAccumulator.hpp" />
     <ClInclude Include="Gamebryo\NiAdditionalGeometryData.hpp" />
@@ -1381,7 +1398,10 @@
     <ClInclude Include="Havok\hkVector4.hpp" />
     <ClInclude Include="Bethesda\AnimSequence.hpp" />
     <ClInclude Include="classes.hpp" />
+    <ClInclude Include="ItemChange.hpp" />
     <ClInclude Include="MiscUtils.hpp" />
+    <ClInclude Include="Modifier.hpp" />
+    <ClInclude Include="ModifierList.hpp" />
     <ClInclude Include="Obsidian\BGSDehydrationStage.hpp" />
     <ClInclude Include="Obsidian\BGSHungerStage.hpp" />
     <ClInclude Include="Obsidian\BGSSleepDeprevationStage.hpp" />
@@ -1409,6 +1429,11 @@
     <ClInclude Include="OSInputGlobals.hpp" />
     <ClInclude Include="RTTI.hpp" />
     <ClInclude Include="CommonPrefix.hpp" />
+    <ClInclude Include="TeleportPath.hpp" />
+    <ClInclude Include="TESRegionSound.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="BSString.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -31,7 +31,7 @@ public:
 
 	UInt32 GetArrayCount() const;
 	UInt32 GetChildCount() const;
-	NiAVObject* GetAt(UInt32 i);
+	NiAVObject* GetAt(UInt32 i) const; 
 	NiAVObject* GetAtSafely(UInt32 i) const;
 	NiAVObject* GetLastChild();
 	void CompactChildArray();
@@ -40,12 +40,30 @@ public:
 
 	void UpdatePropertiesUpward(NiPropertyState*& apParentState);
 
-	static void __fastcall UpdateSelectedDownwardPassEx(BSFadeNode* apThis, void*, const NiUpdateData& arData, UInt32 auiFlags);
-	static void __fastcall ApplyTransformEx(NiNode* apThis, void*, NiMatrix3& kMat, NiPoint3& kTrn, bool abOnLeft);
-	static void __fastcall OnVisibleEx(NiNode* apThis, void*, NiCullingProcess* apCuller);
+	void UpdateDownwardPassEx(NiUpdateData& arData, UInt32 auiFlags);
+	void UpdateSelectedDownwardPassEx(NiUpdateData& arData, UInt32 auiFlags);
+	void UpdateRigidDownwardPassEx(NiUpdateData& arData, UInt32 auiFlags);
+	void ApplyTransformEx(NiMatrix3& kMat, NiPoint3& kTrn, bool abOnLeft);
 
 	static void SetFlagRecurse(NiNode* apNode, UInt32 auiFlag, bool abSet);
 
+	template <typename FUNC>
+	void ForEachChild(FUNC&& afn) {
+		for (UInt32 i = 0; i < GetArrayCount(); i++) {
+			NiAVObject* pChild = GetAt(i);
+			if (pChild)
+				afn(pChild);
+		}
+	}
+
+	template <typename FUNC>
+	void ForEachChildRecurse(FUNC&& afn) {
+		ForEachChild([&](NiAVObject* apChild) {
+			if (afn(apChild) && apChild->IsNiNode()) {
+				static_cast<NiNode*>(apChild)->ForEachChildRecurse(afn);
+			}
+			});
+	}
 
 	// Added By Wadel - Full Credit to JIP LN NVSE
 

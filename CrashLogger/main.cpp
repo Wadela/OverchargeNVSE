@@ -1,7 +1,7 @@
 ﻿#include <main.hpp>
 #include <format>
 #include <iostream>
-#include "InitHooks.h"
+#include "InitHooks.hpp"
 
 bool IsGamePaused()
 {

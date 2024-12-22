@@ -24,7 +24,7 @@ public:
 
 	struct RefVariable
 	{
-		String name;   // 000 variable name/editorID (not used at run-time)
+		const char* name;   // 000 variable name/editorID (not used at run-time)
 		TESForm* form; // 008
 		UInt32 varIdx; // 00C
 
@@ -112,11 +112,15 @@ public:
 
 
 	bool Execute(TESObjectREFR* thisObj, ScriptEventList* eventList, TESObjectREFR* containingObj, bool arg3)
-	{ return ThisCall<bool>(0x005AC1E0, this, thisObj, eventList, containingObj, arg3); }
+	{
+		return ThisCall<bool>(0x005AC1E0, this, thisObj, eventList, containingObj, arg3);
+	}
 
 	void SetText(const char* text) { ThisCall(0x005ABE50, this, text); }
 	bool Run(void* scriptContext, bool unkAlwaysOne, TESObjectREFR* object)
-	{ return ThisCall<bool>(0x005AC400, this, scriptContext, unkAlwaysOne, object); }
+	{
+		return ThisCall<bool>(0x005AC400, this, scriptContext, unkAlwaysOne, object);
+	}
 	//static const UInt32 kScript_ExecuteFnAddr = 0x005AC1E0;
 
 	ScriptEventList* CreateEventList();

@@ -77,6 +77,8 @@ public:
 	UInt8						Unk3B;
 	bool						m_bCanSave;
 
+	NIRTTI_ADDRESS(0x11f4884);
+
 	static NiGeometryData* Create(UInt16 usVertices, NiPoint3* pkVertex, NiPoint3* pkNormal, NiColorA* pkColor, NiPoint2* pkTexture, UInt16 usNumTextureSets, UInt32 eNBTMethod);
 	static NiGeometryData* Create();
 
