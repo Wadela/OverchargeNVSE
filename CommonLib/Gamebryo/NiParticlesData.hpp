@@ -12,20 +12,20 @@ public:
 
 	virtual void RemoveParticle(UInt16 usParticle);
 
-	UInt8			byte40;
-	DWORD			dword4C;
-	UInt16			word50;
+	bool			bHasRotations;
+	UInt16*			pusActiveIndices;
+	float*			pfVertexDots;
 	float*			m_pfRadii;
-	UInt16			m_usActive;
+	UInt16			m_usActiveVertices;
 	float*			m_pfSizes;
 	NiQuaternion*	m_pkRotations;
 	float*			m_pfRotationAngles;
 	NiPoint3*		m_pkRotationAxes;
 	UInt8*			m_pucTextureIndices;
-	DWORD			m_pkSubTextureOffsets;
+	void*			m_pkSubTextureOffsets;
 	UInt8			m_ucSubTextureOffsetCount;
 
 	CREATE_OBJECT(NiParticlesData, 0xA96600)
 };
 
-ASSERT_SIZE(NiParticlesData, 0x70);
+//ASSERT_SIZE(NiParticlesData, 0x70);

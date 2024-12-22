@@ -17,6 +17,8 @@ public:
 	UInt16 m_usTriangles;
 	UInt16 m_usActiveTriangles;
 
+	NIRTTI_ADDRESS(0x11f5b90);
+
 	__forceinline UInt16 GetTriangleCount() const {
 		return m_usTriangles;
 	}

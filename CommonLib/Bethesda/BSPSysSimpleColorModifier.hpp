@@ -1,6 +1,6 @@
 #pragma once
 
-#include "NiPSysModifier.hpp"
+#include "NiPSysModifier.hpp" 
 #include "NiColor.hpp"
 
 NiSmartPointer(BSPSysSimpleColorModifier);
@@ -10,17 +10,19 @@ public:
 	BSPSysSimpleColorModifier();
 	~BSPSysSimpleColorModifier();
 
-	NiColorA Color1;
-	NiColorA Color2;
-	NiColorA Color3;
-	float fFadeIn;
-	float fFadeOut;
-	float fColor1End;
-	float fColor2Start;
-	float fColor2End;
-	float fColor3Start;
+	NiColorA	kColor1;
+	NiColorA	kColor2;
+	NiColorA	kColor3;
+	float		fFadeIn;
+	float		fFadeOut;
+	float		fColor1End;
+	float		fColor2Start;
+	float		fColor2End;
+	float		fColor3Start;
 
-	CREATE_OBJECT(BSPSysSimpleColorModifier, 0xC607D0)
+	NIRTTI_ADDRESS(0x1204390);
+	CREATE_OBJECT(BSPSysSimpleColorModifier, 0xC607D0);
+
 };
 
 ASSERT_SIZE(BSPSysSimpleColorModifier, 0x60)

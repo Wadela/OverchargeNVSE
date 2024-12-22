@@ -48,3 +48,25 @@ void PatchMemoryNop(ULONG_PTR Address, SIZE_T Size);
 
 UInt32 __stdcall DetourVtable(UInt32 addr, UInt32 dst);
 UInt32 __stdcall DetourRelCall(UInt32 jumpSrc, UInt32 jumpTgt);
+
+template <typename C, typename Ret, typename... Args>
+void ReplaceVTableEntry(void** apVTable, UInt32 auiPosition, Ret(C::* const target)(Args...) const) {
+	union {
+		Ret(C::* tgt)(Args...) const;
+		SIZE_T funcPtr;
+	} conversion;
+	conversion.tgt = target;
+
+	apVTable[auiPosition] = (void*)conversion.funcPtr;
+}
+
+template <typename C, typename Ret, typename... Args>
+void ReplaceVTableEntry(void** apVTable, UInt32 auiPosition, Ret(C::* const target)(Args...)) {
+	union {
+		Ret(C::* tgt)(Args...);
+		SIZE_T funcPtr;
+	} conversion;
+	conversion.tgt = target;
+
+	apVTable[auiPosition] = (void*)conversion.funcPtr;
+}

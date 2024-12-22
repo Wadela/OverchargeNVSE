@@ -24,7 +24,7 @@ __declspec(restrict) __declspec(allocator) T_Data* BSNew(size_t aCount) {
 
 template <typename T, const UInt32 ConstructorPtr = 0, typename... Args>
 [[nodiscard]]
-__declspec(restrict) T* BSCreate(Args &&... args)
+__declspec(restrict)T* BSCreate(Args &&... args)
 {
 	auto* alloc = BSNew<T>();
 	if constexpr (ConstructorPtr) {
@@ -45,11 +45,21 @@ void BSDelete(T* t, Args &&... args) {
 }
 
 #define BS_ALLOCATORS \
-	/* 0x401000 */ \
-	[[nodiscard]] __declspec(allocator) void* operator new(std::size_t size) { return BSNew(size); } \
-	[[nodiscard]] __declspec(allocator) void* operator new[](std::size_t size) { return BSNew(size); } \
-	/* 0x401030 */ \
-	void operator delete(void* block) noexcept {  BSFree(block); } \
-	void operator delete(void* block, std::size_t size) noexcept {  BSFree(block); } \
-	void operator delete[](void* block) noexcept { BSFree(block); } \
-	void operator delete[](void* block, std::size_t size) noexcept { BSFree(block); }
+_VCRT_EXPORT_STD _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(_Size) _VCRT_ALLOCATOR \
+void* __CRTDECL operator new(size_t _Size) { return BSNew(_Size); } \
+_VCRT_EXPORT_STD _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(_Size) _VCRT_ALLOCATOR \
+void* __CRTDECL operator new[](size_t _Size) { return BSNew(_Size); } \
+void* __CRTDECL operator new(size_t _Size, ::std::align_val_t _Al) { return BSNewAligned(static_cast<size_t>(_Al), _Size); } \
+void* __CRTDECL operator new(size_t _Size, ::std::align_val_t _Al, ::std::nothrow_t const&) noexcept { return BSNewAligned(static_cast<size_t>(_Al), _Size); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete(void* _Block) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete(void* _Block, ::std::nothrow_t const&) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete[](void* _Block) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete[](void* _Block, ::std::nothrow_t const&) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete(void* _Block, size_t _Size) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete[](void* _Block, size_t _Size) noexcept { BSFree(_Block); }\
+_VCRT_EXPORT_STD void __CRTDECL operator delete(void* _Block, ::std::align_val_t _Al) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete(void* _Block, ::std::align_val_t _Al, ::std::nothrow_t const&) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete[](void* _Block, ::std::align_val_t _Al) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete[](void* _Block, ::std::align_val_t _Al, ::std::nothrow_t const&) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete(void* _Block, size_t _Size, ::std::align_val_t _Al) noexcept { BSFree(_Block); } \
+_VCRT_EXPORT_STD void __CRTDECL operator delete[](void* _Block, size_t _Size, ::std::align_val_t _Al) noexcept { BSFree(_Block); }

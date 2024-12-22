@@ -1,0 +1,47 @@
+#include "NiRenderer.hpp"
+#include "BSRenderer.hpp"
+
+void NiRenderer::LockRenderer() {
+	m_kRendererLock.Lock();
+}
+
+void NiRenderer::UnlockRenderer() {
+	m_kRendererLock.Unlock();
+}
+
+void NiRenderer::LockPrecacheCriticalSection() {
+	LockRenderer();
+	m_kPrecacheCriticalSection.Lock();
+}
+
+void NiRenderer::UnlockPrecacheCriticalSection() {
+	m_kPrecacheCriticalSection.Unlock();
+	UnlockRenderer();
+}
+
+bool NiRenderer::EndOffScreenFrame() {
+#if 0
+	return StdCall<bool>(0xB6B790);
+#else
+	NiDX9Renderer* pRenderer = GetSingleton();
+	bool bResult = BSRenderedTexture::ReleaseUnusedRenderTargets();
+	if (pRenderer->m_eFrameState != FRAMESTATE_INSIDE_OFFSCREEN_FRAME)
+		return bResult;
+	if (pRenderer->Do_EndFrame())
+		pRenderer->m_eFrameState = FRAMESTATE_OUTSIDE_FRAME;
+	return bResult;
+#endif
+}
+
+void NiRenderer::DisplayFrame() {
+	NiDX9Renderer* pRenderer = NiDX9Renderer::GetSingleton();
+	BSRenderedTexture::ReleaseUnusedRenderTargets();
+	if (pRenderer->m_eFrameState == FRAMESTATE_INSIDE_FRAME && pRenderer->Do_EndFrame())
+		pRenderer->m_eFrameState = FRAMESTATE_WAITING_FOR_DISPLAY;
+
+	if (pRenderer->m_eFrameState == FRAMESTATE_WAITING_FOR_DISPLAY && pRenderer->Do_DisplayFrame()) {
+		++pRenderer->m_uiFrameID;
+		pRenderer->m_eFrameState = FRAMESTATE_OUTSIDE_FRAME;
+	}
+}
+

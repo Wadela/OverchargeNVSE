@@ -1,3 +1,5 @@
+/*
+/* 
 #include "PlayerCharacter.hpp"
 #include "MemoryManager.hpp"
 
@@ -84,7 +86,7 @@ bool PlayerCharacter::SetSkeletonPath(const char* newPath) {
 	*g_1stPersonCameraNode = cameraNode;
 
 	AnimateNiNode();*/
-#endif
-#endif
-	return true;
-}
+//#endif
+//#endif
+//	return true;
+//}

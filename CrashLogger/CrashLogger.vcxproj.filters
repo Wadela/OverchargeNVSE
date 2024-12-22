@@ -25,6 +25,9 @@
     <ClCompile Include="..\nvse\utility.cpp">
       <Filter>nvse</Filter>
     </ClCompile>
+    <ClCompile Include="NiHeatController.cpp">
+      <Filter>Wadelz</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />
@@ -59,19 +62,30 @@
       <Filter>nvse</Filter>
     </ClInclude>
     <ClInclude Include="definitions.h" />
-    <ClInclude Include="InitHooks.h">
+    <ClInclude Include="InitHooks.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="MainHeader.h">
+    <ClInclude Include="MainHeader.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="Overcharge.h">
+    <ClInclude Include="Overcharge.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
     <ClInclude Include="..\nvse\utility.h">
       <Filter>nvse</Filter>
     </ClInclude>
-    <ClInclude Include="Defines.hpp" />
+    <ClInclude Include="NifOverride.hpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="NiHeatController.hpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Defines.h">
+      <Filter>nvse</Filter>
+    </ClInclude>
+    <ClInclude Include="Logging.h">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />

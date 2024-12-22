@@ -27,11 +27,23 @@ public:
 		APP_INIT
 	};
 
-	enum CycleType {
+	enum CycleType : UInt32 {
 		LOOP,
 		REVERSE,
 		CLAMP,
 		MAX_CYCLE_TYPES
+	};
+
+	enum Flags {
+		ANIMTYPE_MASK			= 0x0001,
+		ANIMTYPE_POS			= 0,
+		CYCLETYPE_MASK			= 0x0006,
+		CYCLETYPE_POS			= 1,
+		ACTIVE_MASK				= 0x0008,
+		DIRECTION_MASK			= 0x0010,
+		MANAGERCONTROLLED_MASK	= 0x0020,
+		COMPUTESCALEDTIME_MASK	= 0x0040,
+		FORCEUDPATE_MASK		= 0x0080
 	};
 
 	Bitfield16						m_usFlags;
@@ -48,7 +60,20 @@ public:
 
 	NIRTTI_ADDRESS(0x11F49E4);
 
+	void SetAnimType(AnimType aeType);
+	AnimType GetAnimType() const;
+
+	void SetCycleType(CycleType aeType);
+	CycleType GetCycleType() const;
+
+	void SetActive(bool abActive);
+	bool GetActive() const;
+
+	void SetComputeScaledTime(bool abComputeScaledTime);
+	bool GetComputeScaledTime() const;
+
 	NiTimeController* GetNext() const { return m_spNext; }
 	void SetNext(NiTimeController* apNext) { m_spNext = apNext; }
 	static void StartAnimations(NiAVObject* apObject);
+	static void StartAnimations2(NiAVObject* apObject, float fTime);
 };

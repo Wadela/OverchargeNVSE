@@ -1,4 +1,5 @@
 #pragma once
+#include "Windows.h"
 #include "BSSimpleList.hpp"
 #include "BSString.hpp"
 #include "BSFile.hpp"
@@ -12,23 +13,13 @@ struct ChunkAndFormType {
 	const char* formName;	// ie 'NPC_'
 };
 
-#if RUNTIME
-// addresses of static ModInfo members holding type info about currently loading form
-static UInt32* s_ModInfo_CurrentChunkTypeCode = (UInt32*)0x011C54F4;
-static UInt32* s_ModInfo_CurrentFormTypeEnum = (UInt32*)0x011C54F0;
-// in last call (SetStaticFieldsAndGetFormTypeEnum) of first call (ModInfo__GetFormInfoTypeID) from _ModInfo_InitializeForm
-//		s_ModInfo_CurrentChunkTypeCode is first cmp
-//		s_ModInfo_CurrentChunkTypeEnum is next mov
-static ChunkAndFormType* s_ModInfo_ChunkAndFormTypes = (ChunkAndFormType*)0x01187008;	// Array used in the loop in SetStaticFieldsAndGetFormTypeEnum, starts under dd offset aNone
-#endif
-
 struct ChunkHeader {
 	UInt32	type : 4;	// i.e. 'XGRD', 'DATA'
 	UInt16	size : 2;
 };
 
 // 0x42C
-class TESFile 
+class TESFile
 {
 public:
 	TESFile();
@@ -862,5 +853,6 @@ public:
 	bool IsLoaded() const { return true; }
 	const char* GetName() const { return m_Filename; }
 };
+
 static_assert(sizeof(WIN32_FIND_DATA) == 0x140);
 static_assert(sizeof(TESFile) == 0x42C);

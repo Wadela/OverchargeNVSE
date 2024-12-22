@@ -19,6 +19,7 @@ public:
 	NiTransform							m_kUnmodifiedWorld;
 
 	CREATE_OBJECT(NiParticleSystem, 0xC1B7F0);
+	NIRTTI_ADDRESS(0x12024e0);
 };
 
 ASSERT_SIZE(NiParticleSystem, 0x110);

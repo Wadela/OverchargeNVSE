@@ -121,6 +121,34 @@ public:
 
 	void ReadLinkID();
 	NiObject* GetObjectFromLinkID();
+
+	void SaveFixedString(const NiFixedString& arStr);
+	void LoadFixedString(NiFixedString& arStr);
 };
 
 ASSERT_SIZE(NiStream, 0x5C8)
+
+template <class T>
+static void NiStreamSaveBinary(NiStream& kStream, const T& value) {
+	NiBinaryStreamSave(*kStream.m_pkOstr, &value);
+}
+
+template <class T>
+static void NiStreamSaveBinary(NiStream& kStream, const T* pValue, UInt32 uiNumEls) {
+	NiBinaryStreamSave(*kStream.m_pkOstr, pValue, uiNumEls);
+}
+
+template <class T>
+void NiStreamLoadBinary(NiStream& kStream, T& value) {
+	NiBinaryStreamLoad(*kStream.m_pkOstr, &value, 1);
+}
+
+template <class T>
+void NiStreamLoadBinary(NiStream& kStream, T* pValue, UInt32 uiNumEls) {
+	NiBinaryStreamLoad(*kStream.m_pkOstr, pValue, uiNumEls);
+}
+
+template <class T>
+void NiStreamLoadBinary(NiStream& kStream, T* pValue, UInt32 uiNumEls, UInt32* pauiComponentSizes, UInt32 uiNumComponents) {
+	NiBinaryStreamLoad(*kStream.m_pkOstr, pValue, uiNumEls, pauiComponentSizes, uiNumComponents);
+}

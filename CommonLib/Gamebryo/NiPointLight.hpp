@@ -1,8 +1,25 @@
 #pragma once
 
 #include "NiLight.hpp"
+#include "NiPoint4.hpp"
 
 NiSmartPointer(NiPointLight);
+
+#define JIP_LIGHTS 0
+
+#if JIP_LIGHTS
+	struct JIPLightData {
+		float			flt0FC;
+		NiPoint3		kNewPos;
+		float			kNewScale;
+	};
+
+	#define LIGHT_SIZE 0x110
+#else
+	#define LIGHT_SIZE 0xFC
+#endif
+
+
 
 class NiPointLight : public NiLight {
 public:
@@ -19,8 +36,12 @@ public:
 		NiPoint3 m_kLightOffset;
 	};
 
+#if JIP_LIGHTS
+	JIPLightData		kJIPData;
+#endif
+
 	CREATE_OBJECT(NiPointLight, 0xA7D6E0);
 	NIRTTI_ADDRESS(0x11F4A98);
 };
 
-ASSERT_SIZE(NiPointLight, 0xFC)
+ASSERT_SIZE(NiPointLight, LIGHT_SIZE);

@@ -16,7 +16,8 @@ public:
 
 	const char* GetName() const { return m_kName.m_kHandle; }
 
-	static void __fastcall LoadBinaryEx(NiExtraData* apThis, void*, NiStream* kStream);
+	void SetName(const NiFixedString& arName);
+	void LoadBinaryEx(NiStream* kStream);
 };
 
 ASSERT_SIZE(NiExtraData, 0xC);

@@ -1,16 +1,39 @@
 #pragma once
+
+#include <vector>
+
 #include "BSExtraData.hpp"
+#include "ExtraDataList.hpp"
+#include "TESForm.hpp"
+#include "InventoryChanges.hpp"
+#include "map"
 
 class TESObjectREFR;
-class InventoryChanges;
 
-// 0x10
-class ExtraContainerChanges : public BSExtraData
-{
+class ExtraContainerChanges : public BSExtraData {
 public:
 	ExtraContainerChanges();
 	virtual ~ExtraContainerChanges();
 
-	InventoryChanges* pkData;	// 00C
+	static constexpr UInt8 ExtraDataType = ED_CONTAINERCHANGES;;
+
+	typedef std::vector<ItemChange*> DataArray;
+	typedef std::vector<BSSimpleList<ItemChange*>*> ExtendDataArray;
+
+	InventoryChanges* data;	// 00C
+
+	// find the equipped item whose form matches the passed matcher
+	struct FoundEquipData {
+		TESForm* pForm;
+		ExtraDataList* pExtraData;
+	};
+
+	BSSimpleList<ItemChange*>* GetEntryDataList() const {
+		return data ? data->pItems : NULL;
+	}
 };
-static_assert(sizeof(ExtraContainerChanges) == 0x10);
+
+typedef ExtraContainerChanges::DataArray ExtraContainerDataArray;
+typedef ExtraContainerChanges::ExtendDataArray ExtraContainerExtendDataArray;
+typedef ExtraContainerChanges::FoundEquipData EquipData;
+typedef std::map<TESForm*, InventoryItemData> InventoryItemsMap;

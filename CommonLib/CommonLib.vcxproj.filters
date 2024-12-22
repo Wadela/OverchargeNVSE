@@ -1,16 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="Bethesda\AutoMemContext.cpp">
-      <Filter>Types</Filter>
-    </ClCompile>
     <ClCompile Include="Bethesda\bhkUtilFunctions.cpp">
       <Filter>Types</Filter>
     </ClCompile>
     <ClCompile Include="Bethesda\BSFaceGenManager.cpp">
-      <Filter>Types</Filter>
-    </ClCompile>
-    <ClCompile Include="Bethesda\BSMemory.cpp">
       <Filter>Types</Filter>
     </ClCompile>
     <ClCompile Include="Bethesda\BSWin32TaskletManager.cpp">
@@ -19,16 +13,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Types</Filter>
     </ClCompile>
-    <ClCompile Include="Bethesda\MemoryManager.cpp">
-      <Filter>Types</Filter>
-    </ClCompile>
     <ClCompile Include="Bethesda\ModelLoader.cpp">
-      <Filter>Types</Filter>
-    </ClCompile>
-    <ClCompile Include="Gamebryo\NiMemManager.cpp">
-      <Filter>Types</Filter>
-    </ClCompile>
-    <ClCompile Include="Gamebryo\NiMemory.cpp">
       <Filter>Types</Filter>
     </ClCompile>
     <ClCompile Include="Bethesda\TESForm.cpp">
@@ -65,6 +50,69 @@
       <Filter>Type Methods</Filter>
     </ClCompile>
     <ClCompile Include="BSStream.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiCloningProcess.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiLight.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiPoint4.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiPoint3.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiTimeController.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiDX9Renderer.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiRenderer.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiMemObject.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="Gamebryo\NiMemManager.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="Gamebryo\NiMemory.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiMatrix3.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="BSRenderedTexture.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiPropertyState.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="BSSpinLock.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="Bethesda\MemoryManager.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="Bethesda\BSMemory.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiTransform.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiBinaryStream.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="NiBillboardNode.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="BSSemaphore.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
+    <ClCompile Include="BSInputManager.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
   </ItemGroup>
@@ -172,9 +220,6 @@
       <Filter>Types</Filter>
     </ClInclude>
     <ClInclude Include="Bethesda\AudioLoadTask.hpp">
-      <Filter>Types</Filter>
-    </ClInclude>
-    <ClInclude Include="Bethesda\AutoMemContext.hpp">
       <Filter>Types</Filter>
     </ClInclude>
     <ClInclude Include="Bethesda\BackgroundCloneThread.hpp">
@@ -3855,6 +3900,27 @@
     <ClInclude Include="Bethesda\ZeroOverheadHeap.hpp">
       <Filter>Types</Filter>
     </ClInclude>
+    <ClInclude Include="BSParticleSystemManager.h">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="TeleportPath.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="TESRegionSound.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemChange.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="ModifierList.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="Modifier.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="FastModifierCollection.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Types">
@@ -3863,5 +3929,10 @@
     <Filter Include="Type Methods">
       <UniqueIdentifier>{101b501e-9bf2-4e0d-8ba4-032ccfa2b9ba}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="BSString.inl">
+      <Filter>Type Methods</Filter>
+    </None>
   </ItemGroup>
 </Project>

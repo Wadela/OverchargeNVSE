@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BSSimpleArray.hpp"
+#include "NiPoint3.hpp"
 
 class TESObjectCELL;
 class TESWorldSpace;
@@ -12,14 +13,19 @@ public:
 	virtual void  Write(BGSSaveFormBuffer* apBuffer);
 	virtual void  Read(BGSSaveFormBuffer* apBuffer);
 
+	enum Flags {
+		ALL_MESHES_REACHABLE = 1 << 0,
+		UNUSED				 = 1 << 1,
+	};
+
 	NiPoint3						kLocation;
 	NavMeshInfo*					pNavMeshInfo;
-	BSSimpleArray<NavMeshInfo*>*	pNavMepNavMeshesshInfo;
+	BSSimpleArray<NavMeshInfo*>*	pNavMeshInfos;
 	TESObjectCELL*					pCell;
 	TESWorldSpace*					pWorldSpace;
 	UInt32							uiCellCoords;
 	UInt16							usTriangle;
-	UInt8							ucFlags;
+	Bitfield8						ucFlags;
 	UInt8							ucClientData;
 };
 

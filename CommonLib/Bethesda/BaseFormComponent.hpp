@@ -1,12 +1,12 @@
 #pragma once
 
-// 0x4
-class BaseFormComponent 
+class BaseFormComponent
 {
-public:
+protected:
 	BaseFormComponent();
 	~BaseFormComponent();
 
+public:
 	virtual void	InitializeDataComponent();
 	virtual void	ClearDataComponent();
 	virtual void	CopyComponent(BaseFormComponent* apComponent);

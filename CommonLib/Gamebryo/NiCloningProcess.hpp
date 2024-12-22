@@ -6,14 +6,13 @@
 
 class NiCloningProcess : public NiMemObject {
 public:
+	NiCloningProcess(UInt32 uiHashSize = 257);
+	~NiCloningProcess();
+
 	NiTPointerMap<NiObject*, NiObject*>*	m_pkCloneMap;
 	NiTPointerMap<NiObject*, bool>*			m_pkProcessMap;
 	NiObjectNET::CopyType					m_eCopyType;
 	char									m_cAppendChar;
-	NiPoint3								Scale;
-
-	static NiCloningProcess* Create(NiCloningProcess* apThis, UInt32 uiHashSize = 257);
-	void Destroy();
 };
 
-ASSERT_SIZE(NiCloningProcess, 0x1C);
+ASSERT_SIZE(NiCloningProcess, 0x10);

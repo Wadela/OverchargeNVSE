@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ActorValue.hpp"
+
 class Actor;
 
 class ActorValueOwner {
@@ -8,28 +10,28 @@ public:
 	~ActorValueOwner();
 
 	// GetBaseActorValue (used from Eval) result in EAX
-	virtual SInt32	GetBaseActorValueInt(UInt32 avCode);
+	virtual UInt32	GetBaseActorValueI(ActorValue::Index aeIndex);
 	// GetBaseActorValue internal, result in st
-	virtual Float32	GetBaseActorValue(UInt32 avCode);
+	virtual float	GetBaseActorValueF(ActorValue::Index aeIndex);
 	// GetActorValue internal, result in EAX
-	virtual SInt32	GetActorValueInternal(UInt32 avCode);
+	virtual UInt32	GetActorValueI(ActorValue::Index aeIndex);
 	// GetActorValue (used from Eval) result in EAX
-	virtual Float32	GetActorValue(UInt32 avCode);
+	virtual float	GetActorValueF(ActorValue::Index aeIndex);
 	// GetBaseActorValue04 (internal) result in st
-	virtual Float32	GetBaseSubAV(UInt32 avCode);
+	virtual float	Fn_04(ActorValue::Index aeIndex);
 	// GetDamageActorValue or GetModifiedActorValue
 	// called from Fn_08, result in st, added to Fn_01
-	virtual Float32	GetSubAVDamage(UInt32 avCode);
-	virtual Float32	GetSubAVMod(UInt32 avCode);
+	virtual float	Fn_05(void* arg);
+	virtual float	GetModifier(ActorValue::Index aeIndex);
 	// Manipulate GetPermanentActorValue, maybe convert to integer.
-	virtual SInt32	GetPermanentActorValueInt(UInt32 avCode);
+	virtual UInt32	GetPermanentActorValueI(ActorValue::Index aeIndex);
 	// GetPermanentActorValue (used from Eval) result in EAX
-	virtual Float32	GetPermanentActorValue(UInt32 avCode);
+	virtual float	GetPermanentActorValueF(ActorValue::Index aeIndex);
 	// GetActorBase (= this - 0x100) or GetActorBase (= this - 0x0A4)
 	virtual Actor*	GetActor();
-	// GetLevel (from ActorBase)
 	virtual UInt16	GetLevel();
 
 	// SkillsCurrentValue[14] at index 20
 };
-static_assert(sizeof(ActorValueOwner) == 0x4);
+
+ASSERT_SIZE(ActorValueOwner, 0x4);
