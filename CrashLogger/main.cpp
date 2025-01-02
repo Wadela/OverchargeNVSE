@@ -2,6 +2,7 @@
 #include <format>
 #include <iostream>
 #include "InitHooks.hpp"
+#include "NifOverride.hpp"
 
 bool IsGamePaused()
 {
@@ -27,12 +28,18 @@ void FillPluginInfo(PluginInfo* info)
 
 void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 {
+	if (msg->type == NVSEMessagingInterface::kMessage_PostLoad)
+	{
+		Overcharge::Hook();
+	}
 	if (msg->type == NVSEMessagingInterface::kMessage_DeferredInit)
 	{
 		InitSingletons();
 		Logger::Play();
 
 		for (const auto& i : deferredInit) i(); // call all deferred init functions
+
+		Overcharge::PostLoad();
 	}
 	else if (msg->type == NVSEMessagingInterface::kMessage_MainGameLoop)
 	{
@@ -86,7 +93,6 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 	if (nvse->isEditor)	return true;
 
 	Overcharge::InitHooks();
-
 	g_pluginHandle = nvse->GetPluginHandle();
 	g_seInterface = const_cast<NVSEInterface*>(nvse);
 
