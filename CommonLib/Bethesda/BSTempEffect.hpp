@@ -42,5 +42,7 @@ public:
 	TESObjectCELL*	pkCell;
 	Float32			fAge;
 	bool			bInitialized;
+
+	NIRTTI_ADDRESS(0x1069818);
 };
 static_assert(sizeof(BSTempEffect) == 0x18);

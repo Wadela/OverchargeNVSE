@@ -20,17 +20,19 @@
 #include "TESMain.hpp"
 #include "NiDX9Renderer.hpp"
 
-NiColor rgbShift(const double time, const double period) {
+NiColor rgbShift(const double time, const double period) 
+{
 	// Use sine wave functions to smoothly vary RGB values over time
-	const auto r = static_cast<float>((sin(time / period) + 1) / 2);
-	const auto g = static_cast<float>((sin((time / period) + 2 * std::numbers::pi / 3) + 1) / 2);
-	const auto b = static_cast<float>((sin((time / period) + 4 * std::numbers::pi / 3) + 1) / 2);
+	const float r = static_cast<float>((sin(time / period) + 1) / 2);
+	const float g = static_cast<float>((sin((time / period) + 2 * std::numbers::pi / 3) + 1) / 2);
+	const float b = static_cast<float>((sin((time / period) + 4 * std::numbers::pi / 3) + 1) / 2);
 
 	// Return the RGB color as a NiColor struct
 	return { r, g, b };
 }
 
-NiHeatController* __stdcall NiHeatController::CreateObject() {
+NiHeatController* __stdcall NiHeatController::CreateObject() 
+{
 	NiHeatController* pController = NiNew<NiHeatController>();
 
 	// NiTimeController constructor
@@ -41,13 +43,15 @@ NiHeatController* __stdcall NiHeatController::CreateObject() {
 	pController->SetActive(true);
 
 	static void* vtbl_NiHeatController[44] = {};
-	if (!vtbl_NiHeatController[0]) {
-		for (UInt32 i = 0; i < 44; i++) {
+	if (!vtbl_NiHeatController[0]) 
+	{
+		for (UInt32 i = 0; i < 44; i++) 
+		{
 			vtbl_NiHeatController[i] = reinterpret_cast<void***>(pController)[0][i];
 		}
 
-		ReplaceVTableEntry(vtbl_NiHeatController, 0, &NiHeatController::Destroy);
-		ReplaceVTableEntry(vtbl_NiHeatController, 2, &NiHeatController::GetRTTIEx);
+		ReplaceVTableEntry(vtbl_NiHeatController, 0,  &NiHeatController::Destroy);
+		ReplaceVTableEntry(vtbl_NiHeatController, 2,  &NiHeatController::GetRTTIEx);
 		ReplaceVTableEntry(vtbl_NiHeatController, 18, &NiHeatController::CreateCloneEx);
 		ReplaceVTableEntry(vtbl_NiHeatController, 19, &NiHeatController::LoadBinaryEx);
 		ReplaceVTableEntry(vtbl_NiHeatController, 20, &NiHeatController::LinkObjectEx);
@@ -60,7 +64,8 @@ NiHeatController* __stdcall NiHeatController::CreateObject() {
 	return pController;
 }
 
-void NiHeatController::Destroy(bool abDealloc) {
+void NiHeatController::Destroy(bool abDealloc) 
+{
 	// Free members
 	dynamicShift = nullptr;
 
@@ -72,7 +77,8 @@ void NiHeatController::Destroy(bool abDealloc) {
 	}
 }
 
-NiHeatController* NiHeatController::CreateCloneEx(NiCloningProcess* apCloning) {
+NiHeatController* NiHeatController::CreateCloneEx(NiCloningProcess* apCloning) 
+{
 	NiHeatController* pNewController = CreateObject();
 
 	// NiTimeController::CopyMembers
@@ -81,16 +87,19 @@ NiHeatController* NiHeatController::CreateCloneEx(NiCloningProcess* apCloning) {
 	return pNewController;
 }
 
-void NiHeatController::LoadBinaryEx(NiStream* apStream) const {
+void NiHeatController::LoadBinaryEx(NiStream* apStream) const 
+{
 	ThisStdCall(0xA6D5E0, this, apStream);
 	apStream->ReadLinkID();
 }
 
-void NiHeatController::LinkObjectEx(NiStream* apStream) const {
+void NiHeatController::LinkObjectEx(NiStream* apStream) const 
+{
 	ThisStdCall(0xA6D500, this, apStream);
 }
 
-void NiHeatController::StartEx(const float afTime) {
+void NiHeatController::StartEx(const float afTime) 
+{
 	SetActive(true);
 	m_fLastTime = -3.4028235e38f;
 	if (m_usFlags.GetBit(1)) {
@@ -98,30 +107,36 @@ void NiHeatController::StartEx(const float afTime) {
 	}
 }
 
-void NiHeatController::StopEx() const {
-}
+void NiHeatController::StopEx() const {}
 
-void NiHeatController::UpdateEx(NiUpdateData& arData) {
-	if (!m_pkTarget) {
+void NiHeatController::UpdateEx(NiUpdateData& arData) 
+{
+	if (!m_pkTarget) 
+	{
 		return;
 	}
 
 	// Only update every 100ms
-	const auto time = GetTickCount();
-	if (time - fLastUpdate < 100) {
+	const auto time = GetTickCount64();
+	if (time - fLastUpdate < 100) 
+	{
 		return;
 	}
 	fLastUpdate = time;
 
-	const auto newCol = rgbShift(GetTickCount());
+	const auto newCol = rgbShift(GetTickCount64());
 
-	if (const auto target = m_pkTarget->NiDynamicCast<NiGeometry>()) {
-		if (const auto matProp = target->GetMaterialProperty()) {
+	if (const auto target = m_pkTarget->NiDynamicCast<NiGeometry>()) 
+	{
+		if (const auto matProp = target->GetMaterialProperty()) 
+		{
 			matProp->m_emit = matProp->m_emit.Shifted(newCol, 1);
 		}
 
-		if (const auto modelData = target->m_spModelData; modelData && modelData->m_pkColor) {
-			for (int i = 0; i < modelData->m_usVertices; i++) {
+		if (const auto modelData = target->m_spModelData; modelData && modelData->m_pkColor) 
+		{
+			for (int i = 0; i < modelData->m_usVertices; i++) 
+			{
 				auto col = modelData->m_pkColor[i].Shifted(newCol, 1);
 				col.a = modelData->m_pkColor[i].a;
 
@@ -135,19 +150,12 @@ void NiHeatController::UpdateEx(NiUpdateData& arData) {
 		}
 	}
 
-	// This crashes with JIP - Because why wouldn't it :)
-	// if (const auto light = m_pkTarget->NiDynamicCast<NiLight>()) {
-	// 	light->m_kAmb = light->m_kAmb.Shifted(newCol, 1);
-	// 	light->m_kDiff = light->m_kAmb.Shifted(newCol, 1);
-	// 	light->m_kSpec = light->m_kSpec.Shifted(newCol, 1);
-	// }
-
-	if (const auto psys = m_pkTarget->NiDynamicCast<NiParticleSystem>()) {
+	if (const auto psys = m_pkTarget->NiDynamicCast<NiParticleSystem>()) 
+	{
 		for (const auto& mod : psys->m_kModifierList) {
-			if (const auto colorMod = mod->NiDynamicCast<BSPSysSimpleColorModifier>()) {
-				//colorMod->kColor1 = colorMod->kColor1.Shifted(newCol, 1);
+			if (const auto colorMod = mod->NiDynamicCast<BSPSysSimpleColorModifier>()) 
+			{
 				colorMod->kColor2 = colorMod->kColor2.Shifted(newCol, 1);
-				//colorMod->kColor3 = colorMod->kColor3.Shifted(newCol, 1);
 			}
 		}
 	}

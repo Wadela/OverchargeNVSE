@@ -21,7 +21,7 @@ public:
 	virtual void				OnPreDisplay() const;					// 42
 	virtual bool				IsStreamable() const;					// 43
 	virtual bool				TargetIsRequiredType() const;			// 44
-
+		
 	enum AnimType {
 		APP_TIME,
 		APP_INIT
