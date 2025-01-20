@@ -133,7 +133,6 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="NiHeatController.cpp" />
     <ClCompile Include="Overcharge.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
@@ -156,7 +155,6 @@
     <ClInclude Include="main.hpp" />
     <ClInclude Include="MainHeader.hpp" />
     <ClInclude Include="NifOverride.hpp" />
-    <ClInclude Include="NiHeatController.hpp" />
     <ClInclude Include="Overcharge.hpp" />
   </ItemGroup>
   <ItemGroup>

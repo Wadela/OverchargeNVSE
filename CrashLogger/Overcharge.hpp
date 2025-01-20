@@ -4,7 +4,6 @@
 
 
 extern int g_isOverheated;
-
 namespace Overcharge
 {
     //Color Changing Code
@@ -24,8 +23,6 @@ namespace Overcharge
         const HeatRGB* colorSet;
 
         ColorGroup(const HeatRGB* colorSet) : colorSet(colorSet) {}
-
-        std::vector<HeatRGB> BlendAll(float ratio);
 
         static const ColorGroup* GetColorSet(const char* colorName);
 
