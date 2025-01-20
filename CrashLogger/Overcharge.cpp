@@ -94,5 +94,6 @@ namespace Overcharge
             g_isOverheated = 1;         //When g_isOverheated == 1, Weapon does not fire.
         }
     }
+
 }
 

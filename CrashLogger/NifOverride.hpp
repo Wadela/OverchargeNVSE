@@ -3,7 +3,6 @@
 #include "MainHeader.hpp"
 #include "Logging.h"
 #include "Defines.h"
-#include "NiHeatController.hpp"
 
 //Bethesda
 #include "BSStream.hpp"
@@ -25,6 +24,7 @@
 #include "NiParticleSystem.hpp"
 #include "NiTimeController.hpp"
 #include "NiPointLight.hpp"
+#include <BSPSysSimpleColorModifier.hpp>
 
 namespace Overcharge
 {
@@ -89,6 +89,7 @@ namespace Overcharge
 		"effects\\impactenergygreen01.nif",
 		"effects\\impactenergybase01.nif",
 		"mps\\mpsenergyimpactgreen.nif",
+		"projectiles\\plasmaprojectile01.nif",
 		"projectiles\\testlaserbeamsteady.nif",
 		"mps\\mpsenergyimpactred.nif",
 		"Effects\\MuzzleFlashes\\laserriflemuzzleflash.NIF",
@@ -97,250 +98,75 @@ namespace Overcharge
 	// Auto populated based on editorIds above
 	static case_insensitive_set definedModels{};
 
-	//Stores geometry data for later use
-	static NiGeometryDataPtr PreloadGeometryData(const char* nodeName, const char* path)
+	static void EditColorMod(NiParticleSystem* childParticle)
 	{
-		// Cached geometry data
-		static std::unordered_map<std::string, NiGeometryDataPtr> cache{};
-		const std::string key = std::string(path) + nodeName;
-		if (cache.contains(key))
+		childParticle->m_kProperties.m_spMaterialProperty->m_emit = NiColor(1, 0, 0);
+
+		for (auto it = childParticle->m_kModifierList.begin(); it != childParticle->m_kModifierList.end();)
 		{
-			return cache[key];
-		}
-
-		BEGIN_SCOPE();
-		log("Manually loading vertex data at node '%s' for mesh '%s'", nodeName, path);
-		BEGIN_SCOPE();
-
-		StackObject<BSStream> kStream;
-		BSStream::Create(&kStream.Get());
-		BSStream* pStream = kStream.GetPtr();
-		char filePath[256];
-		snprintf(filePath, 256, "%s\\%s", "Meshes", path);
-
-		if (!pStream->Load2(filePath))
-		{
-			log("Failed to load mesh: %s", path);
-			log("Stream error: %s", pStream->m_acLastErrorMessage);
-			return nullptr;
-		}
-
-		const NiObject* pObject = pStream->GetObjectAt(0);
-		if (!pObject)
-		{
-			log("Failed to load root node of mesh: %s", path);
-			return nullptr;
-		}
-
-		NiNode* const node = pObject->IsNiNode();
-		const NiAVObject* targetNode = node->GetObjectByName(NiFixedString(nodeName));
-		if (!targetNode)
-		{
-			log("Node does not exist");
-			return nullptr;
-		}
-
-		NiGeometry* const geom = targetNode->IsGeometry();
-		if (!geom || !geom->m_spModelData->m_pkColor)
-		{
-			log("Node is not geometry or does not have vertex colors");
-			return nullptr;
-		}
-
-		constexpr int ucKeepFlags =
-			NiGeometryData::KEEP_XYZ |
-			NiGeometryData::KEEP_NORM |
-			NiGeometryData::KEEP_INDICES |
-			NiGeometryData::KEEP_BONEDATA |
-			NiGeometryData::KEEP_COLOR;
-
-		geom->m_spModelData->m_ucKeepFlags = ucKeepFlags;
-		cache[key] = geom->m_spModelData->Clone()->NiDynamicCast<NiGeometryData>();
-
-		return geom->m_spModelData;
-	}
-
-	static bool HandleNiObject(const NiAVObjectPtr& node, const char* modelPath = nullptr)
-	{
-		BEGIN_SCOPE();
-		log("Handling object: %s", node->GetName());
-		bool needsController = false;
-
-		if (NiGeometry* const geom = node->IsGeometry())
-		{
-			BEGIN_SCOPE();
-			log("Processing NiGeometry");
-
-			if (matProps.contains(node->GetName()) && geom->GetMaterialProperty())
+			if (auto colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
 			{
-				log("Material properties enabled");
-				needsController = true;
+				colorMod->kColor2 = NiColorA(1, 0, 0, 1);
 			}
-			else
-			{
-				log("Skipping material properties.. Not configured");
-			}
-			if (vertexColors.contains(node->GetName()))
-			{
-				if (!modelPath)
-				{
-					log("No model path provided for vertex color update");
-				}
-				else
-				{
-					if (const NiGeometryDataPtr newGeomData = PreloadGeometryData(node->GetName(), modelPath))
-					{
-						geom->SetModelData(newGeomData);
-						log("Vertex colors updated");
-						needsController = true;
-					}
-				}
-			}
-			else
-			{
-				log("Skipping vertex color update.. Not configured");
-			}
-		}
 
-		if (const NiParticleSystem* particleSystem = node->NiDynamicCast<NiParticleSystem>())
-		{
-			log("Processing NiParticleSystem");
-			needsController = true;
-		}
-
-		return needsController;
-	}
-
-	static void ProcessNiNode(const NiAVObjectPtr& node, const char* modelPath = nullptr)
-	{
-		BEGIN_SCOPE();
-		log("Processing node %s", node->GetName());
-
-		bool bAddController = false;
-
-		if (const NiNode* niNode = node->IsNiNode())
-		{
-			BEGIN_SCOPE();
-			log("Is NiNode (%d children)", niNode->m_kChildren.m_usSize);
-
-			for (uint32_t i = 0; i < niNode->m_kChildren.m_usSize; i++)
-			{
-				if (auto child = niNode->m_kChildren[i])
-				{
-					ProcessNiNode(child, modelPath);
-				}
-			}
-		}
-
-		bAddController = HandleNiObject(node, modelPath);
-
-		if (bAddController)
-		{
-			BEGIN_SCOPE();
-			log("Adding NiHeatController to %s", node->GetName());
-			NiHeatController::CreateObject()->SetTarget(node);
+			++it;
 		}
 	}
 
-	static void InjectMPS(const NiNodePtr& node)
+	static void UpdateMPSColors(const BSMasterParticleSystem* mps)
 	{
-		BEGIN_SCOPE();
-		log("Processing node: %s", node->GetName());
+		if (!mps) return;
 
-		if (BSValueNode* valueNode = node->NiDynamicCast<BSValueNode>())
+		if (auto mpsNode = mps->GetAt(0)->NiDynamicCast<NiNode>())
 		{
-			BEGIN_SCOPE();
+			for (int i = 0; i < mpsNode->m_kChildren.m_usSize; ++i)
+			{
+				if (auto childParticle = mpsNode->m_kChildren.m_pBase[i]->NiDynamicCast<NiParticleSystem>())
+				{
+					EditColorMod(childParticle);
+				}
+			}
+		}
+	}
 
-			const SInt32 addonNodeID = valueNode->iValue;
-			const BGSAddonNode* addonNode = TESDataHandler::GetSingleton()->GetAddonNode(addonNodeID);
-
-			log("Addon node value: %d", addonNodeID);
-			log("Addon node: 0x%p", addonNode);
-
+	static void PrepMeshColors(const NiNodePtr& node)
+	{
+		if (auto valueNode = node->NiDynamicCast<BSValueNode>())
+		{
+			const auto addonNode = TESDataHandler::GetSingleton()->GetAddonNode(valueNode->iValue);
 			if (addonNode && addonNode->kData.ucFlags.GetBit(1))
 			{
-				BEGIN_SCOPE();
+				const auto manager = BSParticleSystemManager::GetInstance();
+				const auto particleSystemIndex = addonNode->particleSystemID;
 
-				const BSParticleSystemManager* manager = BSParticleSystemManager::GetInstance();
-				const UInt32 particleSystemIndex = addonNode->particleSystemID;
-				log("Particle system ID: %d", particleSystemIndex);
-
-				if (const BSMasterParticleSystem* mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
+				if (const auto mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
 				{
-					BEGIN_SCOPE();
-					log("MPS: 0x%p", mps);
-
-					if (NiNode* const newNode = mps->GetAt(0)->Clone()->IsNiNode())
-					{
-						BEGIN_SCOPE();
-						log("Grabbed main MPS node: %s", newNode->GetName());
-
-						// Ensure that 3d offsets are correct
-						newNode->m_kLocal = valueNode->m_kLocal;
-						newNode->m_kWorld = valueNode->m_kWorld;
-
-						// Copy value node children
-						for (int i = 0; i < valueNode->m_kChildren.m_usSize; i++)
-						{
-							if (const NiAVObjectPtr child = valueNode->m_kChildren.m_pBase[i])
-							{
-								BEGIN_SCOPE();
-								log("Attaching value node child: %s", child->GetName());
-								newNode->AttachChild(child->Clone()->NiDynamicCast<NiAVObject>(), true);
-							}
-						}
-						node->m_pkParent->AttachChild(newNode, false);
-
-						BEGIN_SCOPE();
-						log("Attached new node");
-					}
+					UpdateMPSColors(mps);
 				}
 			}
 		}
 		else
 		{
-			BEGIN_SCOPE();
-			log("Node is not a BSValueNode. Skipping.");
-
-			for (int i = 0; i < node->m_kChildren.m_usSize; i++)
+			for (int i = 0; i < node->m_kChildren.m_usSize; ++i)
 			{
-				const auto child = node->m_kChildren[i];
-				if (!child)
+				if (const auto childParticle = node->m_kChildren[i]->NiDynamicCast<NiParticleSystem>()) 
 				{
-					continue;
+					EditColorMod(childParticle); 
 				}
-
-				if (const NiNodePtr childNode = child->IsNiNode())
+				else if (const auto childNode = node->m_kChildren[i]->IsNiNode())
 				{
-					InjectMPS(childNode);
-				}
-
-				const auto psys = child->NiDynamicCast<NiParticleSystem>();
-				if (!psys)
-				{
-					continue;
-				}
-				if (const auto bsp = psys->GetController<BSPSysMultiTargetEmitterCtlr>())
-				{
-					child->RemoveController(bsp);
+					PrepMeshColors(childNode);
 				}
 			}
 		}
 	}
 
-	static NiNode* __fastcall ModelLoaderLoadFile(const uint8_t* model)
+	static NiNode* __fastcall ModelLoaderLoadFile(const uint8_t* model, const char* filePath)
 	{
-		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
-		const char* path = *reinterpret_cast<char**>(ebp + 0x8);
-
-		if (path && (definedModels.contains(path) || strstr(path, "Flash")))
+		if (filePath && (definedModels.contains(filePath) || strstr(filePath, "Flash")))
 		{
 			auto* node = ThisStdCall<NiNode*>(0x43B230, model);
-
-			std::println("Modifying model '{}'", path);
-
-			InjectMPS(node);
-			ProcessNiNode(node, path);
+			PrepMeshColors(node);
 
 			return node;
 		}
@@ -351,13 +177,13 @@ namespace Overcharge
 	static void __fastcall ModelModel(const uint8_t* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV)
 	{
 		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, abAssignShaders, abKeepUV);
-		ModelLoaderLoadFile(thisPtr);
+		ModelLoaderLoadFile(thisPtr, modelPath);
 	}
 
 	inline void __fastcall MuzzleFlashEnable(uint8_t* flash)
 	{
 		// MuzzleFlash::spLight
-		(*reinterpret_cast<NiPointLight**>(flash + 0x10))->SetDiffuseColor(rgbShift(GetTickCount64()));
+		(*reinterpret_cast<NiPointLight**>(flash + 0x10))->SetDiffuseColor(NiColor(0, 0, 1));
 
 		// MuzzleFlash::Enable
 		ThisStdCall(0x9BB690, flash);
@@ -374,23 +200,6 @@ namespace Overcharge
 		for (const auto& elem : extraModels)
 		{
 			definedModels.insert(elem);
-		}
-
-		// Lookup specified forms by editor id, requires JG
-		for (const auto& formName : editorIds)
-		{
-			TESForm* const found = CdeclCall<TESForm*>(0x483A00, formName.c_str());
-			if (!found || !found->IsObject())
-			{
-				continue;
-			}
-
-			const TESObject* obj = reinterpret_cast<TESObject*>(found);
-			if (const auto fName = obj->GetModelFileName())
-			{
-				definedModels.insert(fName);
-				log("Added model %s", fName);
-			}
 		}
 	}
 }

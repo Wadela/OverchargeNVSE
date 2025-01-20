@@ -17,6 +17,8 @@
 #include "BGSMessageIcon.hpp"
 #include "BGSBipedModelList.hpp"
 #include "BGSPickupPutdownSounds.hpp"
+#include <TESAmmo.hpp>
+#include <Actor.hpp>
 
 class BGSProjectile;
 class SpellItem;
@@ -242,7 +244,7 @@ public:
 	UInt32				unk10C;				// 10C
 	float				sightFOV;			// 110
 	UInt32				unk114;				// 114
-	BGSProjectile*		projectile;		// 118
+	BGSProjectile*		projectile;			// 118
 	UInt8				baseVATSChance;		// 11C
 	UInt8				attackAnim;			// 11D
 	UInt8				numProjectiles;		// 11E
