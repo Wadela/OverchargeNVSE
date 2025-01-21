@@ -93,43 +93,60 @@ namespace Overcharge
 		"projectiles\\testlaserbeamsteady.nif",
 		"mps\\mpsenergyimpactred.nif",
 		"Effects\\MuzzleFlashes\\laserriflemuzzleflash.NIF",
+		"weapons\\2handrifle\\plasmarifle.nif"
 	};
 
 	// Auto populated based on editorIds above
 	static case_insensitive_set definedModels{};
 
-	static void EditColorMod(NiParticleSystem* childParticle)
+	static void PrepVertexColor(const NiGeometry* geom)
 	{
+		if (const auto modelData = geom->m_spModelData; modelData && modelData->m_pkColor)
+		{
+			for (int i = 0; i < modelData->m_usVertices; i++)
+			{
+				NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(1, 0, 0), 1);
+				col.a = modelData->m_pkColor[i].a;
+
+				modelData->m_pkColor[i] = col;
+			}
+
+			NiDX9Renderer::GetSingleton()->LockPrecacheCriticalSection();
+			NiDX9Renderer::GetSingleton()->PurgeGeometryData(modelData);
+			NiDX9Renderer::GetSingleton()->UnlockPrecacheCriticalSection();
+		}
+	}
+
+	static void UpdateColorMod(NiParticleSystem* childParticle)
+	{
+		if (!childParticle->m_kProperties.m_spMaterialProperty) return;
+
 		childParticle->m_kProperties.m_spMaterialProperty->m_emit = NiColor(1, 0, 0);
 
-		for (auto it = childParticle->m_kModifierList.begin(); it != childParticle->m_kModifierList.end();)
+		for (auto it : childParticle->m_kModifierList)
 		{
 			if (auto colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
 			{
-				colorMod->kColor2 = NiColorA(1, 0, 0, 1);
+				colorMod->kColor2 = NiColorA(1, 0, 0, 1); 
 			}
-
-			++it;
 		}
 	}
 
 	static void UpdateMPSColors(const BSMasterParticleSystem* mps)
 	{
-		if (!mps) return;
-
 		if (auto mpsNode = mps->GetAt(0)->NiDynamicCast<NiNode>())
 		{
 			for (int i = 0; i < mpsNode->m_kChildren.m_usSize; ++i)
 			{
 				if (auto childParticle = mpsNode->m_kChildren.m_pBase[i]->NiDynamicCast<NiParticleSystem>())
 				{
-					EditColorMod(childParticle);
+					UpdateColorMod(childParticle); 
 				}
 			}
 		}
 	}
 
-	static void PrepMeshColors(const NiNodePtr& node)
+	static void PrepParticleColor(const NiNode* node)
 	{
 		if (auto valueNode = node->NiDynamicCast<BSValueNode>())
 		{
@@ -138,24 +155,37 @@ namespace Overcharge
 			{
 				const auto manager = BSParticleSystemManager::GetInstance();
 				const auto particleSystemIndex = addonNode->particleSystemID;
-
 				if (const auto mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
 				{
 					UpdateMPSColors(mps);
 				}
 			}
 		}
-		else
+	}
+
+	static void ProcessNiNode(const NiNode* obj)
+	{
+		for (int i = 0; i < obj->m_kChildren.m_usSize; i++)
 		{
-			for (int i = 0; i < node->m_kChildren.m_usSize; ++i)
+			const auto child = obj->m_kChildren[i].m_pObject;
+
+			if (child) 
 			{
-				if (const auto childParticle = node->m_kChildren[i]->NiDynamicCast<NiParticleSystem>()) 
+				if (child->IsNiType<NiParticleSystem>())
 				{
-					EditColorMod(childParticle); 
+					UpdateColorMod(static_cast<NiParticleSystem*>(child));
 				}
-				else if (const auto childNode = node->m_kChildren[i]->IsNiNode())
+				else if (child->IsNiType<BSValueNode>())
 				{
-					PrepMeshColors(childNode);
+					PrepParticleColor(static_cast<BSValueNode*>(child));
+				}
+				else if (child->IsNiType<NiNode>())
+				{
+					ProcessNiNode(static_cast<NiNode*>(child));
+				}
+				else if (child->IsNiType<NiGeometry>())
+				{
+					PrepVertexColor(static_cast<NiGeometry*>(child));
 				}
 			}
 		}
@@ -165,12 +195,10 @@ namespace Overcharge
 	{
 		if (filePath && (definedModels.contains(filePath) || strstr(filePath, "Flash")))
 		{
-			auto* node = ThisStdCall<NiNode*>(0x43B230, model);
-			PrepMeshColors(node);
-
+			auto* node = ThisStdCall<NiNode*>(0x43B230, model); 
+			ProcessNiNode(node);
 			return node;
 		}
-
 		return ThisStdCall<NiNode*>(0x43B230, model);
 	}
 

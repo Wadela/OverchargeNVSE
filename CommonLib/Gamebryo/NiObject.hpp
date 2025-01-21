@@ -104,6 +104,12 @@ public:
 	// Added By Wadel - Full Credit to JIP LN NVSE
 
 	NiObject* __fastcall HasBaseType(const NiRTTI* baseType);
+
+	template <typename T>
+	bool IsNiType() const 
+	{
+		return (IsKindOf(T::ms_RTTI));
+	}
 };
 
 ASSERT_SIZE(NiObject, 0x8);

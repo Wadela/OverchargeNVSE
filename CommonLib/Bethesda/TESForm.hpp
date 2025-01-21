@@ -313,7 +313,7 @@ public:
 
 	BSSimpleList<TESFile*> kMods; // 010 ModReferenceList in Oblivion
 
-	TESForm*					TryGetREFRParent() const;
+	TESForm*					TryGetREFRParent();
 	UInt8						GetModIndex() const;
 	TESFullName*				GetFullName() const;
 	const char*					GetTheName() const;
