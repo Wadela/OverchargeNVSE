@@ -99,12 +99,12 @@ bool Setting::Set(const char* str)
 	return false;
 }
 
-TESForm* TESForm::TryGetREFRParent() const
+TESForm* TESForm::TryGetREFRParent()
 {
 	auto result = this;
 	if (const auto refr = DYNAMIC_CAST(this, TESForm, TESObjectREFR); refr && refr->pkObjectReference)
 		result = refr->pkObjectReference;
-	return const_cast<TESForm*>(result);
+	return result;
 }
 
 std::string	Tile::GetFullPath() const 
