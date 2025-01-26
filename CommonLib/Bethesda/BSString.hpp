@@ -1,45 +1,33 @@
 #pragma once
-
-#ifndef BSSTRINGT_H
-#define BSSTRINGT_H
-
 #include "BSMemObject.hpp"
 
-template <typename T>
-class BSStringT : BSMemObject {
+// Technically it should be a template but I'm lazy
+// 0x8
+template <class T_Name>
+class BSStringT : public BSMemObject
+{
 public:
-	BSStringT() {};
-	BSStringT(const T* apText) { Set(apText); }
-	BSStringT(const BSStringT& aSrc) { Set(aSrc.c_str()); }
+	BSStringT();
 	~BSStringT();
 
-	T*		pString = 0;
-	UInt16	sLen	= 0;
-	UInt16	sMaxLen = 0;
+	T_Name*		pcString;
+	UInt16		usLen;
+	UInt16		usMaxLen;
 
-	inline UInt32			GetLength()		const;
-	inline void				SetLength(UInt32 auiLen);
-	inline UInt16			GetMaxLength()	const { return sMaxLen; }
-	inline void				SetMaxLength(UInt16 auiLen) { sMaxLen = auiLen; }
+	bool		Set(const T_Name* src);
+	bool		Includes(const T_Name* toFind) const;
+	bool		Replace(const T_Name* toReplace, const T_Name* replaceWith); // replaces instance of toReplace with replaceWith
+	bool		Append(const T_Name* toAppend);
+	double		Compare(const BSStringT& compareTo, bool caseSensitive = false);
 
-	inline bool				Set(const T* apText, UInt32 auiLength = 0);
-	inline BSStringT<T>*	operator+=(const T* apText);
+	UInt32		GetLength();
 
-	inline void				Format(const T* fmt, ...);
-	inline void				ApplyFormat(const T* fmt, va_list args);
+	const char* CStr();
+	std::string StdStr() const { return { pcString, usLen }; }
 
-	inline bool				Includes(const char* toFind) const;
-	inline bool				Replace(const char* toReplace, const char* replaceWith); // replaces instance of toReplace with replaceWith
-	inline double			Compare(const BSStringT& compareTo, bool caseSensitive = false) const;
+	[[nodiscard]] operator std::basic_string_view<T_Name>() const noexcept { return { pcString, usLen }; }
 
-	inline const T*			c_str() const;
-
-	std::string StdStr() const { return { pString, sLen }; }
 };
+static_assert(sizeof(BSStringT<char>) == 0x8);
 
-#include "BSString.inl"
-
-#endif
-
-typedef BSStringT<char>		BSString;
-typedef BSStringT<wchar_t>	BSWideString;
+typedef BSStringT<char> String;

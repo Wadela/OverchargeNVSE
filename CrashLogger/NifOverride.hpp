@@ -25,6 +25,7 @@
 #include "NiTimeController.hpp"
 #include "NiPointLight.hpp"
 #include <BSPSysSimpleColorModifier.hpp>
+#include <MuzzleFlash.hpp>
 
 namespace Overcharge
 {
@@ -106,12 +107,12 @@ namespace Overcharge
 		{
 			for (int i = 0; i < modelData->m_usVertices; i++)
 			{
-				NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(1, 0, 0), 1);
+				NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
 				col.a = modelData->m_pkColor[i].a;
 
 				modelData->m_pkColor[i] = col;
 			}
-
+				
 			NiDX9Renderer::GetSingleton()->LockPrecacheCriticalSection();
 			NiDX9Renderer::GetSingleton()->PurgeGeometryData(modelData); 
 			NiDX9Renderer::GetSingleton()->UnlockPrecacheCriticalSection();
@@ -123,14 +124,17 @@ namespace Overcharge
 	{
 		if (!childParticle->m_kProperties.m_spMaterialProperty) return;
 
-		childParticle->m_kProperties.m_spMaterialProperty->m_emit = NiColor(1, 0, 0);
+		childParticle->m_kProperties.m_spMaterialProperty->m_emit = NiColor(0.8f, 0.8f, 0.8f);
 
 		for (NiPSysModifier* it : childParticle->m_kModifierList)
 		{
 			if (BSPSysSimpleColorModifier* colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
 			{
-				colorMod->kColor2 = NiColorA(1, 0, 0, 1); 
-			}
+				NiColorA col = colorMod->kColor2.Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
+				col.a = colorMod->kColor2.a;
+
+				colorMod->kColor2 = col;
+			} 
 		}
 	}
 
@@ -217,8 +221,11 @@ namespace Overcharge
 		// MuzzleFlash::spLight
 		(*reinterpret_cast<NiPointLight**>(flash + 0x10))->SetDiffuseColor(NiColor(0, 0, 1));
 
+		MuzzleFlash* muzzleFlash = reinterpret_cast<MuzzleFlash*>(flash); 
+
+		muzzleFlash->pProjectile;
 		// MuzzleFlash::Enable
-		ThisStdCall(0x9BB690, flash);
+		ThisStdCall(0x9BB690, flash); 
 	}
 
 	inline void Hook()

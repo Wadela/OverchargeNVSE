@@ -2,27 +2,15 @@
 
 #include "MainHeader.hpp"
 
-
 extern int g_isOverheated;
 namespace Overcharge
 {
     //Color Changing Code
-    struct HeatRGB
-    {
-        float heatRed;
-        float heatGreen;
-        float heatBlue;
-
-        HeatRGB(float r, float g, float b) : heatRed{ r }, heatGreen{ g }, heatBlue{ b } {}
-
-        HeatRGB Blend(const HeatRGB& other, float ratio) const;
-    };
-
     struct ColorGroup
     {
-        const HeatRGB* colorSet;
+        const NiColor* colorSet;
 
-        ColorGroup(const HeatRGB* colorSet) : colorSet(colorSet) {}
+        ColorGroup(const NiColor* colorSet) : colorSet(colorSet) {}
 
         static const ColorGroup* GetColorSet(const char* colorName);
 
@@ -37,8 +25,8 @@ namespace Overcharge
     struct ColorShift
     {
         const ColorGroup* colorType;
-        const HeatRGB startColor;
-        const HeatRGB targetColor;
+        const NiColor startColor;
+        const NiColor targetColor;
         int startIndex;
         int targetIndex;
 
@@ -49,10 +37,10 @@ namespace Overcharge
             startIndex(0),
             targetIndex(0) {}
 
-        ColorShift(const ColorGroup* selectedCG, const HeatRGB& start, const HeatRGB& end, int setIndex1, int setIndex2) :
+        ColorShift(const ColorGroup* selectedCG, const NiColor& start, const NiColor& end, int setIndex1, int setIndex2) :
             colorType(selectedCG), startColor(start), targetColor(end), startIndex(setIndex1), targetIndex(setIndex2) {}
 
-        HeatRGB Shift(float heatVal, int color1, int color2, const ColorGroup* set)
+        NiColor StepShift(float heatVal, int color1, int color2, const ColorGroup* set)
         {
             int stepCount = abs(color2 - color1);
             float heatRatio = min(heatVal / 300.0f, 1.0f);
@@ -65,26 +53,41 @@ namespace Overcharge
             int nextIndex = forward ? currentIndex + 1 : currentIndex - 1;
             nextIndex = std::clamp(nextIndex, 0, 6);
 
-            HeatRGB currentColor = set->colorSet[currentIndex];
-            HeatRGB nextColor = set->colorSet[nextIndex];
+            NiColor currentColor = set->colorSet[currentIndex];
+            NiColor nextColor = set->colorSet[nextIndex];
 
             float localHeatRatio = (heatRatio * stepCount) - currentStep;
 
-            HeatRGB blendedColor = currentColor.Blend(nextColor, localHeatRatio);
+            NiColor blendedColor = currentColor.Shifted(nextColor, localHeatRatio); 
 
             return blendedColor;
         }
+
+        NiColor SmoothShift(const float time, const float period, const NiColor& startColor)
+        {
+            // Normalize time to avoid overflow if time grows large
+            const float normalizedTime = fmod(time, period);
+
+            // Use sine wave functions, with the starting color defining phase offsets
+            const float r = (sin((normalizedTime / period) + startColor.r * 2 * std::numbers::pi) + 1) / 2;
+            const float g = (sin((normalizedTime / period) + startColor.g * 2 * std::numbers::pi + 2 * std::numbers::pi / 3) + 1) / 2;
+            const float b = (sin((normalizedTime / period) + startColor.b * 2 * std::numbers::pi + 4 * std::numbers::pi / 3) + 1) / 2;
+
+            // Return the RGB color as a NiColor struct
+            return { r, g, b };
+        }
+
     };
 
     //Overheating Code
     struct WeaponHeat
     {
-        double baseHeatVal;
-        double heatVal;
-        double heatPerShot;
-        double cooldownRate;
+        float baseHeatVal;
+        float heatVal;
+        float heatPerShot;
+        float cooldownRate;
 
-        WeaponHeat(double initialHeatVal, double heatPerShotVal, double cooldownRateVal) :
+        WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal) :
             baseHeatVal(initialHeatVal), heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {}
 
         void HeatOnFire();
@@ -92,15 +95,13 @@ namespace Overcharge
 
     struct WeaponData
     {
-        TESForm* weaponRef;
-        TESObjectREFR* projectileRef;
         TESObjectREFR* actorRef;
-        NiMaterialProperty* matProperty;
         ColorShift colorData;
         WeaponHeat heatData;
 
-        WeaponData(TESForm* weap, TESObjectREFR* proj, TESObjectREFR* actor, NiMaterialProperty* matProp, ColorShift weaponColor, WeaponHeat weaponHeat) :
-            weaponRef(weap), projectileRef(proj), actorRef(actor), matProperty(matProp), colorData(weaponColor), heatData(weaponHeat) {}
+        WeaponData(TESObjectREFR* actor, ColorShift weaponColor, WeaponHeat weaponHeat) :
+            actorRef(actor), colorData(weaponColor), heatData(weaponHeat) {
+        }
 
         std::vector<const char*> blockNames;
     };

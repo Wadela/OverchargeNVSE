@@ -4,6 +4,7 @@
 #include "TESModel.hpp"
 #include "BGSPreloadable.hpp"
 #include "BGSDestructibleObjectForm.hpp"
+#include "TESFullName.hpp" 
 
 class TESObjectLIGH;
 class TESSound;
@@ -11,8 +12,8 @@ class TESObjectWEAP;
 
 // 0xD0
 class BGSProjectile :
-	public TESBoundObject,				// 000
-	public TESFullName,					// 030
+	public TESBoundObject,				// 000 
+	public TESFullName,					// 030 
 	public TESModel,					// 03C
 	public BGSPreloadable,				// 054
 	public BGSDestructibleObjectForm	// 058

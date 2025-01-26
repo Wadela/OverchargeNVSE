@@ -19,6 +19,7 @@
 #include "BGSPickupPutdownSounds.hpp"
 #include <TESAmmo.hpp>
 #include <Actor.hpp>
+#include "BGSProjectile.hpp"
 
 class BGSProjectile;
 class SpellItem;

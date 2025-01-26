@@ -66,9 +66,9 @@ public:
 	UInt8		ucCurrentMinorVersion;
 	UInt8		pad249[3];
 
-	static BGSSaveLoadGame* GetSingleton();
+	__forceinline static BGSSaveLoadGame* GetSingleton() { return *(BGSSaveLoadGame**)0x11DDF38; }
 
-	bool IsLoading();
+	inline bool IsLoading() const { return (uiGlobalFlags & 2) != 0; }
 	bool IsDeferInitForms();
 
 	bool SetThreadAllowChanges(bool abEnable);
