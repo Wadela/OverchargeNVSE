@@ -115,6 +115,9 @@
     <ClCompile Include="BSInputManager.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
+    <ClCompile Include="Actor.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp">

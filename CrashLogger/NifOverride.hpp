@@ -131,9 +131,15 @@ namespace Overcharge
 			if (BSPSysSimpleColorModifier* colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
 			{
 				NiColorA col = colorMod->kColor2.Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
-				col.a = colorMod->kColor2.a;
 
+				col.a = colorMod->kColor1.a;
+				colorMod->kColor1 = col;
+
+				col.a = colorMod->kColor2.a;
 				colorMod->kColor2 = col;
+
+				col.a = colorMod->kColor3.a;
+				colorMod->kColor3 = col; 
 			} 
 		}
 	}

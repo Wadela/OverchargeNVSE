@@ -1,6 +1,7 @@
 #pragma once
 #include "TESForm.hpp"
 #include "BGSPreloadable.hpp"
+#include "BGSImpactData.hpp"
 
 // 0x4C
 class BGSImpactDataSet :
