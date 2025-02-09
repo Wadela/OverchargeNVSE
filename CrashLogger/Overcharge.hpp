@@ -95,11 +95,11 @@ namespace Overcharge
 
     struct WeaponData
     {
-        NiNode* meshData;
+        NiAVObject* meshData;
         ColorShift colorData;
         WeaponHeat heatData;
 
-        WeaponData(NiNode* mesh, ColorShift color, WeaponHeat heat) :
+        WeaponData(NiAVObject* mesh, ColorShift color, WeaponHeat heat) :
             meshData(mesh), colorData(color), heatData(heat) {
         }
 

@@ -150,20 +150,28 @@ namespace Overcharge
 		if (BSValueNode* const valueNode = node->NiDynamicCast<BSValueNode>())
 		{
 			BGSAddonNode* const addonNode = TESDataHandler::GetSingleton()->GetAddonNode(valueNode->iValue);
-			if (addonNode && addonNode->kData.ucFlags.GetBit(1))
+			if (addonNode && addonNode->uiIndex)
 			{
 				BSParticleSystemManager* const manager = BSParticleSystemManager::GetInstance();
 				const UInt32 particleSystemIndex = addonNode->particleSystemID;
 				if (BSMasterParticleSystem* const mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
 				{
-					if (NiNode* const mpsNode = mps->GetAt(0)->NiDynamicCast<NiNode>())
+					for (int i = 0; i < mps->kChildParticles.m_usSize; i++)
 					{
-						for (int i = 0; i < mpsNode->m_kChildren.m_usSize; ++i)
+						if (NiNode* const mpsNode = mps->GetAt(0)->NiDynamicCast<NiNode>())
 						{
-							if (NiParticleSystem* const childParticle = mpsNode->m_kChildren.m_pBase[i]->NiDynamicCast<NiParticleSystem>())
+							for (int i = 0; i < mpsNode->m_kChildren.m_usSize; i++)
 							{
-								UpdateColorMod(childParticle);
+								if (NiParticleSystem* const childParticle = mpsNode->m_kChildren.m_pBase[i]->NiDynamicCast<NiParticleSystem>())
+								{
+									UpdateColorMod(childParticle);
+								}
+
 							}
+						}
+						if (NiParticleSystem* mpsGeom = mps->kChildParticles.m_pBase[i]->NiDynamicCast<NiParticleSystem>())  
+						{
+							UpdateColorMod(mpsGeom);
 						}
 					}
 				}
