@@ -3,6 +3,8 @@
 #include <iostream>
 #include "InitHooks.hpp"
 #include "NifOverride.hpp"
+#include <BGSSaveLoadGame.hpp>
+#include "Overcharge.hpp"
 
 bool IsGamePaused()
 {
@@ -48,6 +50,11 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 			for (const auto& i : mainLoopDoOnce) i(); // call all do once functions
 		}
 		for (const auto& i : mainLoop) i(); // call all mainloop functions
+
+		if (!IsGamePaused() && !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
+		{
+			Overcharge::WeaponCooldown();										//Cooldown system runs in gameloop 
+		}
 	}
 }
 

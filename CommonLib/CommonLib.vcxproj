@@ -123,6 +123,7 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Actor.cpp" />
     <ClCompile Include="Bethesda\bhkUtilFunctions.cpp" />
     <ClCompile Include="Bethesda\BSFaceGenManager.cpp" />
     <ClCompile Include="Bethesda\BSMemory.cpp" />

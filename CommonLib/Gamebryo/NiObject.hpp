@@ -101,15 +101,27 @@ public:
 		return GetRTTI()->GetName();
 	}
 
-	// Added By Wadel - Full Credit to JIP LN NVSE
+	//Added By Wadel
+	bool CmpNiObject(NiObject* obj, int rttiAddr)
+	{
+		if (!obj) {
+			return false;
+		}
 
-	NiObject* __fastcall HasBaseType(const NiRTTI* baseType);
+		const NiRTTI* CmpRTTI = obj->GetRTTI();
+		const NiRTTI* RTTI = (NiRTTI*)rttiAddr;
+
+		return (CmpRTTI == RTTI);
+	}
 
 	template <typename T>
 	bool IsNiType() const 
 	{
 		return (IsKindOf(T::ms_RTTI));
 	}
+
+	//Full Credit to JIP LN NVSE
+	NiObject* __fastcall HasBaseType(const NiRTTI* baseType);
 };
 
 ASSERT_SIZE(NiObject, 0x8);
