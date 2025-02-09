@@ -1,6 +1,6 @@
 #pragma once
-
 #include "MainHeader.hpp"
+#include "NiColor.hpp"
 
 extern int g_isOverheated;
 namespace Overcharge
@@ -8,36 +8,34 @@ namespace Overcharge
     //Color Changing Code
     struct ColorGroup
     {
-        const NiColor* colorSet;
+        const NiColor* colorSet[7];
 
-        ColorGroup(const NiColor* colorSet) : colorSet(colorSet) {}
+        ColorGroup(const NiColor* colors[])
+        {
+            for (size_t i = 0; i < 7; ++i)
+            {
+                colorSet[i] = colors[i];
+            }
+        }
+
+        // Safe lookup with bounds checking 
+        const NiColor* GetColor(size_t index) const
+        {
+            return colorSet[index < 7 ? index : 6]; // Bound checking to 6 (max index)
+        }
 
         static const ColorGroup* GetColorSet(const char* colorName);
-
-        static const std::unordered_map<std::string, ColorGroup> colorMap;
-
-        static const ColorGroup plasmaColors;
-        static const ColorGroup laserColors;
-        static const ColorGroup flameColors;
-        static const ColorGroup zapColors;
     };
 
     struct ColorShift
     {
         const ColorGroup* colorType;
-        const NiColor startColor;
-        const NiColor targetColor;
+        const NiColor* startColor;
+        const NiColor* targetColor;
         int startIndex;
         int targetIndex;
 
-        ColorShift() :
-            colorType(0),
-            startColor(0.0f, 0.0f, 0.0f),
-            targetColor(0.0f, 0.0f, 0.0f),
-            startIndex(0),
-            targetIndex(0) {}
-
-        ColorShift(const ColorGroup* selectedCG, const NiColor& start, const NiColor& end, int setIndex1, int setIndex2) :
+        ColorShift(const ColorGroup* selectedCG, const NiColor* start, const NiColor* end, int setIndex1, int setIndex2) :
             colorType(selectedCG), startColor(start), targetColor(end), startIndex(setIndex1), targetIndex(setIndex2) {}
 
         NiColor StepShift(float heatVal, int color1, int color2, const ColorGroup* set)
@@ -53,12 +51,13 @@ namespace Overcharge
             int nextIndex = forward ? currentIndex + 1 : currentIndex - 1;
             nextIndex = std::clamp(nextIndex, 0, 6);
 
-            NiColor currentColor = set->colorSet[currentIndex];
-            NiColor nextColor = set->colorSet[nextIndex];
+
+            const NiColor* currentColor = set->GetColor(currentIndex); 
+            const NiColor* nextColor = set->GetColor(nextIndex);
 
             float localHeatRatio = (heatRatio * stepCount) - currentStep;
 
-            NiColor blendedColor = currentColor.Shifted(nextColor, localHeatRatio); 
+            NiColor blendedColor = currentColor->Shifted(*nextColor, localHeatRatio); 
 
             return blendedColor;
         }

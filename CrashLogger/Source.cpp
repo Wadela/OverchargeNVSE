@@ -151,17 +151,17 @@ namespace Overcharge
 	void HeatColorEffect(UInt32 formID, NiAVObject* obj, const char* blockName)
 	{
 		const ColorGroup* selectedCG = ColorGroup::GetColorSet("Laser");
-		ColorShift shiftedColor(selectedCG, selectedCG->colorSet[0], selectedCG->colorSet[5], 0, 5);
-		WeaponHeat heatData = WeaponHeat(50.0f, 40.0f, 30.0f);
+		ColorShift shiftedColor(selectedCG, selectedCG->GetColor(3), selectedCG->GetColor(5), 3, 5);
+		WeaponHeat heatData = WeaponHeat(0.0f, 40.0f, 25.0f);
 		auto iter = heatedWeapons.try_emplace(formID, WeaponData(obj, shiftedColor, heatData)).first;
 		iter->second.heatData.HeatOnFire();
-		NiColor blendedColor = shiftedColor.StepShift(iter->second.heatData.heatVal, selectedCG->colorSet[1], selectedCG->colorSet[5], selectedCG);
+		NiColor blendedColor = shiftedColor.StepShift(iter->second.heatData.heatVal, 3, 5, selectedCG);
 		if (blockName)
 		{
 			iter->second.blockNames.emplace_back(blockName);
 			SetEmissiveByName(obj, blockName, blendedColor);
 		}
-		if (!blockName)
+		else
 		{
 			if (auto objNode = obj->IsNiNode())
 			{
@@ -181,6 +181,7 @@ namespace Overcharge
 		NiColor col = (0, 0, 1);
 		HeatColorEffect(projFormID, projNode, nullptr);
 		HeatColorEffect(formID, playerNode, "##PLRCylinder1:0"); 
+		HeatColorEffect(formID, playerNode, "##LPSideLatch:0");
 	}
 
 	BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 a5, float a6, char a7, NiRefObject* parent) 

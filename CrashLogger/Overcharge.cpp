@@ -4,19 +4,7 @@ int g_isOverheated = 0;
 
 namespace Overcharge
 {
-    //Color Shift System
-    const ColorGroup* ColorGroup::GetColorSet(const char* colorName)
-    {
-        auto it = ColorGroup::colorMap.find(colorName);
-        if (it != ColorGroup::colorMap.end())
-        {
-            return &it->second;
-        }
-        else
-            return &plasmaColors;
-    }
-
-    const NiColor plasmaColorSet[] =
+    const NiColor plasmaColorSet[] = 
     {
         NiColor(1.000f, 0.486f, 0.655f),         //plasmaRed: #ff7ca7
         NiColor(1.000f, 0.698f, 0.486f),         //plasmaOrange: #ffb27c
@@ -60,18 +48,33 @@ namespace Overcharge
         NiColor(0.878f, 0.969f, 1.000f)          //zapWhite: #e0f7ff
     };
 
-    const ColorGroup ColorGroup::plasmaColors{ plasmaColorSet };
-    const ColorGroup ColorGroup::laserColors{ laserColorSet };
-    const ColorGroup ColorGroup::flameColors{ flameColorSet };
-    const ColorGroup ColorGroup::zapColors{ zapColorSet };
+    const NiColor* plasmaColorArray[7] = { &plasmaColorSet[0], &plasmaColorSet[1], &plasmaColorSet[2], &plasmaColorSet[3], &plasmaColorSet[4], &plasmaColorSet[5], &plasmaColorSet[6] };
+    const NiColor* laserColorArray[7] = { &laserColorSet[0], &laserColorSet[1], &laserColorSet[2], &laserColorSet[3], &laserColorSet[4], &laserColorSet[5], &laserColorSet[6] };
+    const NiColor* flameColorArray[7] = { &flameColorSet[0], &flameColorSet[1], &flameColorSet[2], &flameColorSet[3], &flameColorSet[4], &flameColorSet[5], &flameColorSet[6] };
+    const NiColor* zapColorArray[7] = { &zapColorSet[0], &zapColorSet[1], &zapColorSet[2], &zapColorSet[3], &zapColorSet[4], &zapColorSet[5], &zapColorSet[6] };
 
-    const std::unordered_map<std::string, ColorGroup> ColorGroup::colorMap =
+    const ColorGroup plasmaColors(plasmaColorArray);
+    const ColorGroup laserColors(laserColorArray);
+    const ColorGroup flameColors(flameColorArray);
+    const ColorGroup zapColors(zapColorArray);
+
+    static constexpr std::pair<const char*, const ColorGroup*> colorMap[] = 
     {
-        { "Plasma", ColorGroup::plasmaColors },
-        { "Laser", ColorGroup::laserColors },
-        { "Flame", ColorGroup::flameColors },
-        { "Zap", ColorGroup::zapColors }
+        {"Plasma", &plasmaColors},
+        {"Laser", &laserColors},
+        {"Flame", &flameColors},
+        {"Zap", &zapColors},
     };
+
+    const ColorGroup* ColorGroup::GetColorSet(const char* colorName)
+    {
+        for (const auto& [key, group] : colorMap)
+        {
+            if (strcmp(key, colorName) == 0)
+                return group;
+        }
+        return &plasmaColors; // Default fallback
+    }
 
     //Overheating System
     void WeaponHeat::HeatOnFire()       //Responsible for heating a weapon up

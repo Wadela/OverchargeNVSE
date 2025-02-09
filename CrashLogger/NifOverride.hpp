@@ -119,6 +119,21 @@ namespace Overcharge
 		}
 	}
 
+	static void PrepVertexColorData(NiGeometryData* modelData)
+	{
+		for (int i = 0; i < modelData->m_usVertices; i++)
+		{
+			NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
+			col.a = modelData->m_pkColor[i].a;
+
+			modelData->m_pkColor[i] = col;
+		}
+
+		NiDX9Renderer::GetSingleton()->LockPrecacheCriticalSection();
+		NiDX9Renderer::GetSingleton()->PurgeGeometryData(modelData); 
+		NiDX9Renderer::GetSingleton()->UnlockPrecacheCriticalSection();
+	}
+
 	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
 	static void UpdateColorMod(NiParticleSystem* childParticle)
 	{
@@ -208,6 +223,11 @@ namespace Overcharge
 				{
 					NiGeometry* childGeom = static_cast<NiGeometry*>(child);
 					PrepVertexColor(childGeom);
+				}
+				else if (child->IsNiType<NiGeometryData>())
+				{
+					NiGeometryData* childGeomData = child->NiDynamicCast<NiGeometryData>();
+					PrepVertexColorData(childGeomData);
 				}
 			}
 		}
