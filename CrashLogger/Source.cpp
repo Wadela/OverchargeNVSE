@@ -38,35 +38,24 @@
 #include "MuzzleFlash.hpp"
 #include <NiBillboardNode.hpp>
 #include "BGSImpactData.hpp" 
+#include "TESModel.hpp"
 
 namespace Overcharge
 {
-	std::vector<BSPSysSimpleColorModifier*> colorMods;
-
 	NiMaterialProperty* g_customPlayerMatProperty = NiMaterialProperty::CreateObject();
 	NiMaterialProperty* g_customActorMatProperty = NiMaterialProperty::CreateObject();
 
 	std::unordered_map<UInt32, WeaponData> heatedWeapons;								//Vector containing all weapons that are currently heating up
 
-	void SetEmissiveByName(NiAVObject* obj, const char* blockName, NiColor& blendedColor)	//Rewritten SetMaterialProperty function
+	void SetEmissiveColor(NiAVObject* obj, NiColor& blendedColor, const char* blockName = nullptr)
 	{
-		if (NiAVObject* block = obj->GetObjectByName(blockName))
-		{
-			if (NiGeometry* blockGeom = static_cast<NiGeometry*>(block))
-			{
-				blockGeom->m_kProperties.m_spMaterialProperty = g_customPlayerMatProperty;
-				blockGeom->m_kProperties.m_spMaterialProperty->m_emit = blendedColor;
-			}
-		}
-	}
+		NiAVObject* target = blockName ? obj->GetObjectByName(blockName) : obj;
 
-	void SetEmissiveRec(NiAVObject* obj, NiColor& blendedColor)
-	{
-		if (obj->IsNiType<NiGeometry>())
+		if (target && target->IsNiType<NiGeometry>())
 		{
-			NiGeometry* childGeom = static_cast<NiGeometry*>(obj);
-			childGeom->m_kProperties.m_spMaterialProperty = g_customPlayerMatProperty; 
-			childGeom->m_kProperties.m_spMaterialProperty->m_emit = blendedColor; 
+			NiGeometry* geom = static_cast<NiGeometry*>(target);
+			geom->m_kProperties.m_spMaterialProperty = g_customPlayerMatProperty;
+			geom->m_kProperties.m_spMaterialProperty->m_emit = blendedColor;
 		}
 	}
 
@@ -84,7 +73,7 @@ namespace Overcharge
 				{
 					for (int i = 0; i < mps->kChildParticles.m_usSize; i++)
 					{
-						SetEmissiveRec(mps->kChildParticles[i], blendedColor);
+						SetEmissiveColor(mps->kChildParticles[i], blendedColor); 
 					}
 				}
 			}
@@ -103,7 +92,7 @@ namespace Overcharge
 				if (child->IsNiType<NiParticleSystem>())
 				{
 					NiParticleSystem* childPsys = static_cast<NiParticleSystem*>(child);
-					SetEmissiveRec(childPsys, blendedColor);
+					SetEmissiveColor(childPsys, blendedColor);
 				}
 				else if (child->IsNiType<BSValueNode>())
 				{
@@ -118,7 +107,7 @@ namespace Overcharge
 				else if (child->IsNiType<NiGeometry>())
 				{
 					NiGeometry* childGeom = static_cast<NiGeometry*>(child);
-					SetEmissiveRec(childGeom, blendedColor);
+					SetEmissiveColor(childGeom, blendedColor);
 				}
 			}
 		}
@@ -141,7 +130,7 @@ namespace Overcharge
 				NiColor blendedColor = weaponData.colorData.StepShift(weaponData.heatData.heatVal, weaponData.colorData.startIndex, weaponData.colorData.targetIndex, weaponData.colorData.colorType);
 				for (const char* overchargeBlockName : weaponData.blockNames)
 				{
-					SetEmissiveByName(weaponData.meshData, overchargeBlockName, blendedColor);
+					SetEmissiveColor(weaponData.meshData, blendedColor, overchargeBlockName);
 				}
 				++it;
 			}
@@ -159,7 +148,7 @@ namespace Overcharge
 		if (blockName)
 		{
 			iter->second.blockNames.emplace_back(blockName);
-			SetEmissiveByName(obj, blockName, blendedColor);
+			SetEmissiveColor(obj, blendedColor, blockName);
 		}
 		else
 		{
@@ -182,12 +171,14 @@ namespace Overcharge
 		HeatColorEffect(projFormID, projNode, nullptr);
 		HeatColorEffect(formID, playerNode, "##PLRCylinder1:0"); 
 		HeatColorEffect(formID, playerNode, "##LPSideLatch:0");
+
+		ThisStdCall(0x9A52F0, a1, proj); 
 	}
 
 	BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 a5, float a6, char a7, NiRefObject* parent) 
 	{  
 		BSTempEffectParticle* result = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, a5, a6, a7, parent);
-		// do shit
+
 		NiNode* resultNode = result->spParticleObject->IsNiNode(); 
 		HeatColorEffect(cell->uiFormID, resultNode, nullptr); 
 
@@ -201,18 +192,13 @@ namespace Overcharge
 		UInt32 actorFire = 0x8BADE9;		//0x8BADE9 Actor:FireWeapon
 		UInt32 check3DFile = 0x447168;		//0x447168 Checks loaded NIF file
 		UInt32 CreateProjectile = 0x9BD518; 
+		UInt32 SpawnImpactAddr = 0x9C2058;	//Projectile::SpawnCollisionEffects @ Projectile::ProcessImpacts
+		UInt32 SpawnImpactEffects = 0x9C2AC3; 
 
 		// Hooks
 
 		WriteRelCall(CreateProjectile, &ProjectileWrapper);
-		WriteRelCall(0x9C2AC3, &ImpactWrapper);
-		//WriteRelCall(actorFire, &FireWeaponWrapper); 
-		//WriteRelCall(0x9C2AC3, &hkTempEffectParticle); 
-		//WriteRelCall(0xC2237A, &InitNewParticle);
-		//WriteRelCall(0x447168, &hkModelLoaderLoadFile);
-
-		// Event Handlers
-		//SetEventHandler("FireWeaponEvent", FireWeaponWrapper); 
+		WriteRelCall(SpawnImpactEffects, &ImpactWrapper); 
 	}
 
 }
