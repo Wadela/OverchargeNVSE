@@ -156,6 +156,7 @@
     <ClInclude Include="MainHeader.hpp" />
     <ClInclude Include="NifOverride.hpp" />
     <ClInclude Include="Overcharge.hpp" />
+    <ClInclude Include="WeaponDataMap.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />

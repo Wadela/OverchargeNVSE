@@ -1,7 +1,6 @@
 #pragma once
 
 #include "MainHeader.hpp"
-#include "Logging.h"
 #include "Defines.h"
 
 //Bethesda
@@ -26,6 +25,9 @@
 #include "NiPointLight.hpp"
 #include <BSPSysSimpleColorModifier.hpp>
 #include <MuzzleFlash.hpp>
+#include "Model.hpp"
+
+#include "Overcharge.hpp"
 
 namespace Overcharge
 {
@@ -75,21 +77,11 @@ namespace Overcharge
 		"BigGlow:0"
 	};
 
-	static case_insensitive_set editorIds = {
-		"WeapPlasmaRifle",
-		"WeapNVPlasmaRifleUnique",
-		"PlasmaProjectile",
-		"PlasmaProjectile02",
-		"PlasmaProjectileQ35",
-		"PlasmaCasterProjectile"
-	};
-
 	static case_insensitive_set extraModels = {
 		"Effects\\MuzzleFlashes\\PlasmaRifleMuzzleFlash.NIF",
 		"mps\\mpsplasmaprojectile.nif",
 		"effects\\impactenergygreen01.nif",
 		"effects\\impactenergybase01.nif",
-		"mps\\mpsenergyimpactgreen.nif",
 		"projectiles\\plasmaprojectile01.nif",
 		"projectiles\\testlaserbeamsteady.nif",
 		"mps\\mpsenergyimpactred.nif",
@@ -112,10 +104,6 @@ namespace Overcharge
 
 				modelData->m_pkColor[i] = col;
 			}
-				
-			NiDX9Renderer::GetSingleton()->LockPrecacheCriticalSection();
-			NiDX9Renderer::GetSingleton()->PurgeGeometryData(modelData); 
-			NiDX9Renderer::GetSingleton()->UnlockPrecacheCriticalSection();
 		}
 	}
 
@@ -128,10 +116,6 @@ namespace Overcharge
 
 			modelData->m_pkColor[i] = col;
 		}
-
-		NiDX9Renderer::GetSingleton()->LockPrecacheCriticalSection();
-		NiDX9Renderer::GetSingleton()->PurgeGeometryData(modelData); 
-		NiDX9Renderer::GetSingleton()->UnlockPrecacheCriticalSection();
 	}
 
 	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
@@ -181,7 +165,6 @@ namespace Overcharge
 								{
 									UpdateColorMod(childParticle);
 								}
-
 							}
 						}
 						if (NiParticleSystem* mpsGeom = mps->kChildParticles.m_pBase[i]->NiDynamicCast<NiParticleSystem>())  
@@ -232,47 +215,34 @@ namespace Overcharge
 			}
 		}
 	}
-
-	static NiNode* __fastcall ModelLoaderLoadFile(const uint8_t* model, const char* filePath)
+	 
+	static NiNode* __fastcall ModelLoaderLoadFile(const Model* model, const char* filePath) 
 	{
 		if (filePath && (definedModels.contains(filePath) || strstr(filePath, "Flash")))
 		{
-			NiNode* node = ThisStdCall<NiNode*>(0x43B230, model); 
+			NiNode* node = model->spNode;
 			ProcessNiNode(node);
 			return node;
 		}
-		return ThisStdCall<NiNode*>(0x43B230, model);
+		return model->spNode;
 	}
 
-	static void __fastcall ModelModel(const uint8_t* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV)
+	static void __fastcall ModelModel(const Model* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV) 
 	{
 		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, abAssignShaders, abKeepUV);
-		ModelLoaderLoadFile(thisPtr, modelPath);
-	}
-
-	inline void __fastcall MuzzleFlashEnable(uint8_t* flash)
-	{
-		// MuzzleFlash::spLight
-		(*reinterpret_cast<NiPointLight**>(flash + 0x10))->SetDiffuseColor(NiColor(0, 0, 1));
-
-		MuzzleFlash* muzzleFlash = reinterpret_cast<MuzzleFlash*>(flash); 
-
-		muzzleFlash->pProjectile;
-		// MuzzleFlash::Enable
-		ThisStdCall(0x9BB690, flash); 
+		ModelLoaderLoadFile(thisPtr, modelPath); 
 	}
 
 	inline void Hook()
 	{
 		WriteRelCall(0x43AB4C, &ModelModel);
-		WriteRelCall(0x9BB7CD, &MuzzleFlashEnable);
 	}
 
 	inline void PostLoad() {
 		// Add any extra models
 		for (const std::string elem : extraModels)
 		{
-			definedModels.insert(elem);
+			definedModels.insert(elem); 
 		}
 	}
 }

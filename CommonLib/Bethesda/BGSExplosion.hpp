@@ -4,6 +4,7 @@
 #include "TESEnchantableForm.hpp"
 #include "BGSPreloadable.hpp"
 #include "TESImageSpaceModifiableForm.hpp"
+#include "TESFullName.hpp"
 
 class TESObjectLIGH;
 class TESSound;

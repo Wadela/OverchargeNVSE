@@ -53,3 +53,4 @@ inline UInt8* GetParentBasePtr(void* addressOfReturnAddress, const bool lambda =
 #endif
 	return *reinterpret_cast<UInt8**>(basePtr);
 }
+

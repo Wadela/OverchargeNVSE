@@ -80,6 +80,9 @@
     <ClInclude Include="Logging.h">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="WeaponDataMap.hpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />

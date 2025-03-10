@@ -80,13 +80,7 @@ namespace Overcharge
     void WeaponHeat::HeatOnFire()       //Responsible for heating a weapon up
     {
         float maxHeat = 300.0f;
-
         heatVal += heatPerShot;         //Ticks up heatVal by the weapons defined heatPerShot value
-
-        if (heatVal >= maxHeat)         //If heatVal reaches maximum heat threshold --> Weapon overheats
-        {
-            g_isOverheated = 1;         //When g_isOverheated == 1, Weapon does not fire.
-        }
     }
 
 }
