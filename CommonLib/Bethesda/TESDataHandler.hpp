@@ -2,6 +2,7 @@
 #include "TESFile.hpp"
 #include "NiTArray.hpp"
 #include "NiTPointerList.hpp"
+#include <TESForm.hpp>
 
 class BGSAcousticSpace;
 class BGSAddonNode;
@@ -179,8 +180,7 @@ public:
 				if (iter->IsLoaded()) activeMods.push_back(iter);
 		return activeMods;
 	};		// returns array of modEntry* corresponding to loaded mods sorted by mod index
-	const TESFile* LookupModByName(const char* modName);
-	UInt8 GetModIndex(const char* modName);
+
 	UInt8 GetActiveModCount() const;
 	const char* GetNthModName(UInt32 modIndex)
 	{

@@ -25,6 +25,9 @@
     <ClCompile Include="..\nvse\utility.cpp">
       <Filter>nvse</Filter>
     </ClCompile>
+    <ClCompile Include="WeaponDataMap.cpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />

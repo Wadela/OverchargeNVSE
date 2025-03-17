@@ -41,6 +41,7 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 
 		for (const auto& i : deferredInit) i(); // call all deferred init functions
 
+		Overcharge::InitWeaponData();
 		Overcharge::PostLoad();
 	}
 	else if (msg->type == NVSEMessagingInterface::kMessage_MainGameLoop)

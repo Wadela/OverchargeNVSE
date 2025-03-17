@@ -2,82 +2,8 @@
 #include "MainHeader.hpp"
 #include "NiColor.hpp"
 
-extern int g_isOverheated;
 namespace Overcharge
 {
-    //Color Changing Code
-    struct ColorGroup
-    {
-        const NiColor* colorSet[7];
-
-        ColorGroup(const NiColor* colors[])
-        {
-            for (size_t i = 0; i < 7; ++i)
-            {
-                colorSet[i] = colors[i];
-            }
-        }
-
-        // Safe lookup with bounds checking 
-        const NiColor* GetColor(size_t index) const
-        {
-            return colorSet[index < 7 ? index : 6]; // Bound checking to 6 (max index)
-        }
-
-        static const ColorGroup* GetColorSet(const char* colorName);
-    };
-
-    struct ColorShift
-    {
-        const ColorGroup* colorType;
-        const NiColor* startColor;
-        const NiColor* targetColor;
-        int startIndex;
-        int targetIndex;
-
-        ColorShift(const ColorGroup* selectedCG, const NiColor* start, const NiColor* end, int setIndex1, int setIndex2) :
-            colorType(selectedCG), startColor(start), targetColor(end), startIndex(setIndex1), targetIndex(setIndex2) {
-        }
-
-        NiColor StepShift(float heatVal, int color1, int color2, const ColorGroup* set)
-        {
-            int stepCount = abs(color2 - color1);
-            float heatRatio = min(heatVal / 300.0f, 1.0f);
-            int currentStep = static_cast<int>(heatRatio * stepCount);
-            currentStep = std::clamp(currentStep, 0, stepCount);
-
-            bool forward = color2 > color1;
-
-            int currentIndex = forward ? color1 + currentStep : color1 - currentStep;
-            int nextIndex = forward ? currentIndex + 1 : currentIndex - 1;
-            nextIndex = std::clamp(nextIndex, 0, 6);
-
-            const NiColor* currentColor = set->GetColor(currentIndex);
-            const NiColor* nextColor = set->GetColor(nextIndex);
-
-            float localHeatRatio = (heatRatio * stepCount) - currentStep;
-
-            NiColor blendedColor = currentColor->Shifted(*nextColor, localHeatRatio);
-
-            return blendedColor;
-        }
-
-        NiColor SmoothShift(const float time, const float period, const NiColor& startColor)
-        {
-            // Normalize time to avoid overflow if time grows large
-            const float normalizedTime = fmod(time, period);
-
-            // Use sine wave functions, with the starting color defining phase offsets
-            const float r = (sin((normalizedTime / period) + startColor.r * 2 * std::numbers::pi) + 1) / 2;
-            const float g = (sin((normalizedTime / period) + startColor.g * 2 * std::numbers::pi + 2 * std::numbers::pi / 3) + 1) / 2;
-            const float b = (sin((normalizedTime / period) + startColor.b * 2 * std::numbers::pi + 4 * std::numbers::pi / 3) + 1) / 2;
-
-            // Return the RGB color as a NiColor struct
-            return { r, g, b };
-        }
-
-    };
-
     //Overheating Code
     struct WeaponHeat
     {
@@ -85,12 +11,17 @@ namespace Overcharge
         float heatVal;
         float heatPerShot;
         float cooldownRate;
+        float maxHeat;
 
-        WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal) :
-            baseHeatVal(initialHeatVal), heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {
+        bool isOverheated;
+
+        WeaponHeat(float base, float perShot, float cooldown, float max, bool overheat = false) :
+            baseHeatVal(base), heatVal(base), heatPerShot(perShot), cooldownRate(cooldown), maxHeat(max), isOverheated(overheat) {}
+
+        inline void HeatOnFire()       //Responsible for heating a weapon up
+        {
+            heatVal += heatPerShot;         //Ticks up heatVal by the weapons defined heatPerShot value
         }
-
-        void HeatOnFire();
     };
 
     struct HeatedWeaponData
@@ -98,11 +29,10 @@ namespace Overcharge
         UInt32 actorForm;
         UInt32 weaponForm;
 
-        WeaponHeat* heatData;
-        ColorShift* colorData;
-        NiColor* currentColor;
-
-        bool isOverheated;
+        WeaponHeat heatData;
+        NiColor currentColor;
+        NiColor startingColor;
+        NiColor targetColor;
 
         NiNodePtr sourceModel;
         NiNodePtr muzzleFlashModel;
@@ -114,24 +44,28 @@ namespace Overcharge
         NiMaterialPropertyPtr projMatProp;
         NiMaterialPropertyPtr impactMatProp;
 
-        HeatedWeaponData(
-            UInt32 actor, UInt32 weapon, WeaponHeat* heat, ColorShift* colorInfo, NiColor* color, bool overheatStatus, 
-            NiNodePtr sourceNode, NiNodePtr muzzleNode, NiNodePtr projNode, NiNodePtr impactNode, 
-            NiMaterialPropertyPtr sourceProp, NiMaterialPropertyPtr muzzleProp, NiMaterialPropertyPtr projProp, NiMaterialPropertyPtr impactProp) : 
-            actorForm(actor), weaponForm(weapon), heatData(heat), colorData(colorInfo), currentColor(color), isOverheated(overheatStatus), 
-            sourceModel(sourceNode), muzzleFlashModel(muzzleNode), projectileModel(projNode), impactModel(impactNode),
-            sourceMatProp(sourceProp), muzzleMatProp(muzzleProp), projMatProp(projProp), impactMatProp(impactProp) {}
-
         std::vector<const char*> blockNames;
+
+        HeatedWeaponData(
+            WeaponHeat heat, NiColor color1, NiColor color2, std::vector<const char*> blocks) :
+            actorForm(0), weaponForm(0), heatData(heat), currentColor(color1), startingColor(color1), targetColor(color2), 
+            sourceModel(nullptr), muzzleFlashModel(nullptr), projectileModel(nullptr), impactModel(nullptr),
+            sourceMatProp(nullptr), muzzleMatProp(nullptr), projMatProp(nullptr), impactMatProp(nullptr), blockNames(blocks) {}  
 
         inline bool CompareForms(UInt32 actorID, UInt32 weaponID) const 
         {
             return actorForm == actorID && weaponForm == weaponID; 
         }
+
+        inline NiColor SmoothShift(const float currentHeat, const float maxHeat, const NiColor& startColor, const NiColor& endColor) 
+        {
+            const float progress = std::clamp(currentHeat / maxHeat, 0.0f, 1.0f);
+
+            return startColor.Shifted(endColor, progress);
+        }
     };
 
-    extern std::unordered_map<std::string, HeatedWeaponData> weaponDataMap;
-    extern std::vector<HeatedWeaponData*> activeWeapons;
+    extern std::vector<HeatedWeaponData> activeWeapons;
     extern std::vector<Projectile*> activeProjectiles;
 
     void WeaponCooldown();

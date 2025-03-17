@@ -45,8 +45,11 @@
 
 namespace Overcharge
 {
-	std::vector<HeatedWeaponData*> activeWeapons;				//Vector containing all weapons that are currently heating up
+	NiMaterialPropertyPtr g_customPlayerMatProp = NiMaterialProperty::CreateObject();
+
+	std::vector<HeatedWeaponData> activeWeapons;				//Vector containing all weapons that are currently heating up
 	std::vector<Projectile*> activeProjectiles;
+	std::unordered_map<UInt32, HeatedWeaponData> weaponDataMap;
 
 	NiPoint3* GetRoundedPosition(NiPoint3* pos)
 	{
@@ -59,12 +62,18 @@ namespace Overcharge
 
 	static void SetEmissiveColor(NiAVObject* obj, NiMaterialProperty* matProp, NiColor& blendedColor, const char* blockName = nullptr)
 	{
+		if (!obj) return;
+
 		NiAVObject* target = blockName ? obj->GetObjectByName(blockName) : obj;
 
-		if (NiGeometry * geom = target->NiDynamicCast<NiGeometry>())
+		if (!target) return;
+
+		if (NiGeometry* geom = target->NiDynamicCast<NiGeometry>())
 		{
+			if (!geom->m_kProperties.m_spMaterialProperty) return;
 			geom->m_kProperties.m_spMaterialProperty = matProp;
 			geom->m_kProperties.m_spMaterialProperty->m_emit = blendedColor;
+			geom->m_kProperties.m_spMaterialProperty->m_fEmitMult = 1.5f;
 		}
 	}
 
@@ -106,7 +115,9 @@ namespace Overcharge
 				else if (child->IsNiType<BSValueNode>())
 				{
 					BSValueNode* childValNode = static_cast<BSValueNode*>(child);
-					ChangeParticleColor(childValNode, matProp, blendedColor);
+					NiNode* childValNiNode = childValNode->IsNiNode();
+					ChangeParticleColor(childValNode, matProp, blendedColor); 
+					//ProcessNiNode2(childValNiNode, matProp, blendedColor);
 				}
 				else if (child->IsNiType<NiNode>())
 				{
@@ -116,8 +127,8 @@ namespace Overcharge
 				else if (child->IsNiType<NiGeometry>())
 				{
 					NiGeometry* childGeom = static_cast<NiGeometry*>(child);
-					SetEmissiveColor(childGeom, matProp, blendedColor);
-				}
+					SetEmissiveColor(childGeom, matProp, blendedColor); 
+				} 
 			}
 		}
 	}
@@ -125,61 +136,61 @@ namespace Overcharge
 	void WeaponCooldown()
 	{
 		TimeGlobal* timeGlobal = TimeGlobal::GetSingleton();
+		float deltaTime = timeGlobal->fDelta;
 
-		activeWeapons.erase(
-			std::remove_if(activeWeapons.begin(), activeWeapons.end(),
-				[&](HeatedWeaponData* weaponData)
+		activeWeapons.erase( 
+			std::remove_if(activeWeapons.begin(), activeWeapons.end(), 
+				[&](HeatedWeaponData& weaponData) 
 				{
-					float cooldownStep = timeGlobal->fDelta * weaponData->heatData->cooldownRate;
-					weaponData->heatData->heatVal -= cooldownStep;
-					if (weaponData->heatData->heatVal <= weaponData->heatData->baseHeatVal)
-						return true;
+					weaponData.heatData.heatVal -= deltaTime * weaponData.heatData.cooldownRate; 
 
-					NiColor blendedColor = weaponData->colorData->StepShift(
-						weaponData->heatData->heatVal,
-						weaponData->colorData->startIndex,
-						weaponData->colorData->targetIndex,
-						weaponData->colorData->colorType
+					if (weaponData.heatData.heatVal <= weaponData.heatData.baseHeatVal) return true; 
+
+					weaponData.currentColor = weaponData.SmoothShift(
+						weaponData.heatData.heatVal, 
+						weaponData.heatData.maxHeat, 
+						weaponData.startingColor,
+						weaponData.targetColor
 					);
-					weaponData->currentColor = &blendedColor;
 
-					for (const char* overchargeBlockName : weaponData->blockNames)
+					if (weaponData.sourceModel)
 					{
-						SetEmissiveColor(weaponData->sourceModel, weaponData->sourceMatProp, blendedColor, overchargeBlockName);
+						for (const char* overchargeBlockName : weaponData.blockNames)
+						{
+							SetEmissiveColor(weaponData.sourceModel, weaponData.sourceMatProp, weaponData.currentColor, overchargeBlockName);
+						}
 					}
-
 					return false;
 				}),
 			activeWeapons.end());
 	}
 
-	void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* proj) 
+	void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* proj)
 	{
 		NiNode* projNode = proj->Get3D();
 		UInt32 sourceRef = proj->pSourceRef->uiFormID;
 		UInt32 sourceWeap = proj->pSourceWeapon->uiFormID;
-		
-		for (auto it : activeWeapons)
+
+		activeProjectiles.emplace_back(proj);
+		for (auto& it : activeWeapons)
 		{
-			if (it->CompareForms(sourceRef, sourceWeap))
+			if (it.CompareForms(sourceRef, sourceWeap) == true)
 			{
-				if (!it->projectileModel || it->projectileModel != projNode)
+				if (!it.projectileModel || it.projectileModel != projNode)
 				{
-					it->projectileModel = projNode;
+					it.projectileModel = projNode;
 				}
-				ProcessNiNode2(it->projectileModel, it->projMatProp, *it->currentColor);
+				ProcessNiNode2(projNode, it.projMatProp, it.currentColor); 
 			}
 		}
-		activeProjectiles.emplace_back(proj);
-
-		ThisStdCall(0x9A52F0, a1, proj); 
+		ThisStdCall(0x9A52F0, a1, proj);
 	}
 
-	BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent) 
-	{  
+	BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
+	{
 		BSTempEffectParticle* impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
 		NiNode* impactNode = impact->spParticleObject->IsNiNode();
-		NiPoint3* roundedPos = GetRoundedPosition(&impactPos); 
+		NiPoint3 roundedPos = GetRoundedPosition(&impactPos);
 
 		activeProjectiles.erase(
 			std::remove_if(activeProjectiles.begin(), activeProjectiles.end(),
@@ -191,19 +202,18 @@ namespace Overcharge
 						UInt32 sourceRef = it->pSourceRef->uiFormID;
 						UInt32 sourceWeap = it->pSourceWeapon->uiFormID;
 
-						for (auto weaponIt : activeWeapons)
+						for (auto& weaponIt : activeWeapons)
 						{
-							if (weaponIt->CompareForms(sourceRef, sourceWeap))
+							if (weaponIt.CompareForms(sourceRef, sourceWeap))
 							{
-								if (!weaponIt->impactModel || weaponIt->impactModel != impactNode)
+								if (!weaponIt.impactModel || weaponIt.impactModel != impactNode)
 								{
-									weaponIt->impactModel = impactNode;
+									weaponIt.impactModel = impactNode;
 								}
-								ProcessNiNode2(weaponIt->impactModel, weaponIt->impactMatProp, *weaponIt->currentColor);
 							}
 						}
 					}
-					return false;
+					return roundedPos == GetRoundedPosition(&it->kPosition);
 				}),
 			activeProjectiles.end());
 
@@ -216,16 +226,15 @@ namespace Overcharge
 		UInt32 sourceRef = muzzleFlash->pSourceActor->uiFormID;
 		UInt32 sourceWeap = muzzleFlash->pSourceWeapon->uiFormID;
 
-		for (auto it : activeWeapons)
+		for (auto& it : activeWeapons)
 		{
-			if (it->CompareForms(sourceRef, sourceWeap))
+			if (it.CompareForms(sourceRef, sourceWeap))
 			{
-				if (!it->muzzleFlashModel || it->muzzleFlashModel != muzzleNode)
+				if (!it.muzzleFlashModel || it.muzzleFlashModel != muzzleNode)
 				{
-					it->muzzleFlashModel = muzzleNode;
+					it.muzzleFlashModel = muzzleNode;
 				}
-				ProcessNiNode2(it->muzzleFlashModel, it->muzzleMatProp, *it->currentColor);
-				muzzleFlash->spLight->SetDiffuseColor(*it->currentColor);
+				muzzleFlash->spLight->SetDiffuseColor(it.currentColor);
 			}
 		}
 		ThisStdCall(0x9BB690, muzzleFlash);
@@ -233,9 +242,45 @@ namespace Overcharge
 
 	void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, TESObjectREFR* rActor)
 	{
-		ThisStdCall(0x523150, rWeap, rActor);		//Plays original Actor::FireWeapon
-	}
+		UInt32 sourceRef = rActor->uiFormID;
+		UInt32 sourceWeap = rWeap->uiFormID;
+		NiNode* sourceNode = rActor->Get3D();
+		bool found = false;
+		for (auto& it : activeWeapons)
+		{
+			if (it.CompareForms(sourceRef, sourceWeap))
+			{
+				found = true;
+				it.sourceModel = sourceNode;
+				it.heatData.HeatOnFire();
+				break; 
+			}
+		}
+		if (!found)
+		{
+			auto weaponIt = weaponDataMap.find(sourceWeap);
+			if (weaponIt != weaponDataMap.end())
+			{
+				HeatedWeaponData newWeaponData = weaponIt->second;
+				NiMaterialPropertyPtr sourceMProp = NiMaterialProperty::CreateObject(); 
+				NiMaterialPropertyPtr muzzleMProp = NiMaterialProperty::CreateObject();
+				NiMaterialPropertyPtr projMProp = NiMaterialProperty::CreateObject(); 
+				NiMaterialPropertyPtr impactMProp = NiMaterialProperty::CreateObject(); 
 
+				newWeaponData.sourceModel = sourceNode;
+				newWeaponData.actorForm = sourceRef;
+				newWeaponData.weaponForm = sourceWeap;
+				newWeaponData.sourceMatProp = sourceMProp;
+				newWeaponData.muzzleMatProp = muzzleMProp;
+				newWeaponData.projMatProp = projMProp;
+				newWeaponData.impactMatProp = impactMProp;
+				newWeaponData.heatData.HeatOnFire();
+				activeWeapons.emplace_back(newWeaponData);
+			}
+		}
+		// Calls original Actor::FireWeapon
+		ThisStdCall(0x523150, rWeap, rActor);
+	}
 
 	void InitHooks()
 	{

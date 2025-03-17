@@ -135,6 +135,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Overcharge.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="WeaponDataMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\nvse\CommandTable.hpp" />
