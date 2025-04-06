@@ -69,4 +69,5 @@ namespace Overcharge
     extern std::vector<Projectile*> activeProjectiles;
 
     void WeaponCooldown();
+    void ParticleUpdater();
 }

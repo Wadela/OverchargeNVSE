@@ -18,7 +18,8 @@ public:
 	bool		m_bRandomInitialAxis;
 	bool		m_bRandomRotSpeedSign;
 
-	CREATE_OBJECT(NiPSysRotationModifier, 0xC20640)
+	CREATE_OBJECT(NiPSysRotationModifier, 0xC20640);
+	NIRTTI_ADDRESS(0x1202528);
 };
 
 ASSERT_SIZE(NiPSysRotationModifier, 0x38);

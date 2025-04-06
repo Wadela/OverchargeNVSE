@@ -140,7 +140,7 @@
     <ClCompile Include="Gamebryo\NiMemory.cpp" />
     <ClCompile Include="Bethesda\BSWin32TaskletManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="NiAvObject.cpp" />
+    <ClCompile Include="NiAVObject.cpp" />
     <ClCompile Include="NiBillboardNode.cpp" />
     <ClCompile Include="NiBinaryStream.cpp" />
     <ClCompile Include="NiBound.cpp" />

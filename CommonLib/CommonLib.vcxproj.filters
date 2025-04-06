@@ -28,7 +28,7 @@
     <ClCompile Include="NiObject.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiAvObject.cpp">
+    <ClCompile Include="NiAVObject.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
     <ClCompile Include="NiObjectNET.cpp">

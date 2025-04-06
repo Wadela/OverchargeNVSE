@@ -1,4 +1,4 @@
-#pragma once
+#pragma once 
 
 #include "NiObject.hpp"
 #include "NiFixedString.hpp"
@@ -35,6 +35,8 @@ public:
 	UInt32				m_uiOrder;
 	NiParticleSystem*	m_pkTarget;
 	bool				m_bActive;
+
+	NIRTTI_ADDRESS(0x11f4418);
 };
 
 ASSERT_SIZE(NiPSysModifier, 0x18)
