@@ -1403,6 +1403,7 @@
     <ClInclude Include="MiscUtils.hpp" />
     <ClInclude Include="Modifier.hpp" />
     <ClInclude Include="ModifierList.hpp" />
+    <ClInclude Include="NiTransformController.hpp" />
     <ClInclude Include="Obsidian\BGSDehydrationStage.hpp" />
     <ClInclude Include="Obsidian\BGSHungerStage.hpp" />
     <ClInclude Include="Obsidian\BGSSleepDeprevationStage.hpp" />

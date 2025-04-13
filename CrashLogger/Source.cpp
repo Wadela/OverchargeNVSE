@@ -45,6 +45,7 @@
 #include "NiPSysModifier.hpp"
 #include "NiParticleInfo.hpp"
 #include <NiPSysAgeDeathModifier.hpp>
+#include <NiTransformInterpolator.hpp>
 
 namespace Overcharge
 {
@@ -54,9 +55,11 @@ namespace Overcharge
 	std::vector<Projectile*> activeProjectiles;
 	std::unordered_map<UInt32, HeatedWeaponData> weaponDataMap;
 	std::vector<NiTimeController*> particleControllers;
+	std::vector<NiTimeController*> particleControllers1;
 	std::vector<NiParticleSystem*> activeParticles;
 	std::vector<NiPSysModifier*> activeModifiers; 
-
+	std::vector<NiNode*> activeNodes1;
+	std::vector<std::pair<NiNode*, NiNode*>> activeNodes;
 	NiPoint3* GetRoundedPosition(NiPoint3* pos)
 	{
 		float roundX = std::round(pos->x);
@@ -116,31 +119,59 @@ namespace Overcharge
 				const UInt32 particleSystemIndex = addonNode->particleSystemID;
 				if (BSMasterParticleSystem* const mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
 				{
-					if (NiNode* newNode = mps->GetAt(0)->Clone()->NiDynamicCast<NiNode>())
+					NiNodePtr mpsNode = mps->GetAt(0)->NiDynamicCast<NiNode>();
+					if (!mpsNode) return; 
+					if (NiNode* newNode = mpsNode->Clone()->NiDynamicCast<NiNode>())
 					{
 						// Ensure that 3d offsets are correct
-						newNode->m_kLocal = valueNode->m_kLocal;
-						newNode->m_kWorld = valueNode->m_kWorld;
+						std::pair<NiNode*, NiNode*> activeNodes1;
+						//newNode->m_pWorldBound = valueNode->m_pWorldBound;
+						//newNode->m_kLocal = valueNode->m_kLocal;
+						//newNode->m_kWorld = valueNode->m_kWorld;
 
+						activeNodes1.first = newNode;
+						activeNodes1.second = valueNode;
+						activeNodes.emplace_back(activeNodes1);
+						//newNode->SetSelUpdTransforms(true);
 						// Copy value node children
-						for (int i = 0; i < valueNode->m_kChildren.m_usSize; i++) 
+						for (int i = 0; i < valueNode->m_kChildren.m_usSize; i++)
 						{
-							if (const auto &child = valueNode->m_kChildren.m_pBase[i]) 
+							if (const auto& child = valueNode->m_kChildren.m_pBase[i])
 							{
 								newNode->AttachChild(child->Clone()->NiDynamicCast<NiAVObject>(), true);
 							}
 						}
 
 						// Copy value node controllers
-						auto& curController = valueNode->m_spControllers;
-						while (curController) 
-						{
-							const auto newController = curController->Clone()->NiDynamicCast<NiTimeController>();
-							newController->SetTarget(newNode);
-							newController->SetActive(true);
-
-							curController = curController->GetNext();
-						}
+						//auto& curController = valueNode->m_spControllers;
+						//while (curController)
+						//{
+						//	auto newController = curController.m_pObject->Clone()->NiDynamicCast<NiTimeController>();
+						//
+						//	if (NiSingleInterpController* transformCtlr = newController->NiDynamicCast<NiSingleInterpController>())
+						//	{
+						//		NiSingleInterpController* oldTransform = curController->NiDynamicCast<NiSingleInterpController>();
+						//
+						//		if (NiTransformInterpolator* tInterp = transformCtlr->m_spInterpolator->NiDynamicCast<NiTransformInterpolator>())
+						//		{
+						//			const NiRTTI* rtti = tInterp->GetStreamableRTTI(); 
+						//		}
+						//
+						//		if (NiTransformInterpolator* tInterp1 = oldTransform->m_spInterpolator->NiDynamicCast<NiTransformInterpolator>())
+						//		{
+						//			const NiRTTI* rtti = tInterp1->GetStreamableRTTI();
+						//		}
+						//
+						//		transformCtlr->m_fScaledTime = oldTransform->m_fScaledTime;
+						//		transformCtlr->m_spInterpolator->m_fLastTime = oldTransform->m_spInterpolator->m_fLastTime;
+						//		//transformCtlr->m_fLastTime = 0;
+						//		//transformCtlr->SetTarget(newNode);
+						//		//transformCtlr->SetInterpolator(transformCtlr->m_spInterpolator, 0);
+						//		particleControllers1.emplace_back(transformCtlr);
+						//	}
+						//
+						//	curController = curController->GetNext();
+						//}
 
 						for (int i = 0; i < newNode->m_kChildren.m_usSize; i++)
 						{
@@ -154,34 +185,21 @@ namespace Overcharge
 										if (NiPSysEmitterCtlrPtr newEmit = ThisStdCall<NiPSysEmitterCtlr*>(0xC1C570, bsp, &cloner))
 										{
 											newEmit->SetTarget(psys);
-											
-											if (newEmit->m_spNext)
-											{
-												newEmit->m_spNext->SetTarget(psys);
-											}
 
 											psys->RemoveController(bsp);
 										}
 									}
 									psys->m_fLastTime = 0;
-									if (NiPSysData* sysData = psys->m_spModelData->NiDynamicCast<NiPSysData>())
-									{
-										for (NiPSysModifier* it : psys->m_kModifierList)
-										{
-											if (it)
-											{
-												activeModifiers.emplace_back(it);
-											}
-										}
-									}
+
 									activeParticles.emplace_back(psys);
-									mps->FindRootNode()->AttachChild(psys, false);
+									mps->FindRootNode()->AttachChild(newNode, false);
 								}
 							}
 						}
 
 						// Remove value node and add our new copy
-						obj->m_pkParent->DetachChildAlt(valueNode); 
+						//obj->m_pkParent->DetachChildAlt(valueNode); 
+						valueNode->SetAppCulled(true);
 
 					}
 				}
@@ -268,22 +286,21 @@ namespace Overcharge
 			// Compute scaled time update
 			psys->m_fLastTime += frameTime;
 
-			//if (auto bsp = psys->GetController<BSPSysMultiTargetEmitterCtlr>())
-			//{
-				//if (psys->m_fLastTime >= bsp->m_fHiKeyTime);
-				//{
-				//	bsp->Stop();
-				//}
-			//}
-
 			// Create and configure update data
 			NiUpdateData updateData
 			{
 				psys->m_fLastTime,			// Time for update 
 				1,							// bUpdateControllers
 				0,							// bIsMultiThreaded 
-			}; 
+				1,
+				1,
+				1
+			};
 
+			if (psys->m_fLastTime < 0.666667f)
+			{
+				psys->Update(updateData);
+			}
 
 			if (NiPSysData* sysData = psys->m_spModelData->NiDynamicCast<NiPSysData>())
 			{
@@ -291,22 +308,27 @@ namespace Overcharge
 				{
 					if (it)
 					{
-						auto test = psys->GetStreamableRTTI();
-						auto test2 = it->GetStreamableRTTI();
 						it->Update(psys->m_fLastTime, sysData);
-						if (NiPSysAgeDeathModifier* deathMod = it->NiDynamicCast<NiPSysAgeDeathModifier>())
-						{
-							deathMod->Update(psys->m_fLastTime, sysData);
-						}
-						if (NiPSysSpawnModifier* spawnMod = it->NiDynamicCast<NiPSysSpawnModifier>())
-						{
-							spawnMod->Update(psys->m_fLastTime, sysData);
-						}
 					}
 				}
 			}
 
-			psys->Update(updateData);
+			for (auto& nodePair : activeNodes)
+			{
+				if (auto &ctlr = nodePair.second->m_spControllers)
+				{
+					if (psys->m_fLastTime > ctlr->m_fLoKeyTime && psys->m_fLastTime < ctlr->m_fHiKeyTime)
+					{
+						nodePair.first->m_kLocal = nodePair.second->m_kLocal;
+						nodePair.first->m_kWorld = nodePair.second->m_kWorld;
+					}
+					else
+					{
+						nodePair.first->m_kLocal.m_Translate = (0, 0, 0);
+						nodePair.first->m_kWorld.m_Translate = (0, 0, 0);
+					}
+				}
+			}
 		}
 	}
 
@@ -391,6 +413,7 @@ namespace Overcharge
 		UInt32 sourceRef = rActor->uiFormID;
 		UInt32 sourceWeap = rWeap->uiFormID;
 		NiNode* sourceNode = rActor->Get3D();
+																			
 		bool found = false;
 		for (auto& it : activeWeapons)
 		{
