@@ -60,6 +60,15 @@ namespace Overcharge
 	std::vector<NiPSysModifier*> activeModifiers; 
 	std::vector<NiNode*> activeNodes1;
 	std::vector<std::pair<NiNode*, NiNode*>> activeNodes;
+
+	struct ParticleInstance
+	{
+		NiParticleSystem* particle;
+		std::pair<NiNode*, NiNode*> nodePair;
+	};
+
+	std::vector<ParticleInstance> newActiveParticles;
+
 	NiPoint3* GetRoundedPosition(NiPoint3* pos)
 	{
 		float roundX = std::round(pos->x);
@@ -67,6 +76,38 @@ namespace Overcharge
 		float roundZ = std::round(pos->z);
 
 		return new NiPoint3(roundX, roundY, roundZ);
+	}
+
+	inline bool AreFloatsNearlyEqual(float a, float b, float epsilon = 1e-5f)
+	{
+		return fabsf(a - b) < epsilon;
+	}
+
+	inline bool AreNiPoint3NearlyEqual(const NiPoint3& a, const NiPoint3& b, float epsilon = 1e-5f)
+	{
+		return AreFloatsNearlyEqual(a.x, b.x, epsilon) &&
+			AreFloatsNearlyEqual(a.y, b.y, epsilon) &&
+			AreFloatsNearlyEqual(a.z, b.z, epsilon);
+	}
+
+	inline bool AreNiMatrix3NearlyEqual(const NiMatrix3& a, const NiMatrix3& b, float epsilon = 1e-5f)
+	{
+		for (int row = 0; row < 3; ++row)
+		{
+			for (int col = 0; col < 3; ++col)
+			{
+				if (!AreFloatsNearlyEqual(a.m_pEntry[row][col], b.m_pEntry[row][col], epsilon))
+					return false;
+			}
+		}
+		return true;
+	}
+
+	inline bool AreNiTransformsNearlyEqual(const NiTransform& a, const NiTransform& b, float epsilon = 1e-5f)
+	{
+		return AreFloatsNearlyEqual(a.m_fScale, b.m_fScale, epsilon) &&
+			AreNiPoint3NearlyEqual(a.m_Translate, b.m_Translate, epsilon) &&
+			AreNiMatrix3NearlyEqual(a.m_Rotate, b.m_Rotate, epsilon);
 	}
 
 	static void SetEmissiveColor(NiAVObject* obj, NiMaterialProperty* matProp, NiColor& blendedColor, const char* blockName = nullptr)
@@ -125,13 +166,13 @@ namespace Overcharge
 					{
 						// Ensure that 3d offsets are correct
 						std::pair<NiNode*, NiNode*> activeNodes1;
-						//newNode->m_pWorldBound = valueNode->m_pWorldBound;
-						//newNode->m_kLocal = valueNode->m_kLocal;
-						//newNode->m_kWorld = valueNode->m_kWorld;
+
+						newNode->m_kLocal = valueNode->m_kLocal;
+						newNode->m_kWorld = valueNode->m_kWorld;
 
 						activeNodes1.first = newNode;
 						activeNodes1.second = valueNode;
-						activeNodes.emplace_back(activeNodes1);
+						
 						//newNode->SetSelUpdTransforms(true);
 						// Copy value node children
 						for (int i = 0; i < valueNode->m_kChildren.m_usSize; i++)
@@ -141,37 +182,6 @@ namespace Overcharge
 								newNode->AttachChild(child->Clone()->NiDynamicCast<NiAVObject>(), true);
 							}
 						}
-
-						// Copy value node controllers
-						//auto& curController = valueNode->m_spControllers;
-						//while (curController)
-						//{
-						//	auto newController = curController.m_pObject->Clone()->NiDynamicCast<NiTimeController>();
-						//
-						//	if (NiSingleInterpController* transformCtlr = newController->NiDynamicCast<NiSingleInterpController>())
-						//	{
-						//		NiSingleInterpController* oldTransform = curController->NiDynamicCast<NiSingleInterpController>();
-						//
-						//		if (NiTransformInterpolator* tInterp = transformCtlr->m_spInterpolator->NiDynamicCast<NiTransformInterpolator>())
-						//		{
-						//			const NiRTTI* rtti = tInterp->GetStreamableRTTI(); 
-						//		}
-						//
-						//		if (NiTransformInterpolator* tInterp1 = oldTransform->m_spInterpolator->NiDynamicCast<NiTransformInterpolator>())
-						//		{
-						//			const NiRTTI* rtti = tInterp1->GetStreamableRTTI();
-						//		}
-						//
-						//		transformCtlr->m_fScaledTime = oldTransform->m_fScaledTime;
-						//		transformCtlr->m_spInterpolator->m_fLastTime = oldTransform->m_spInterpolator->m_fLastTime;
-						//		//transformCtlr->m_fLastTime = 0;
-						//		//transformCtlr->SetTarget(newNode);
-						//		//transformCtlr->SetInterpolator(transformCtlr->m_spInterpolator, 0);
-						//		particleControllers1.emplace_back(transformCtlr);
-						//	}
-						//
-						//	curController = curController->GetNext();
-						//}
 
 						for (int i = 0; i < newNode->m_kChildren.m_usSize; i++)
 						{
@@ -191,7 +201,7 @@ namespace Overcharge
 									}
 									psys->m_fLastTime = 0;
 
-									activeParticles.emplace_back(psys);
+									newActiveParticles.emplace_back(ParticleInstance(psys, activeNodes1));
 									mps->FindRootNode()->AttachChild(newNode, false);
 								}
 							}
@@ -279,59 +289,42 @@ namespace Overcharge
 		TimeGlobal* timeGlobal = TimeGlobal::GetSingleton();
 		float frameTime = timeGlobal->fDelta;
 
-		for (NiParticleSystem* psys : activeParticles)
+		for (ParticleInstance& instance : newActiveParticles)
 		{
-			if (!psys) continue; 
+			NiParticleSystem* psys = instance.particle;
+			if (!psys) continue;
 
-			// Compute scaled time update
-			psys->m_fLastTime += frameTime;
+			// Advance time
+			psys->m_fLastTime += TimeGlobal::GetSingleton()->fDelta;
 
-			// Create and configure update data
-			NiUpdateData updateData
-			{
-				psys->m_fLastTime,			// Time for update 
-				1,							// bUpdateControllers
-				0,							// bIsMultiThreaded 
-				1,
-				1,
-				1
+			NiUpdateData updateData{
+				psys->m_fLastTime,	// fTime
+				1,					// bUpdateControllers
+				0,					// bIsMultiThreaded
+				1, 1, 1
 			};
 
-			if (psys->m_fLastTime < 0.666667f)
+			if (psys->m_fLastTime >= psys->m_spControllers->m_fLoKeyTime && psys->m_fLastTime < psys->m_spControllers->m_fHiKeyTime)
 			{
-				psys->Update(updateData);
+				if (!AreNiTransformsNearlyEqual(instance.nodePair.first->m_kWorld, instance.nodePair.second->m_kWorld))
+				{
+					psys->Update(updateData);
+
+					instance.nodePair.first->m_kLocal = instance.nodePair.second->m_kLocal;
+					instance.nodePair.first->m_kWorld = instance.nodePair.second->m_kWorld;
+				}
 			}
 
 			if (NiPSysData* sysData = psys->m_spModelData->NiDynamicCast<NiPSysData>())
 			{
-				for (NiPSysModifier* it : psys->m_kModifierList)
+				for (NiPSysModifier* mod : psys->m_kModifierList)
 				{
-					if (it)
-					{
-						it->Update(psys->m_fLastTime, sysData);
-					}
-				}
-			}
-
-			for (auto& nodePair : activeNodes)
-			{
-				if (auto &ctlr = nodePair.second->m_spControllers)
-				{
-					if (psys->m_fLastTime > ctlr->m_fLoKeyTime && psys->m_fLastTime < ctlr->m_fHiKeyTime)
-					{
-						nodePair.first->m_kLocal = nodePair.second->m_kLocal;
-						nodePair.first->m_kWorld = nodePair.second->m_kWorld;
-					}
-					else
-					{
-						nodePair.first->m_kLocal.m_Translate = (0, 0, 0);
-						nodePair.first->m_kWorld.m_Translate = (0, 0, 0);
-					}
+					if (mod)
+						mod->Update(psys->m_fLastTime, sysData);
 				}
 			}
 		}
 	}
-
 
 	void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* proj)
 	{
