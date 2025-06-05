@@ -58,8 +58,6 @@ namespace Overcharge
 	std::vector<NiTimeController*> particleControllers1;
 	std::vector<NiParticleSystem*> activeParticles;
 	std::vector<NiPSysModifier*> activeModifiers; 
-	std::vector<NiNode*> activeNodes1;
-	std::vector<std::pair<NiNode*, NiNode*>> activeNodes;
 
 	struct ParticleInstance
 	{
@@ -164,24 +162,7 @@ namespace Overcharge
 					if (!mpsNode) return; 
 					if (NiNode* newNode = mpsNode->Clone()->NiDynamicCast<NiNode>())
 					{
-						// Ensure that 3d offsets are correct
-						std::pair<NiNode*, NiNode*> activeNodes1;
-
-						newNode->m_kLocal = valueNode->m_kLocal;
-						newNode->m_kWorld = valueNode->m_kWorld;
-
-						activeNodes1.first = newNode;
-						activeNodes1.second = valueNode;
-						
-						//newNode->SetSelUpdTransforms(true);
-						// Copy value node children
-						for (int i = 0; i < valueNode->m_kChildren.m_usSize; i++)
-						{
-							if (const auto& child = valueNode->m_kChildren.m_pBase[i])
-							{
-								newNode->AttachChild(child->Clone()->NiDynamicCast<NiAVObject>(), true);
-							}
-						}
+						std::pair<NiNode*, NiNode*> activeNodes = { newNode, valueNode };
 
 						for (int i = 0; i < newNode->m_kChildren.m_usSize; i++)
 						{
@@ -195,22 +176,16 @@ namespace Overcharge
 										if (NiPSysEmitterCtlrPtr newEmit = ThisStdCall<NiPSysEmitterCtlr*>(0xC1C570, bsp, &cloner))
 										{
 											newEmit->SetTarget(psys);
-
 											psys->RemoveController(bsp);
+											psys->m_fLastTime = 0;
 										}
 									}
-									psys->m_fLastTime = 0;
-
-									newActiveParticles.emplace_back(ParticleInstance(psys, activeNodes1));
+									newActiveParticles.emplace_back(ParticleInstance(psys, activeNodes));
 									mps->FindRootNode()->AttachChild(newNode, false);
 								}
 							}
 						}
-
-						// Remove value node and add our new copy
-						//obj->m_pkParent->DetachChildAlt(valueNode); 
 						valueNode->SetAppCulled(true);
-
 					}
 				}
 			}
@@ -254,15 +229,13 @@ namespace Overcharge
 
 	void WeaponCooldown()
 	{
-		TimeGlobal* timeGlobal = TimeGlobal::GetSingleton();
-		float deltaTime = timeGlobal->fDelta;
+		float frameTime = TimeGlobal::GetSingleton()->fDelta;
 
 		activeWeapons.erase( 
 			std::remove_if(activeWeapons.begin(), activeWeapons.end(), 
 				[&](HeatedWeaponData& weaponData) 
 				{
-					weaponData.heatData.heatVal -= deltaTime * weaponData.heatData.cooldownRate; 
-
+					weaponData.heatData.heatVal -= frameTime * weaponData.heatData.cooldownRate; 
 					if (weaponData.heatData.heatVal <= weaponData.heatData.baseHeatVal) return true; 
 
 					weaponData.currentColor = weaponData.SmoothShift(
@@ -286,45 +259,43 @@ namespace Overcharge
 
 	void ParticleUpdater()
 	{
-		TimeGlobal* timeGlobal = TimeGlobal::GetSingleton();
-		float frameTime = timeGlobal->fDelta;
+		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
 
-		for (ParticleInstance& instance : newActiveParticles)
-		{
-			NiParticleSystem* psys = instance.particle;
-			if (!psys) continue;
-
-			// Advance time
-			psys->m_fLastTime += TimeGlobal::GetSingleton()->fDelta;
-
-			NiUpdateData updateData{
-				psys->m_fLastTime,	// fTime
-				1,					// bUpdateControllers
-				0,					// bIsMultiThreaded
-				1, 1, 1
-			};
-
-			if (psys->m_fLastTime >= psys->m_spControllers->m_fLoKeyTime && psys->m_fLastTime < psys->m_spControllers->m_fHiKeyTime)
-			{
-				if (!AreNiTransformsNearlyEqual(instance.nodePair.first->m_kWorld, instance.nodePair.second->m_kWorld))
+		newActiveParticles.erase(
+			std::remove_if(newActiveParticles.begin(), newActiveParticles.end(),
+				[&](ParticleInstance& instance)
 				{
-					psys->Update(updateData);
+					NiParticleSystem* psys = instance.particle;
 
-					instance.nodePair.first->m_kLocal = instance.nodePair.second->m_kLocal;
-					instance.nodePair.first->m_kWorld = instance.nodePair.second->m_kWorld;
-				}
-			}
+					if (!psys || !psys->m_spControllers) return true;
 
-			if (NiPSysData* sysData = psys->m_spModelData->NiDynamicCast<NiPSysData>())
-			{
-				for (NiPSysModifier* mod : psys->m_kModifierList)
-				{
-					if (mod)
-						mod->Update(psys->m_fLastTime, sysData);
-				}
-			}
-		}
+					psys->m_fLastTime += frameTime;
+
+					if (auto* sysData = psys->m_spModelData->NiDynamicCast<NiPSysData>())
+					{
+						for (NiPSysModifier* mod : psys->m_kModifierList)
+						{
+							if (mod) mod->Update(psys->m_fLastTime, sysData);
+						}
+					}
+
+					const float hi = psys->m_spControllers->m_fHiKeyTime;
+					const float lingerThreshold = hi + 4.0f;
+					const bool inLingerWindow = psys->m_fLastTime <= lingerThreshold;
+
+					if (inLingerWindow && !AreNiTransformsNearlyEqual(instance.nodePair.first->m_kWorld, instance.nodePair.second->m_kWorld))
+					{
+						NiUpdateData updateData{ psys->m_fLastTime, 1, 0, 1, 1, 1 };
+
+						psys->Update(updateData);
+						instance.nodePair.first->m_kLocal = instance.nodePair.second->m_kLocal;
+						instance.nodePair.first->m_kWorld = instance.nodePair.second->m_kWorld;
+					}
+					return !inLingerWindow;
+				}),
+			newActiveParticles.end());
 	}
+
 
 	void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* proj)
 	{
