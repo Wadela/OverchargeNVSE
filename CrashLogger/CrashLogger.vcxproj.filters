@@ -28,6 +28,9 @@
     <ClCompile Include="WeaponDataMap.cpp">
       <Filter>Wadelz\Headers</Filter>
     </ClCompile>
+    <ClCompile Include="tracy\public\TracyClient.cpp">
+      <Filter>tracy</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />
@@ -102,6 +105,9 @@
     </Filter>
     <Filter Include="Wadelz\Headers">
       <UniqueIdentifier>{5b8de170-6773-47a7-b4fb-f93d5d434a2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tracy">
+      <UniqueIdentifier>{86baacfa-576d-41e4-8be4-517425806a57}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

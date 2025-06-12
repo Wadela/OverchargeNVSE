@@ -82,6 +82,7 @@ namespace Overcharge
 		"Effects\\MuzzleFlashes\\PlasmaRifleMuzzleFlash.NIF",
 		"mps\\mpsplasmaprojectile.nif",
 		"effects\\impactenergygreen01.nif",
+		"effects\\impactenergygreenflesh01.nif",
 		"effects\\impactenergybase01.nif",
 		"projectiles\\plasmaprojectile01.nif",
 		"projectiles\\testlaserbeamsteady.nif",
@@ -89,8 +90,6 @@ namespace Overcharge
 		"Effects\\MuzzleFlashes\\laserriflemuzzleflash.NIF",
 		"weapons\\2handrifle\\plasmarifle.nif"
 	};
-
-	extern std::vector<NiTimeController*> particleControllers;
 
 	//Auto populated based on editorIds above
 	static case_insensitive_set definedModels{};
@@ -180,84 +179,6 @@ namespace Overcharge
 		}
 	}
 
-	//Update Child Particles to all be prepared for emissive color control
-	static void CloneParticle1(const NiAVObject* obj)
-	{
-		if (BSValueNode* const valueNode = obj->NiDynamicCast<BSValueNode>())
-		{
-			BGSAddonNode* const addonNode = TESDataHandler::GetSingleton()->GetAddonNode(valueNode->iValue);
-			if (addonNode && addonNode->uiIndex)
-			{
-				BSParticleSystemManager* const manager = BSParticleSystemManager::GetInstance();
-				const UInt32 particleSystemIndex = addonNode->particleSystemID;
-				if (BSMasterParticleSystem* const mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
-				{
-					if (NiNode* newNode = mps->GetAt(0)->Clone()->NiDynamicCast<NiNode>())
-					{
-						// Ensure that 3d offsets are correct
-						newNode->m_kLocal = valueNode->m_kLocal;
-						newNode->m_kWorld = valueNode->m_kWorld;
-
-						// Copy value node children
-						for (int i = 0; i < valueNode->m_kChildren.m_usSize; i++)
-						{
-							if (const auto child = valueNode->m_kChildren.m_pBase[i])
-							{
-								newNode->AttachChild(child->Clone()->NiDynamicCast<NiAVObject>(), true);
-							}
-						}
-
-						// Copy value node controllers
-						auto curController = valueNode->m_spControllers;
-						while (curController)
-						{
-							const auto newController = curController->Clone()->NiDynamicCast<NiTimeController>();
-							newController->SetTarget(newNode);
-							newController->SetActive(true);
-
-							curController = curController->GetNext();
-						}
-
-						for (int i = 0; i < newNode->m_kChildren.m_usSize; i++)
-						{
-							if (const auto child2 = newNode->m_kChildren.m_pBase[i])
-							{
-								if (NiParticleSystem* psys = child2->NiDynamicCast<NiParticleSystem>())
-								{
-									if (auto bsp = psys->GetController<BSPSysMultiTargetEmitterCtlr>())
-									{
-										NiCloningProcess cloner{};
-										if (NiPSysEmitterCtlrPtr newEmit = ThisStdCall<NiPSysEmitterCtlr*>(0xC1C570, bsp, &cloner))
-										{
-											newEmit->SetTarget(psys);
-											newEmit->SetActive(true);
-											newEmit->StartAnimations(psys);
-											if (newEmit->m_spNext)
-											{
-												newEmit->m_spNext->SetTarget(psys);
-												newEmit->m_spNext->SetActive(true);
-												newEmit->m_spNext->StartAnimations(psys);
-											}
-
-											psys->RemoveController(bsp);
-											particleControllers.emplace_back(newEmit);
-											particleControllers.emplace_back(newEmit->m_spNext);
-										}
-									}
-								}
-							}
-						}
-
-						// Remove value node and add our new copy
-						mps->FindRootNode()->AttachChild(newNode, true);
-						obj->m_pkParent->DetachChildAlt(valueNode);
-
-					}
-				}
-			}
-		}
-	}
-
 	//Iterates through node children to guide children appropriately
 	static void ProcessNiNode(const NiNode* obj)
 	{
@@ -277,8 +198,6 @@ namespace Overcharge
 				{
 					BSValueNode* childValNode = static_cast<BSValueNode*>(child);
 					PrepParticleColor(childValNode); 
-
-					//CloneParticle1(childValNode);
 				}
 				else if (child->IsNiType<NiNode>())
 				{

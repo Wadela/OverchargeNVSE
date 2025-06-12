@@ -1,22 +1,22 @@
 #pragma once
+
 #include "MainHeader.hpp"
 #include "NiColor.hpp"
+#include <NiParticleSystem.hpp>
 
 namespace Overcharge
 {
     //Overheating Code
-    struct WeaponHeat
+    struct HeatInfo
     {
-        float baseHeatVal;
-        float heatVal;
-        float heatPerShot;
-        float cooldownRate;
-        float maxHeat;
+        HeatInfo();
+        HeatInfo(float base, float perShot, float cooldown, float max);
 
-        bool isOverheated;
-
-        WeaponHeat(float base, float perShot, float cooldown, float max, bool overheat = false) :
-            baseHeatVal(base), heatVal(base), heatPerShot(perShot), cooldownRate(cooldown), maxHeat(max), isOverheated(overheat) {}
+        float   heatVal;
+        float   baseHeatVal;
+        float   heatPerShot;
+        float   cooldownRate;
+        float   maxHeat;
 
         inline void HeatOnFire()       //Responsible for heating a weapon up
         {
@@ -24,49 +24,59 @@ namespace Overcharge
         }
     };
 
-    struct HeatedWeaponData
+    struct HeatFX
     {
-        UInt32 actorForm;
-        UInt32 weaponForm;
+        HeatFX();
+        HeatFX(NiColor color1, NiColor color2, std::vector<const char*> names);
 
-        WeaponHeat heatData;
-        NiColor currentColor;
-        NiColor startingColor;
-        NiColor targetColor;
+        NiColor                 currCol;
+        NiColor                 startCol;
+        NiColor                 targetCol;
 
-        NiNodePtr sourceModel;
-        NiNodePtr muzzleFlashModel;
-        NiNodePtr projectileModel; 
-        NiNodePtr impactModel; 
+        std::vector<const char*>  blockNames;
 
-        NiMaterialPropertyPtr sourceMatProp;
-        NiMaterialPropertyPtr muzzleMatProp;
-        NiMaterialPropertyPtr projMatProp;
-        NiMaterialPropertyPtr impactMatProp;
-
-        std::vector<const char*> blockNames;
-
-        HeatedWeaponData(
-            WeaponHeat heat, NiColor color1, NiColor color2, std::vector<const char*> blocks) :
-            actorForm(0), weaponForm(0), heatData(heat), currentColor(color1), startingColor(color1), targetColor(color2), 
-            sourceModel(nullptr), muzzleFlashModel(nullptr), projectileModel(nullptr), impactModel(nullptr),
-            sourceMatProp(nullptr), muzzleMatProp(nullptr), projMatProp(nullptr), impactMatProp(nullptr), blockNames(blocks) {}  
-
-        inline bool CompareForms(UInt32 actorID, UInt32 weaponID) const 
-        {
-            return actorForm == actorID && weaponForm == weaponID; 
-        }
-
-        inline NiColor SmoothShift(const float currentHeat, const float maxHeat, const NiColor& startColor, const NiColor& endColor) 
+        inline NiColor SmoothShift(float currentHeat, float maxHeat) const
         {
             const float progress = std::clamp(currentHeat / maxHeat, 0.0f, 1.0f);
-
-            return startColor.Shifted(endColor, progress);
+            return startCol.Shifted(targetCol, progress);
         }
     };
 
-    extern std::vector<HeatedWeaponData> activeWeapons;
+    struct HeatInstance
+    {
+        HeatInstance();
+        HeatInstance(HeatInfo info, HeatFX fx);
+
+        UInt32      actorForm;
+        UInt32      weaponForm;
+
+        HeatInfo    heat;
+        HeatFX      fx;
+
+        std::vector<NiAVObjectPtr>  targetBlocks;
+
+        inline bool CompareForms(UInt32 actor, UInt32 weapon) const
+        {
+            return actorForm == actor && weaponForm == weapon;
+        }
+    };
+
+    struct ParticleInstance
+    {
+        NiParticleSystem*               particle;
+        std::pair<NiNode*, NiNode*>     nodePair;
+    };
+
+    struct ParticleInstance2
+    {
+        NiParticleSystem* particle;
+        NiNode*    refNode;
+    };
+
+    extern std::vector<HeatInstance> activeWeapons;
     extern std::vector<Projectile*> activeProjectiles;
+
+    HeatInstance MakeHeatFromTemplate(const HeatInstance& staticInst, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef);
 
     void WeaponCooldown();
     void ParticleUpdater();

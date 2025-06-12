@@ -11,6 +11,8 @@ public:
 	virtual ~NiPSysVolumeEmitter();
 
 	NiAVObject* m_pkEmitterObj;
+
+	NiAVObject* SetEmitterObj(NiAVObject* emitter) { return ThisStdCall<NiAVObject*>(0xC1FA30, this); }
 };
 
 ASSERT_SIZE(NiPSysVolumeEmitter, 0x58)

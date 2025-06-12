@@ -5,6 +5,7 @@
 #include "NifOverride.hpp"
 #include <BGSSaveLoadGame.hpp>
 #include "Overcharge.hpp"
+//#include <tracy/Tracy.hpp>
 
 bool IsGamePaused()
 {

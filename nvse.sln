@@ -12,15 +12,20 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
+		Release - Tracy|Win32 = Release - Tracy|Win32
 		Release|Win32 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{AE7CFEE7-4058-4E3C-ADC2-AE7480EE2028}.Debug|Win32.ActiveCfg = Debug|Win32
 		{AE7CFEE7-4058-4E3C-ADC2-AE7480EE2028}.Debug|Win32.Build.0 = Debug|Win32
+		{AE7CFEE7-4058-4E3C-ADC2-AE7480EE2028}.Release - Tracy|Win32.ActiveCfg = Release - Tracy|Win32
+		{AE7CFEE7-4058-4E3C-ADC2-AE7480EE2028}.Release - Tracy|Win32.Build.0 = Release - Tracy|Win32
 		{AE7CFEE7-4058-4E3C-ADC2-AE7480EE2028}.Release|Win32.ActiveCfg = Release|Win32
 		{AE7CFEE7-4058-4E3C-ADC2-AE7480EE2028}.Release|Win32.Build.0 = Release|Win32
 		{963C93DD-4FEE-4013-910F-4E4B5C2F8A25}.Debug|Win32.ActiveCfg = Debug|Win32
 		{963C93DD-4FEE-4013-910F-4E4B5C2F8A25}.Debug|Win32.Build.0 = Debug|Win32
+		{963C93DD-4FEE-4013-910F-4E4B5C2F8A25}.Release - Tracy|Win32.ActiveCfg = Release - Tracy|Win32
+		{963C93DD-4FEE-4013-910F-4E4B5C2F8A25}.Release - Tracy|Win32.Build.0 = Release - Tracy|Win32
 		{963C93DD-4FEE-4013-910F-4E4B5C2F8A25}.Release|Win32.ActiveCfg = Release|Win32
 		{963C93DD-4FEE-4013-910F-4E4B5C2F8A25}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection

@@ -46,24 +46,15 @@
 #include "NiParticleInfo.hpp"
 #include <NiPSysAgeDeathModifier.hpp>
 #include <NiTransformInterpolator.hpp>
+//#include <tracy/Tracy.hpp>
 
 namespace Overcharge
 {
 	NiMaterialPropertyPtr g_customPlayerMatProp = NiMaterialProperty::CreateObject();
 
-	std::vector<HeatedWeaponData> activeWeapons;				//Vector containing all weapons that are currently heating up
+	std::vector<HeatInstance> activeWeapons;				//Vector containing all weapons that are currently heating up
 	std::vector<Projectile*> activeProjectiles;
-	std::unordered_map<UInt32, HeatedWeaponData> weaponDataMap;
-	std::vector<NiTimeController*> particleControllers;
-	std::vector<NiTimeController*> particleControllers1;
-	std::vector<NiParticleSystem*> activeParticles;
-	std::vector<NiPSysModifier*> activeModifiers; 
-
-	struct ParticleInstance
-	{
-		NiParticleSystem* particle;
-		std::pair<NiNode*, NiNode*> nodePair;
-	};
+	std::unordered_map<UInt32, HeatInstance> weaponDataMap;
 
 	std::vector<ParticleInstance> newActiveParticles;
 
@@ -108,46 +99,57 @@ namespace Overcharge
 			AreNiMatrix3NearlyEqual(a.m_Rotate, b.m_Rotate, epsilon);
 	}
 
-	static void SetEmissiveColor(NiAVObject* obj, NiMaterialProperty* matProp, NiColor& blendedColor, const char* blockName = nullptr)
+	static void SetEmissiveByName(NiAVObjectPtr obj, NiMaterialProperty* matProp, NiColor& blendedColor, const char* blockName = nullptr)
 	{
 		if (!obj) return;
-
-		NiAVObject* target = blockName ? obj->GetObjectByName(blockName) : obj;
+		NiAVObjectPtr target = blockName ? obj->GetObjectByName(blockName) : obj.m_pObject;
 
 		if (!target) return;
-
 		if (NiGeometry* geom = target->NiDynamicCast<NiGeometry>())
 		{
 			if (!geom->m_kProperties.m_spMaterialProperty) return;
 			geom->m_kProperties.m_spMaterialProperty = matProp;
 			geom->m_kProperties.m_spMaterialProperty->m_emit = blendedColor;
-			geom->m_kProperties.m_spMaterialProperty->m_fEmitMult = 1.5f;
 		}
 	}
 
-	//Update Child Particles to all be prepared for emissive color control
-	static void ChangeParticleColor(const NiAVObject* obj, NiMaterialProperty* matProp, NiColor& blendedColor)
+	static void SetEmissiveColor(NiAVObjectPtr obj, const NiColor& blendedColor)
 	{
-		if (BSValueNode* const valueNode = obj->NiDynamicCast<BSValueNode>())
-		{
-			BGSAddonNode* const addonNode = TESDataHandler::GetSingleton()->GetAddonNode(valueNode->iValue);
-			if (addonNode && addonNode->uiIndex)
-			{
-				BSParticleSystemManager* const manager = BSParticleSystemManager::GetInstance();
-				const UInt32 particleSystemIndex = addonNode->particleSystemID;
-				if (BSMasterParticleSystem* const mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
-				{
-					for (int i = 0; i < mps->kChildParticles.m_usSize; i++)
-					{
-						SetEmissiveColor(mps->kChildParticles[i], matProp, blendedColor);
-					}
-				}
-			}
-		}
+		NiGeometryPtr geom = obj ? obj->NiDynamicCast<NiGeometry>() : nullptr;
+
+		if (!geom) return;
+		NiMaterialPropertyPtr matProp = geom->m_kProperties.m_spMaterialProperty;
+
+		if (!matProp) return;
+		matProp->m_emit = blendedColor;
 	}
 
+	static void SetEmissiveClone(NiAVObjectPtr obj, const NiColor& blendedColor)
+	{
+		NiGeometryPtr geom = obj ? obj->NiDynamicCast<NiGeometry>() : nullptr;
+
+		if (!geom) return;
+		NiMaterialPropertyPtr originalMat = geom->m_kProperties.m_spMaterialProperty;
+
+		if (!originalMat) return;
+		NiMaterialPropertyPtr clonedMat = originalMat->Clone()->NiDynamicCast<NiMaterialProperty>();
+
+		if (!clonedMat) return;
+		clonedMat->m_emit = blendedColor;
+		geom->m_kProperties.m_spMaterialProperty = clonedMat;
+	}
+
+
+
+
+
+
+
+	//NOTE TO SELF: YOU NEED TO MAKE THIS FUNCTION TRAVERSE THE MPS AND GET ALL CHILDPARTICLESYSTEMS OTHERWISE IT WILL ONLY GRAB THE FIRST ONE AS YOU SAW WITH THE IMPACT. YOU NEED TO MAKE IT LOOK SIMILAR TO THE FUNCTION IN NIFOVERRIDE.
+
+
 	//Update Child Particles to all be prepared for emissive color control
-	static void CloneParticle(const NiAVObject* obj)
+	static void CloneParticleOLDDDDDDDD(const NiAVObject* obj, NiColor& blendedColor)
 	{
 		if (BSValueNode* const valueNode = obj->NiDynamicCast<BSValueNode>())
 		{
@@ -180,6 +182,7 @@ namespace Overcharge
 											psys->m_fLastTime = 0;
 										}
 									}
+									SetEmissiveColor(psys, blendedColor);
 									newActiveParticles.emplace_back(ParticleInstance(psys, activeNodes));
 									mps->FindRootNode()->AttachChild(newNode, false);
 								}
@@ -192,36 +195,103 @@ namespace Overcharge
 		}
 	}
 
-	static void ProcessNiNode2(const NiNode* obj, NiMaterialProperty* matProp, NiColor& blendedColor)
+	//Update Child Particles to all be prepared for emissive color control
+	static void CloneParticle(const NiAVObject* obj, NiColor& blendedColor)
+	{
+		if (BSValueNode* const valueNode = obj->NiDynamicCast<BSValueNode>())
+		{
+			BGSAddonNode* const addonNode = TESDataHandler::GetSingleton()->GetAddonNode(valueNode->iValue);
+			if (addonNode && addonNode->uiIndex)
+			{
+				BSParticleSystemManager* const manager = BSParticleSystemManager::GetInstance();
+				const UInt32 particleSystemIndex = addonNode->particleSystemID;
+				if (BSMasterParticleSystem* const mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
+				{
+					NiNodePtr mpsNode = mps->GetAt(0)->NiDynamicCast<NiNode>();
+					if (!mpsNode) return;
+					if (NiNode* newNode = mpsNode->Clone()->NiDynamicCast<NiNode>())
+					{
+						std::pair<NiNode*, NiNode*> activeNodes = { newNode, valueNode };
+
+						for (int i = 0; i < mps->kChildParticles.m_usSize; i++)
+						{
+							if (const auto& child2 = mps->kChildParticles[i]->Clone())
+							{
+								if (NiParticleSystem* psys = child2->NiDynamicCast<NiParticleSystem>())
+								{
+									if (auto bsp = psys->GetController<BSPSysMultiTargetEmitterCtlr>())
+									{
+										NiCloningProcess cloner{};
+										if (NiPSysEmitterCtlrPtr newEmit = ThisStdCall<NiPSysEmitterCtlr*>(0xC1C570, bsp, &cloner))
+										{
+											newEmit->SetTarget(psys);
+											psys->RemoveController(bsp);
+											psys->m_fLastTime = 0;
+										}
+									}
+									newNode->AttachChild(psys, false);
+									SetEmissiveColor(psys, blendedColor);
+									newActiveParticles.emplace_back(ParticleInstance(psys, activeNodes));
+									mps->FindRootNode()->AttachChild(newNode, false);
+								}
+							}
+						}
+						valueNode->SetAppCulled(true);
+					}
+				}
+			}
+		}
+	}
+
+	//Update Child Particles to all be prepared for emissive color control
+	static void ChangeParticleColor(const NiAVObject* obj, NiColor& blendedColor)
+	{
+		if (BSValueNode* const valueNode = obj->NiDynamicCast<BSValueNode>())
+		{
+			BGSAddonNode* const addonNode = TESDataHandler::GetSingleton()->GetAddonNode(valueNode->iValue);
+			if (addonNode && addonNode->uiIndex)
+			{
+				BSParticleSystemManager* const manager = BSParticleSystemManager::GetInstance();
+				const UInt32 particleSystemIndex = addonNode->particleSystemID;
+				if (BSMasterParticleSystem* const mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
+				{
+					for (int i = 0; i < mps->kChildParticles.m_usSize; i++)
+					{
+						SetEmissiveColor(mps->kChildParticles[i], blendedColor);
+					}
+				}
+			}
+		}
+	}
+
+	static void ProcessNiNode2(const NiNode* obj, NiColor& blendedColor)
 	{
 		for (int i = 0; i < obj->m_kChildren.m_usSize; i++)
 		{
 			NiAVObject* const child = obj->m_kChildren[i].m_pObject;
-
 			if (child)
 			{
 				//Checks if RTTI comparison is valid before static casting to avoid dynamic casting every single time
 				if (child->IsNiType<NiParticleSystem>())
 				{
-					NiParticleSystem* childPsys = static_cast<NiParticleSystem*>(child);
-					SetEmissiveColor(childPsys, matProp, blendedColor);
+					NiParticleSystem* childPsys = static_cast<NiParticleSystem*>(child); 
+					SetEmissiveColor(childPsys, blendedColor);
 				}
 				else if (child->IsNiType<BSValueNode>())
 				{
 					BSValueNode* childValNode = static_cast<BSValueNode*>(child);
-					ChangeParticleColor(childValNode, matProp, blendedColor); 
-					CloneParticle(childValNode);
-					//ProcessNiNode2(childValNiNode, matProp, blendedColor);
+					CloneParticle(childValNode, blendedColor);
+					//ChangeParticleColor(childValNode, blendedColor);
 				}
 				else if (child->IsNiType<NiNode>())
 				{
 					NiNode* childNode = static_cast<NiNode*>(child);
-					ProcessNiNode2(childNode, matProp, blendedColor);
+					ProcessNiNode2(childNode, blendedColor);
 				}
 				else if (child->IsNiType<NiGeometry>())
 				{
 					NiGeometry* childGeom = static_cast<NiGeometry*>(child);
-					SetEmissiveColor(childGeom, matProp, blendedColor); 
+					SetEmissiveColor(childGeom, blendedColor); 
 				} 
 			}
 		}
@@ -229,27 +299,22 @@ namespace Overcharge
 
 	void WeaponCooldown()
 	{
-		float frameTime = TimeGlobal::GetSingleton()->fDelta;
+		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
 
-		activeWeapons.erase( 
-			std::remove_if(activeWeapons.begin(), activeWeapons.end(), 
-				[&](HeatedWeaponData& weaponData) 
+		activeWeapons.erase(
+			std::remove_if(activeWeapons.begin(), activeWeapons.end(),
+				[frameTime](Overcharge::HeatInstance& instance)
 				{
-					weaponData.heatData.heatVal -= frameTime * weaponData.heatData.cooldownRate; 
-					if (weaponData.heatData.heatVal <= weaponData.heatData.baseHeatVal) return true; 
+					instance.heat.heatVal -= frameTime * instance.heat.cooldownRate;
+					if (instance.heat.heatVal <= instance.heat.baseHeatVal)
+						return true;
 
-					weaponData.currentColor = weaponData.SmoothShift(
-						weaponData.heatData.heatVal, 
-						weaponData.heatData.maxHeat, 
-						weaponData.startingColor,
-						weaponData.targetColor
-					);
-
-					if (weaponData.sourceModel)
+					instance.fx.currCol = instance.fx.SmoothShift(instance.heat.heatVal, instance.heat.maxHeat);
+					for (const auto& node : instance.targetBlocks)
 					{
-						for (const char* overchargeBlockName : weaponData.blockNames)
+						if (node && node.m_pObject)
 						{
-							SetEmissiveColor(weaponData.sourceModel, weaponData.sourceMatProp, weaponData.currentColor, overchargeBlockName);
+							SetEmissiveColor(node.m_pObject, instance.fx.currCol);
 						}
 					}
 					return false;
@@ -271,14 +336,6 @@ namespace Overcharge
 
 					psys->m_fLastTime += frameTime;
 
-					if (auto* sysData = psys->m_spModelData->NiDynamicCast<NiPSysData>())
-					{
-						for (NiPSysModifier* mod : psys->m_kModifierList)
-						{
-							if (mod) mod->Update(psys->m_fLastTime, sysData);
-						}
-					}
-
 					const float hi = psys->m_spControllers->m_fHiKeyTime;
 					const float lingerThreshold = hi + 4.0f;
 					const bool inLingerWindow = psys->m_fLastTime <= lingerThreshold;
@@ -291,11 +348,19 @@ namespace Overcharge
 						instance.nodePair.first->m_kLocal = instance.nodePair.second->m_kLocal;
 						instance.nodePair.first->m_kWorld = instance.nodePair.second->m_kWorld;
 					}
+
+					if (auto* sysData = psys->m_spModelData->NiDynamicCast<NiPSysData>())
+					{
+						for (NiPSysModifier* mod : psys->m_kModifierList)
+						{
+							if (mod) mod->Update(psys->m_fLastTime, sysData);
+						}
+					}
+
 					return !inLingerWindow;
 				}),
 			newActiveParticles.end());
 	}
-
 
 	void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* proj)
 	{
@@ -308,11 +373,7 @@ namespace Overcharge
 		{
 			if (it.CompareForms(sourceRef, sourceWeap) == true)
 			{
-				if (!it.projectileModel || it.projectileModel != projNode)
-				{
-					it.projectileModel = projNode;
-				}
-				ProcessNiNode2(projNode, it.projMatProp, it.currentColor); 
+				//ProcessNiNode2(projNode, it.fx.currCol);
 			}
 		}
 		ThisStdCall(0x9A52F0, a1, proj);
@@ -338,14 +399,12 @@ namespace Overcharge
 						{
 							if (weaponIt.CompareForms(sourceRef, sourceWeap))
 							{
-								if (!weaponIt.impactModel || weaponIt.impactModel != impactNode)
-								{
-									weaponIt.impactModel = impactNode;
-								}
+								ProcessNiNode2(impactNode, weaponIt.fx.currCol);
 							}
 						}
 					}
-					return roundedPos == GetRoundedPosition(&it->kPosition);
+					//return roundedPos == GetRoundedPosition(&it->kPosition);
+					return false;
 				}),
 			activeProjectiles.end());
 
@@ -354,7 +413,7 @@ namespace Overcharge
 
 	inline void __fastcall MuzzleFlashEnable(MuzzleFlash* muzzleFlash)
 	{
-		NiNode* muzzleNode = muzzleFlash->spNode;
+		NiNodePtr muzzleNode = muzzleFlash->spNode;
 		UInt32 sourceRef = muzzleFlash->pSourceActor->uiFormID;
 		UInt32 sourceWeap = muzzleFlash->pSourceWeapon->uiFormID;
 
@@ -362,11 +421,8 @@ namespace Overcharge
 		{
 			if (it.CompareForms(sourceRef, sourceWeap))
 			{
-				if (!it.muzzleFlashModel || it.muzzleFlashModel != muzzleNode)
-				{
-					it.muzzleFlashModel = muzzleNode;
-				}
-				muzzleFlash->spLight->SetDiffuseColor(it.currentColor);
+				SetEmissiveClone(muzzleNode.m_pObject, it.fx.currCol);
+				muzzleFlash->spLight->SetDiffuseColor(it.fx.currCol);
 			}
 		}
 		ThisStdCall(0x9BB690, muzzleFlash);
@@ -376,7 +432,7 @@ namespace Overcharge
 	{
 		UInt32 sourceRef = rActor->uiFormID;
 		UInt32 sourceWeap = rWeap->uiFormID;
-		NiNode* sourceNode = rActor->Get3D();
+		NiNodePtr sourceNode = rActor->Get3D();
 																			
 		bool found = false;
 		for (auto& it : activeWeapons)
@@ -384,8 +440,7 @@ namespace Overcharge
 			if (it.CompareForms(sourceRef, sourceWeap))
 			{
 				found = true;
-				it.sourceModel = sourceNode;
-				it.heatData.HeatOnFire();
+				it.heat.HeatOnFire();
 				break; 
 			}
 		}
@@ -394,58 +449,20 @@ namespace Overcharge
 			auto weaponIt = weaponDataMap.find(sourceWeap);
 			if (weaponIt != weaponDataMap.end())
 			{
-				HeatedWeaponData newWeaponData = weaponIt->second;
-				NiMaterialPropertyPtr sourceMProp = NiMaterialProperty::CreateObject(); 
-				NiMaterialPropertyPtr muzzleMProp = NiMaterialProperty::CreateObject();
-				NiMaterialPropertyPtr projMProp = NiMaterialProperty::CreateObject(); 
-				NiMaterialPropertyPtr impactMProp = NiMaterialProperty::CreateObject(); 
+				HeatInstance newHeat = MakeHeatFromTemplate(weaponIt->second, sourceNode.m_pObject, sourceRef, sourceWeap);
+				newHeat.heat.HeatOnFire();
+				newHeat.fx.currCol = newHeat.fx.SmoothShift(newHeat.heat.heatVal, newHeat.heat.maxHeat);
 
-				newWeaponData.sourceModel = sourceNode;
-				newWeaponData.actorForm = sourceRef;
-				newWeaponData.weaponForm = sourceWeap;
-				newWeaponData.sourceMatProp = sourceMProp;
-				newWeaponData.muzzleMatProp = muzzleMProp;
-				newWeaponData.projMatProp = projMProp;
-				newWeaponData.impactMatProp = impactMProp;
-				newWeaponData.heatData.HeatOnFire();
-				activeWeapons.emplace_back(newWeaponData);
+				for (NiAVObjectPtr it : newHeat.targetBlocks)
+				{
+					SetEmissiveClone(it, newHeat.fx.currCol);
+				}
+				activeWeapons.emplace_back(newHeat);
 			}
 		}
+
 		// Calls original Actor::FireWeapon
 		ThisStdCall(0x523150, rWeap, rActor);
-	}
-
-	void __fastcall InitNewParticle(NiParticleSystem* system, void* edx, int newParticle)
-	{
-		// Static variable to toggle between red and blue on each function call
-		static bool toggle = false;
-
-		if (system->IsGeometry())
-		{
-			// Clone the system
-			NiParticleSystem* newSystem = system->Clone()->NiDynamicCast<NiParticleSystem>();
-			if (newSystem)
-			{
-				// Toggle the color based on the static variable
-				if (toggle)
-				{
-					newSystem->m_kProperties.m_spMaterialProperty->m_emit = NiColor(1.0f, 0.0f, 0.0f); // Red
-				}
-				else
-				{
-					newSystem->m_kProperties.m_spMaterialProperty->m_emit = NiColor(0.0f, 0.0f, 1.0f); // Blue
-				}
-
-				// Flip the toggle for the next call
-				toggle = !toggle;
-
-				// Replace the original system with the new system
-				system = newSystem;
-			}
-		}
-
-		// Call the original function with the possibly new system
-		ThisStdCall(0xC1AEE0, system, newParticle);
 	}
 
 	void InitHooks()
@@ -460,7 +477,7 @@ namespace Overcharge
 		UInt32 muzzleFlashEnable = 0x9BB7CD; 
 
 		// Hooks
-		//WriteRelCall(0xC2237A, &InitNewParticle);
+
 		WriteRelCall(actorFire, &FireWeaponWrapper);
 		WriteRelCall(createProjectile, &ProjectileWrapper); 
 		WriteRelCall(spawnImpactEffects, &ImpactWrapper);  
