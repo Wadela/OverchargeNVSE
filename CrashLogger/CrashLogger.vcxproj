@@ -189,6 +189,7 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="NewParticleStuff.cpp" />
     <ClCompile Include="Overcharge.cpp" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="tracy\public\TracyClient.cpp">

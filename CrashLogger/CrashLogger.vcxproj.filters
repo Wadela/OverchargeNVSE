@@ -31,6 +31,9 @@
     <ClCompile Include="tracy\public\TracyClient.cpp">
       <Filter>tracy</Filter>
     </ClCompile>
+    <ClCompile Include="NewParticleStuff.cpp">
+      <Filter>Wadelz</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />
