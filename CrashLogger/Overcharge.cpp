@@ -1,4 +1,4 @@
-#include "OverCharge.hpp"
+#include "Overcharge.hpp"
 
 namespace Overcharge
 {
@@ -20,33 +20,33 @@ namespace Overcharge
         blockNames(names) {
     }
 
-    HeatInstance::HeatInstance() :
-        actorForm(0), weaponForm(0), heat(), fx(), 
+    HeatData::HeatData() :
+        sourceID(0), heatedID(0), heat(), fx(),
         targetBlocks() {
     }
 
-    HeatInstance::HeatInstance(HeatInfo info, HeatFX fx) :
-        actorForm(0), weaponForm(0), heat(info), fx(fx),
+    HeatData::HeatData(HeatInfo info, HeatFX fx) :
+        sourceID(0), heatedID(0), heat(info), fx(fx),
         targetBlocks() {
     }
 
-    HeatInstance MakeHeatFromTemplate(const HeatInstance& staticInst, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef)
+    HeatData MakeHeatFromTemplate(const HeatData& staticData, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef)
     {
-        HeatInstance liveInst = staticInst;
-        liveInst.actorForm = sourceRef;
-        liveInst.weaponForm = weaponRef;
+        HeatData liveData = staticData;
+        liveData.sourceID = sourceRef;
+        liveData.heatedID = weaponRef;
 
         if (sourceNode)
         {
-            for (const auto& name : liveInst.fx.blockNames)
+            for (const auto& name : liveData.fx.blockNames)
             {
                 if (NiAVObjectPtr block = sourceNode->GetObjectByName(name))
                 {
-                    liveInst.targetBlocks.emplace_back(block);
+                    liveData.targetBlocks.emplace_back(block);
                 }
             }
         }
-        return liveInst;
+        return liveData;
     }
 }
 

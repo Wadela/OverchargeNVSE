@@ -42,42 +42,28 @@ namespace Overcharge
         }
     };
 
-    struct HeatInstance
+    struct HeatData
     {
-        HeatInstance();
-        HeatInstance(HeatInfo info, HeatFX fx);
+        HeatData();
+        HeatData(HeatInfo info, HeatFX fx);
 
-        UInt32      actorForm;
-        UInt32      weaponForm;
+        UInt32      sourceID;
+        UInt32      heatedID;
 
         HeatInfo    heat;
         HeatFX      fx;
 
-        std::vector<NiAVObjectPtr>  targetBlocks;
+        std::vector<NiAVObjectPtr> targetBlocks; 
 
         inline bool CompareForms(UInt32 actor, UInt32 weapon) const
         {
-            return actorForm == actor && weaponForm == weapon;
+            return sourceID == actor && heatedID == weapon;
         }
     };
 
-    struct ParticleInstance
-    {
-        NiParticleSystem*               particle;
-        std::pair<NiNode*, NiNode*>     nodePair;
-    };
+    extern std::unordered_map<UInt64, std::shared_ptr<HeatData>> activeWeapons;
 
-    struct ParticleInstance2
-    {
-        NiParticleSystem* particle;
-        NiNode*    refNode;
-    };
-
-    extern std::vector<HeatInstance> activeWeapons;
-    extern std::vector<Projectile*> activeProjectiles;
-
-    HeatInstance MakeHeatFromTemplate(const HeatInstance& staticInst, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef);
+    HeatData MakeHeatFromTemplate(const HeatData& staticInst, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef);
 
     void WeaponCooldown();
-    void ParticleUpdater();
 }

@@ -237,7 +237,7 @@ namespace Overcharge
 
 	inline void Hook()
 	{
-		//WriteRelCall(0x43AB4C, &ModelModel);
+		WriteRelCall(0x43AB4C, &ModelModel);
 	}
 
 	inline void PostLoad() {

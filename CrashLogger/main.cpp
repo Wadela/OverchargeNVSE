@@ -56,7 +56,6 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 		if (!IsGamePaused() && !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
 		{
 			Overcharge::WeaponCooldown();										//Cooldown system runs in gameloop
-			Overcharge::ParticleUpdater();
 		}
 	}
 }
