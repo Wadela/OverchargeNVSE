@@ -374,5 +374,10 @@ public:
 
 	bool IsMeleeWeapon() const;
 	float GetModBonuses(UInt32 effectID);
+
+	TESAmmo* GetEquippedAmmo(Actor* apActor) const 
+	{
+		return ThisCall<TESAmmo*>(0x525980, apActor);
+	}
 };
 static_assert(sizeof(TESObjectWEAP) == 0x388);

@@ -9,6 +9,7 @@
 #include "BGSDestructibleObjectForm.hpp"
 #include "BGSMessageIcon.hpp"
 #include "BGSPickupPutdownSounds.hpp"
+#include "TESFullName.hpp"
 
 // 0xB0
 class TESObjectIMOD :

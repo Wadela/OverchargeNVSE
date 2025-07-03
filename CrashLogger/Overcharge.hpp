@@ -35,11 +35,9 @@ namespace Overcharge
 
         std::vector<const char*>  blockNames;
 
-        inline NiColor SmoothShift(float currentHeat, float maxHeat) const
-        {
-            const float progress = std::clamp(currentHeat / maxHeat, 0.0f, 1.0f);
-            return startCol.Shifted(targetCol, progress);
-        }
+        NiColor RGBtoHSV(const NiColor& color) const;  //RGB -> Hue, Saturation, Value
+        NiColor HSVtoRGB(const NiColor& hsv) const;    //Hue, Saturation, Value -> RGB
+        NiColor SmoothShift(float currentHeat, float maxHeat) const;
     };
 
     struct HeatData
@@ -65,5 +63,6 @@ namespace Overcharge
 
     HeatData MakeHeatFromTemplate(const HeatData& staticInst, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef);
 
+    void HeatModProjectile(Projectile* proj, HeatInfo& heat);
     void WeaponCooldown();
 }

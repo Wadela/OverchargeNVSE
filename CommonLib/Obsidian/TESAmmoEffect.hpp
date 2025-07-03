@@ -1,5 +1,6 @@
 #pragma once
 #include "TESForm.hpp"
+#include "TESFullName.hpp"
 
 // 0x30
 class TESAmmoEffect : public TESForm 

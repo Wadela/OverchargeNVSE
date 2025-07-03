@@ -215,6 +215,7 @@
     <ClCompile Include="NiTimeController.cpp" />
     <ClCompile Include="NiTransform.cpp" />
     <ClCompile Include="PlayerCharacter.cpp" />
+    <ClCompile Include="TESObjectREFR.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp" />

@@ -47,6 +47,9 @@
 #include <NiPSysAgeDeathModifier.hpp>
 #include <NiTransformInterpolator.hpp>
 #include <NiPSysBoxEmitter.hpp>
+#include "Animation.hpp"
+#include "ExtraDataList.hpp"
+#include "TESAmmoEffect.hpp"
 //#include <tracy/Tracy.hpp>
 
 namespace Overcharge
@@ -161,17 +164,39 @@ namespace Overcharge
 			++it;
 		}
 	}
-	inline void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, TESObjectREFR* rActor)
+	
+	//check if you can edit weap values, call function then restore original values to save hooks.
+	inline void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, Actor* rActor)
 	{
 		UInt32 sourceRef = rActor->uiFormID;
 		UInt32 sourceWeap = rWeap->uiFormID;
 		NiNodePtr sourceNode = rActor->Get3D();
-
 		UInt64 key = MakeHashKey(sourceRef, sourceWeap);
+
+		float oldSpread = rWeap->spread;
+		float oldMinSpread = rWeap->minSpread;
+
+		UInt16 oldWeapDmg = rWeap->usAttackDamage;
+		UInt8 oldNumProj = rWeap->numProjectiles;
+		UInt8 oldAmmoUse = rWeap->ammoUse;
+
+		const ItemChange* weapItem = rActor->GetCurrentWeapon();
+
+		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
+
 
 		auto it = activeWeapons.find(key);
 		if (it != activeWeapons.end())
 		{
+			float heatRatio = it->second->heat.heatVal / it->second->heat.maxHeat;
+
+			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
+
+			rWeap->spread += (2 * heatRatio);
+			rWeap->minSpread += (2 * heatRatio);
+			rWeap->usAttackDamage *= (1 + heatRatio);
+			rWeap->ammoUse *= (1 + heatRatio);
+
 			it->second->heat.HeatOnFire();
 		}
 		else
@@ -183,7 +208,7 @@ namespace Overcharge
 					key, std::make_shared<HeatData>(MakeHeatFromTemplate(newIt->second, sourceNode.m_pObject, sourceRef, sourceWeap))
 				);
 
-				std::shared_ptr<HeatData>& newHeatPtr = insertIt->second;
+				std::shared_ptr<HeatData> newHeatPtr = insertIt->second;
 				newHeatPtr->heat.HeatOnFire();
 				newHeatPtr->fx.currCol = newHeatPtr->fx.SmoothShift(newHeatPtr->heat.heatVal, newHeatPtr->heat.maxHeat);
 
@@ -194,6 +219,12 @@ namespace Overcharge
 			}
 		}
 		ThisStdCall(0x523150, rWeap, rActor);
+
+		rWeap->ammoUse = oldAmmoUse; 
+		rWeap->spread = oldSpread;
+		rWeap->minSpread = oldMinSpread;
+		rWeap->numProjectiles = 1;
+		rWeap->usAttackDamage = oldWeapDmg;
 	}
 
 	inline void __fastcall MuzzleFlashEnable(MuzzleFlash* flash)
@@ -223,6 +254,15 @@ namespace Overcharge
 				activeInstances[valueNode] = it->second;
 			}
 			TraverseNiNode(projNode, it->second->fx.currCol);
+			if (const auto& psys = projNode->NiDynamicCast<NiParticleSystem>())
+			{
+				activeInstances[psys] = it->second;
+			}
+
+			float heatRatio = it->second->heat.heatVal / it->second->heat.maxHeat;
+			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
+			projNode->m_kLocal.m_fScale *= (0.8f + heatRatio);
+			proj->fSpeedMult *= (1.2f - heatRatio);
 		}
 		ThisStdCall(0x9A52F0, a1, proj);
 	}
@@ -353,6 +393,27 @@ namespace Overcharge
 		}
 	}
 
+	void __fastcall SetAttackSpeedHook(Animation* thisPtr, void* edx, float animSpeed) 
+	{
+		UInt32 sourceRef = thisPtr->pActor->uiFormID;
+		UInt32 sourceWeap = thisPtr->pActor->GetCurrentWeaponID();
+		UInt64 key = MakeHashKey(sourceRef, sourceWeap);
+
+		auto it = activeWeapons.find(key);
+		if (it != activeWeapons.end())
+		{
+			HeatInfo& heatInfo = it->second->heat;
+
+			float heatRatio = heatInfo.heatVal / heatInfo.maxHeat;
+
+			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
+
+			animSpeed *= (1.0f + heatRatio);
+		}
+
+		ThisStdCall(0x4C0C90, thisPtr, animSpeed);
+	}
+
 	void InitHooks()
 	{
 		// Hook Addresses
@@ -365,12 +426,17 @@ namespace Overcharge
 		UInt32 muzzleFlashEnable = 0x9BB7CD; 
 		UInt32 initParticle = 0xC2237A;
 		UInt32 colorParticle = 0xC220E5;
+		UInt32 GetAttackSpeedMult = 0x645D73;
+		UInt32 GetWeaponAnimMult = 0x9CBE83;
+		UInt32 SetAttackSpeed = 0x894337;
 
 		UInt32 MPSAddon = 0x9BE07A;
 		UInt32 initialPosVelocity = 0xC31CF0;
 		UInt32 updateSCM = 0xC602E0;
 		UInt32 clearUnrefEmitters = 0xC5E164;
 		UInt32 colorModUpdate = 0xC602E0;
+		UInt32 impactBodyPart = 0x8B5D9B;
+		UInt32 DismemberBodyPart = 0x8B5135; 
 
 		// Hooks
 
@@ -381,6 +447,7 @@ namespace Overcharge
 		WriteRelJump(initialPosVelocity, &VertexColorModifier);
 		WriteRelJump(clearUnrefEmitters, &ClearUnrefEmittersHook);
 		WriteRelJump(colorModUpdate, &ColorModifierUpdate);
+		WriteRelCall(SetAttackSpeed, &SetAttackSpeedHook);
 	}
 
 }

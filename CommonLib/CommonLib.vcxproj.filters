@@ -118,6 +118,9 @@
     <ClCompile Include="Actor.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
+    <ClCompile Include="TESObjectREFR.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp">
