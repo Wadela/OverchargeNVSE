@@ -52,11 +52,11 @@ public:
 	float										fUnk048;
 	TESAnimGroup::Type							usGroupIDs[8];
 	UInt32										uiActions[8];
-	UInt32										sequenceState2[8];
-	TESAnimGroup::Type							usGroupToMorphTo[8];
-	UInt32										unk0AC[8];
-	UInt8										byte0CC;
-	UInt8										byte0CD;
+	UInt32										uiLoopCounts[8];
+	TESAnimGroup::Type							usNextGroups[8];
+	UInt32										uiNextLoops[8];
+	UInt8										cSkipUpdate;
+	UInt8										bFreedIdles;
 	UInt8										byte0CE;
 	UInt8										byte0CF;
 	float										fTimePassed;
@@ -71,7 +71,7 @@ public:
 	float										fTurboSpeedMult;
 	float										fWeaponReloadSpeed;
 	float										fEquipSpeed;
-	UInt8										byte120;
+	UInt8										cSkipNextBlend;
 	UInt8										byte121;
 	UInt16										usQueuedReloadGroup;
 	AnimIdlePtr									spIdleAnim;

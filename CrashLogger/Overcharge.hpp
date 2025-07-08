@@ -59,6 +59,21 @@ namespace Overcharge
         }
     };
 
+    struct HeatModifiers
+    {
+        UInt8   numAmmo;
+        UInt8   numProjectiles;
+        UInt8   projSpeed; 
+        UInt8   critEffect;
+
+        UInt16  damage;
+        UInt16  critDamage;
+
+        float   critChance;
+        float   minSpread;
+        float   maxSpread;
+    };
+
     extern std::unordered_map<UInt64, std::shared_ptr<HeatData>> activeWeapons;
 
     HeatData MakeHeatFromTemplate(const HeatData& staticInst, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef);
