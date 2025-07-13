@@ -34,6 +34,9 @@
     <ClCompile Include="NewParticleStuff.cpp">
       <Filter>Wadelz</Filter>
     </ClCompile>
+    <ClCompile Include="AnimationStuff.cpp">
+      <Filter>Wadelz</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />
@@ -90,6 +93,9 @@
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
     <ClInclude Include="WeaponDataMap.hpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationStuff.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
   </ItemGroup>

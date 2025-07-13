@@ -89,6 +89,7 @@ namespace Overcharge
 		"mps\\mpsenergyimpactred.nif",
 		"Effects\\MuzzleFlashes\\laserriflemuzzleflash.NIF",
 		"weapons\\2handrifle\\plasmarifle.nif"
+		"characters\\_1stperson\\1gtaim.kf"
 	};
 
 	//Auto populated based on editorIds above

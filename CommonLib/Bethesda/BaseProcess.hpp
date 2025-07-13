@@ -212,7 +212,7 @@ public:
 	virtual bool					IsUsingOneHandMine();
 	virtual bool					IsUsingThrownWeapon();
 	virtual bool					IsUsingOneHandThrown();
-	virtual AnimData*				GetAnimData();
+	virtual Animation*				GetAnimData();
 	virtual void					Unk_6F();
 	virtual void					Unk_70();
 	virtual void					Unk_71();

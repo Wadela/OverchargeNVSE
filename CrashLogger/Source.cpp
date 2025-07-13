@@ -51,6 +51,8 @@
 #include "ExtraDataList.hpp"
 #include "TESAmmoEffect.hpp"
 #include "BSAnimGroupSequence.hpp"
+
+#include "AnimationStuff.hpp"
 //#include <tracy/Tracy.hpp>
 
 namespace Overcharge
@@ -213,6 +215,8 @@ namespace Overcharge
 
 		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
 		UInt32 ammoForm = equippedAmmo->uiFormID;
+
+		PlayAnimPath("meshes\\characters\\_1stperson\\fuck.kf", rActor);
 
 		auto it = activeWeapons.find(key);
 		if (it != activeWeapons.end())

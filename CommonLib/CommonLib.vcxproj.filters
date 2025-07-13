@@ -3928,6 +3928,11 @@
       <Filter>Types</Filter>
     </ClInclude>
     <ClInclude Include="NiTransformController.hpp" />
+    <ClInclude Include="BSAnimGroupSequence.cpp" />
+    <ClInclude Include="NiTextKey.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="NiTextKeyExtraData.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Types">

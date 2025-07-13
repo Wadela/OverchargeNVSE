@@ -397,7 +397,7 @@ public:
 
 	__forceinline static NiTPointerMap<UInt32, TESForm*>* GetAll() { return *reinterpret_cast<NiTPointerMap<UInt32, TESForm*>**>(0x11C54C0); }
 	__forceinline static TESForm* GetByID(const char* editorID) { return CdeclCall<TESForm*>(0x483A00, editorID); };
-	__forceinline static TESForm* GetByID(UInt32 refID) { return *GetAll()->Lookup(refID); };
+	__forceinline static TESForm* GetByID(UInt32 refID) { return GetAll()->Lookup(refID); };
 
 	__forceinline static UInt32 GetFormIDByEdID(const char* editorID)
 	{
