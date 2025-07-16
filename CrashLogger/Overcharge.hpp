@@ -35,6 +35,7 @@ namespace Overcharge
 
         std::vector<const char*>  blockNames;
 
+        UInt32  RGBtoUInt32(const NiColor& color) const;
         NiColor RGBtoHSV(const NiColor& color) const;  //RGB -> Hue, Saturation, Value
         NiColor HSVtoRGB(const NiColor& hsv) const;    //Hue, Saturation, Value -> RGB
         NiColor SmoothShift(float currentHeat, float maxHeat) const;

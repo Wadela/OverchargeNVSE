@@ -1,6 +1,7 @@
 #pragma once
 #include "BSExtraData.hpp"
 #include "MagicCaster.hpp"
+#include "TESObjectREFR.hpp"
 
 // 0x24
 class NonActorMagicCaster :

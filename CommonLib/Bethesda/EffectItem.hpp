@@ -22,7 +22,7 @@ public:
 	{
 		UInt32		uiScriptRefID;
 		UInt32		uiSchool;
-		BSStringT	kEffectName;
+		BSString	kEffectName;
 		UInt32		uiVisualEffectCode;
 		UInt32		uiIsHostile;
 

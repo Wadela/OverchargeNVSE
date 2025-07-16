@@ -39,8 +39,8 @@ public:
 	UInt32 unk110;
 	UInt32 unk114;
 	NiTexture* pTexture_118;
-	NiTObjectArray<NiPointer<NiAVObject>> unk11C;
-	UInt32 unk12C;
+	NiTObjectArray<NiPointer<NiAVObject>> kParticles;
+	NiNode* node12C;
 	float fFade;
 	float unk134;
 	float unk138;

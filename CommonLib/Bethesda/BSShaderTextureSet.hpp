@@ -10,9 +10,12 @@ public:
 	BSShaderTextureSet();
 	~BSShaderTextureSet();
 
-	BSStringT strTextures[6];
+	BSString strTextures[6];
 
-	CREATE_OBJECT(BSShaderTextureSet, 0xBA8A00)
+	CREATE_OBJECT(BSShaderTextureSet, 0xBA8A00);
+	NIRTTI_ADDRESS(0x120044C);
+
+	void GetTextureEx(TextureType aeTextureIndex, NiPointer<NiTexture>& aspTexture) const;
 };
 
 ASSERT_SIZE(BSShaderTextureSet, 0x38);

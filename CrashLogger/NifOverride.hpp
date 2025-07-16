@@ -88,8 +88,8 @@ namespace Overcharge
 		"projectiles\\testlaserbeamsteady.nif",
 		"mps\\mpsenergyimpactred.nif",
 		"Effects\\MuzzleFlashes\\laserriflemuzzleflash.NIF",
-		"weapons\\2handrifle\\plasmarifle.nif"
-		"characters\\_1stperson\\1gtaim.kf"
+		"weapons\\2handrifle\\plasmarifle.nif",
+		"effects\\goopile01.nif"
 	};
 
 	//Auto populated based on editorIds above
@@ -102,7 +102,7 @@ namespace Overcharge
 		{
 			for (int i = 0; i < modelData->m_usVertices; i++)
 			{
-				NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
+				NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(0.65f, 0.65f, 0.65f), 1);
 				col.a = modelData->m_pkColor[i].a;
 
 				modelData->m_pkColor[i] = col;
@@ -114,7 +114,7 @@ namespace Overcharge
 	{
 		for (int i = 0; i < modelData->m_usVertices; i++)
 		{
-			NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
+			NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(0.65f, 0.65f, 0.65f), 1);
 			col.a = modelData->m_pkColor[i].a;
 
 			modelData->m_pkColor[i] = col;

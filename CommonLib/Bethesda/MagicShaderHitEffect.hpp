@@ -11,10 +11,10 @@ public:
 	~MagicShaderHitEffect();
 
 	bool unk28;
-	UInt32 unk2C;
+	TESBoundObject* pBoundObject;
 	TESEffectShader* effectShader;
 	float time34;					// 34	Init'd to float
-	BSSimpleArray<NiPointer<ParticleShaderProperty>>	unk38;
+	BSSimpleArray<NiPointer<ParticleShaderProperty>>	kShaderProperties;
 	NiNode* shaderNode;
 	bool isVisible;
 	BSSimpleArray<NiPointer<NiAVObject>> objects;

@@ -10,6 +10,7 @@ class BSShaderAccumulator;
 class Lighting30ShaderProperty;
 
 NiSmartPointer(BSShaderPPLightingProperty);
+NiSmartPointer(TextureEffectData);
 
 class BSShaderPPLightingProperty : public BSShaderLightingProperty {
 public:
@@ -45,7 +46,6 @@ public:
 		bool bHasSpecular[10];
 	};
 
-	NiSmartPointer(TextureEffectData);
 
 	class TextureEffectData : public NiRefObject {
 	public:

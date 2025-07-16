@@ -20,6 +20,15 @@ namespace Overcharge
         blockNames(names) {
     }
 
+    UInt32 HeatFX::RGBtoUInt32(const NiColor& color) const
+    {
+        UInt8 r = static_cast<UInt8>(color.r * 255.0f + 0.5f);
+        UInt8 g = static_cast<UInt8>(color.g * 255.0f + 0.5f);
+        UInt8 b = static_cast<UInt8>(color.b * 255.0f + 0.5f);
+
+        return (b << 16) | (g << 8) | r;
+    }
+
     NiColor HeatFX::RGBtoHSV(const NiColor& color) const //RGB -> Hue, Saturation, Value
     {
         float r = color.r, g = color.g, b = color.b;

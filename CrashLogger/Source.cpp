@@ -51,8 +51,17 @@
 #include "ExtraDataList.hpp"
 #include "TESAmmoEffect.hpp"
 #include "BSAnimGroupSequence.hpp"
-
+#include "BSShaderPPLightingProperty.hpp"
+#include "TESEffectShader.hpp"
 #include "AnimationStuff.hpp"
+#include <ParticleShaderProperty.hpp>
+#include "MagicShaderHitEffect.hpp"
+#include "MagicCaster.hpp"
+#include "MagicTarget.hpp"
+#include "NonActorMagicCaster.hpp"
+#include "ExtraAshPileRef.hpp"
+#include <TESObjectACTI.hpp>
+#include <BGSPrimitive.hpp>
 //#include <tracy/Tracy.hpp>
 
 namespace Overcharge
@@ -167,6 +176,7 @@ namespace Overcharge
 			++it;
 		}
 	}
+
 	void AmmoChecker(UInt32 ammoForm, float baseHeat, float currHeat)
 	{
 		switch (ammoForm)
@@ -216,8 +226,6 @@ namespace Overcharge
 		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
 		UInt32 ammoForm = equippedAmmo->uiFormID;
 
-		PlayAnimPath("meshes\\characters\\_1stperson\\fuck.kf", rActor);
-
 		auto it = activeWeapons.find(key);
 		if (it != activeWeapons.end())
 		{
@@ -235,6 +243,11 @@ namespace Overcharge
 			rWeap->ammoUse *= (1 + heatRatio);
 
 			it->second->heat.HeatOnFire();
+
+			if (it->second->heat.heatVal >= it->second->heat.maxHeat)
+			{
+				//PlayAnimPath("meshes\\characters\\_1stperson\\fuck.kf", rActor);
+			}
 		}
 		else
 		{
@@ -331,6 +344,133 @@ namespace Overcharge
 		return impact;
 	}
 
+	BSTempEffectParticle* __cdecl ImpactActorWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
+	{
+		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
+		Projectile* pProjectile = *reinterpret_cast<Projectile**>(ebp - 0x2B0);
+		UInt64 key = MakeHashKey(pProjectile->pSourceRef->uiFormID, pProjectile->pSourceWeapon->uiFormID);
+
+		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
+		if (!impact) return nullptr;
+
+		NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
+
+		auto it = activeWeapons.find(key);
+		if (it != activeWeapons.end() || !impactNode)
+		{
+			for (const auto& valueNode : FindValueNodes(impactNode))
+			{
+				activeInstances[valueNode] = it->second;
+			}
+			TraverseNiNode(impactNode, it->second->fx.currCol);
+		}
+		return impact;
+	}
+
+	MagicShaderHitEffect* __fastcall MSHEInit(MagicShaderHitEffect* thisPtr, void* edx, TESObjectREFR* target, TESEffectShader* a3, float duration)
+	{
+		Actor* targetActor = reinterpret_cast<Actor*>(target);
+
+		if (!targetActor) return ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
+
+		Actor* killer = targetActor->pKiller;
+		UInt32 killerID = killer->uiFormID;
+		UInt32 killerWeapID = killer->GetCurrentWeaponID();
+		UInt64 key = MakeHashKey(killerID, killerWeapID);
+
+		auto it = activeWeapons.find(key);
+		if (it != activeWeapons.end())
+		{
+			auto& fx = it->second->fx;
+			UInt32 col = fx.RGBtoUInt32(fx.currCol);
+
+			a3->Data.colorKey1RGB = col;
+			a3->Data.colorKey2RGB = col;
+			a3->Data.colorKey3RGB = col;
+			a3->Data.uiEdgeColor = col;
+			a3->Data.edgeColorRGB = col;
+			a3->Data.uiFillColor1 = col;
+		}
+
+		return ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
+	}
+
+
+	void __fastcall SetAshPilePersists(TESObjectREFR* thisPtr, void* edx, bool abVal)
+	{
+		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
+		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
+
+		Actor* killer = targetActor->pKiller;
+		UInt32 killerID = killer->uiFormID;
+		UInt32 killerWeapID = killer->GetCurrentWeaponID();
+		UInt64 key = MakeHashKey(killerID, killerWeapID);
+
+		auto it = activeWeapons.find(key);
+		if (it != activeWeapons.end())
+		{
+			//TraverseNiNode(pileNode, it->second->fx.currCol);
+		}
+
+		ThisStdCall(0x565480, thisPtr, abVal); 
+
+		NiNodePtr pileNode = thisPtr->Get3D();
+		if (!pileNode) ThisStdCall(0x565480, thisPtr, abVal);
+	}
+
+	ExtraDataList* __fastcall GetExtraAshPileHook(Explosion* thisPtr)
+	{
+		return ThisStdCall<ExtraDataList*>(0x5D43C0, thisPtr);
+
+		auto fia = thisPtr;
+	}
+
+	void __fastcall SetExtraAshPileHook(ExtraDataList* thisPtr, void* edx, Explosion* a2)
+	{
+		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
+		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
+		auto* idk = *reinterpret_cast<TESObjectACTI**>(ebp - 0x1A0);
+		//auto idk = a2->Get3D();
+		Actor* killer = targetActor->pKiller;
+		UInt32 killerID = killer->uiFormID;
+		UInt32 killerWeapID = killer->GetCurrentWeaponID();
+		UInt64 key = MakeHashKey(killerID, killerWeapID);
+
+		auto it = activeWeapons.find(key);
+		if (it != activeWeapons.end())
+		{
+			//TraverseNiNode(pileNode, it->second->fx.currCol);
+		}
+		ThisStdCall(0x41E340, thisPtr, a2);
+	}
+
+	TESObjectREFR* __fastcall CreateRefAtLocation(TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject, NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior, TESWorldSpace* pWorld, TESObjectREFR* pReference, BGSPrimitive* pAddPrimitive, void* pAdditionalData)
+	{
+		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
+		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
+		auto ashRef = reinterpret_cast<TESObjectACTI*>(pObject);
+		auto expl = ThisStdCall<TESObjectREFR*>(0x4698A0, thisPtr, pObject, apLocation, apDirection, pInterior, pWorld, pReference, pAddPrimitive, pAdditionalData);
+
+		Actor* killer = targetActor->pKiller;
+		UInt32 killerID = killer->uiFormID;
+		UInt32 killerWeapID = killer->GetCurrentWeaponID();
+		UInt64 key = MakeHashKey(killerID, killerWeapID);
+
+		auto it = activeWeapons.find(key);
+		if (it != activeWeapons.end())
+		{
+			NiNode* node = ashRef->LoadGraphics(expl);
+			TraverseNiNode(node, it->second->fx.currCol);
+		}
+
+		return expl;
+	}
+
+	//ExtraAshPileRef* __fastcall xAshxAshHook(ExtraAshPileRef* thisPtr)
+	//{
+	//	ThisStdCall(0x4336C0, thisPtr); 
+	//}
+
 	__declspec(naked) void __fastcall ComputeInitPosVelocity(NiPSysVolumeEmitter* thisPtr, void* edx, NiPoint3* arg0, NiPoint3* arg4)
 	{
 		__asm
@@ -409,6 +549,7 @@ namespace Overcharge
 			}
 		}
 	}
+
 	void __stdcall ClearTrackedEmitters(NiAVObject* toDelete)
 	{
 		activeInstances.erase(toDelete);
@@ -460,6 +601,42 @@ namespace Overcharge
 		ThisStdCall(0x4C0C90, thisPtr, animSpeed);
 	}
 
+	NiCamera* __fastcall StartPShaderHook(TESEffectShader* thisPtr, void* edx, NiAVObject* a1, NiAVObject* a2, NiSourceTexture* apTexture, float a4)
+	{
+		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
+		MagicShaderHitEffect* hitEffect = *reinterpret_cast<MagicShaderHitEffect**>(ebp - 0x3F0);
+
+		thisPtr->Data.colorKey1RGB = 0xFF0000;
+		thisPtr->Data.colorKey2RGB = 0xFF0000;
+		thisPtr->Data.colorKey3RGB = 0xFF0000;
+		thisPtr->Data.uiEdgeColor = 0xFF0000;
+		thisPtr->Data.edgeColorRGB = 0xFF0000;
+		thisPtr->Data.uiFillColor1 = 0xFF0000;
+
+		auto returnVal = ThisStdCall<NiCamera*>(0x5077C0, thisPtr, a1, a2, apTexture, a4);
+
+		return returnVal;
+	}
+
+	__declspec(naked) void __fastcall OriginalApplyMagicShaderHitEffect(MagicShaderHitEffect* apThis)
+	{
+		__asm
+		{
+			push	ebp
+			mov		ebp, esp
+			push	0xFF
+			push	0x81FC75
+			retn
+		}
+	}
+
+	void __fastcall MagicShaderHitHook(MagicShaderHitEffect* thisPtr)
+	{
+		auto var = thisPtr;
+
+		OriginalApplyMagicShaderHitEffect(thisPtr);
+	}
+
 	void InitHooks()
 	{
 		// Hook Addresses
@@ -469,6 +646,7 @@ namespace Overcharge
 		UInt32 createProjectile = 0x9BD518;  
 		UInt32 spawnImpact = 0x9C2058;			//Projectile::SpawnCollisionEffects @ Projectile::ProcessImpacts 
 		UInt32 spawnImpactEffects = 0x9C2AC3;  
+		UInt32 spawnActorImpactEffects = 0x88F245;
 		UInt32 muzzleFlashEnable = 0x9BB7CD; 
 		UInt32 initParticle = 0xC2237A;
 		UInt32 colorParticle = 0xC220E5;
@@ -483,16 +661,37 @@ namespace Overcharge
 		UInt32 colorModUpdate = 0xC602E0;
 		UInt32 impactBodyPart = 0x8B5D9B;
 		UInt32 DismemberBodyPart = 0x8B5135; 
+		UInt32 DisintegrateEffectShader = 0x8214E8;
+		UInt32 StartParticleShader = 0x82021B;
+		UInt32 SetupParticleShader = 0x5077ED;
+		UInt32 MagicShaderHitEffectApply = 0x81FC70;
+		UInt32 MagicShaderAddTempEffect = 0x5D1CD1;
+		UInt32 InitMagicShaderCmd = 0x5D1C90;
+		UInt32 AshPilePersists = 0x5DBD8E;
+		UInt32 GetAshXData = 0x5DBD9D;
+		UInt32 SetAshXData = 0x5DBDBA;
+		UInt32 CreateRefAtLoc = 0x5DBD56;
 
 		// Hooks
 
 		WriteRelCall(actorFire, &FireWeaponWrapper);
 		WriteRelCall(createProjectile, &ProjectileWrapper); 
 		WriteRelCall(spawnImpactEffects, &ImpactWrapper);  
+		WriteRelCall(spawnActorImpactEffects, &ImpactActorWrapper);
 		WriteRelCall(muzzleFlashEnable, &MuzzleFlashEnable); 
 		WriteRelJump(initialPosVelocity, &VertexColorModifier);
 		WriteRelJump(clearUnrefEmitters, &ClearUnrefEmittersHook);
 		WriteRelJump(colorModUpdate, &ColorModifierUpdate);
 		WriteRelCall(SetAttackSpeed, &SetAttackSpeedHook);
+		WriteRelCall(InitMagicShaderCmd, &MSHEInit);
+		//WriteRelCall(GetAshXData, &GetExtraAshPileHook);
+		//WriteRelCall(AshPilePersists, &SetAshPilePersists);
+		//WriteRelCall(SetAshXData, &SetExtraAshPileHook);
+		WriteRelCall(CreateRefAtLoc, &CreateRefAtLocation);
+		//WriteRelCall(MagicShaderAddTempEffect, &AddTempEffect);
+		//WriteRelJump(MagicShaderHitEffectApply, &MagicShaderHitHook);
+		//WriteRelCall(SetupParticleShader, &SetupPShaderHook);
+		//WriteRelCall(StartParticleShader, &StartPShaderHook);
+		//WriteRelCall(DisintegrateEffectShader, &DisintegrationHook);
 	}
 }

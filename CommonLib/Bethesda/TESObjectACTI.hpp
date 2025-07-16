@@ -5,6 +5,7 @@
 #include "TESSound.hpp"
 #include "TESModelTextureSwap.hpp"
 #include "BGSOpenCloseForm.hpp"
+#include "TESFullName.hpp"
 
 class TESWaterForm;
 class BGSTalkingActivator;
