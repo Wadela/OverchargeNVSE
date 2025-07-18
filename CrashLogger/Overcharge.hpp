@@ -3,82 +3,74 @@
 #include "MainHeader.hpp"
 #include "NiColor.hpp"
 #include <NiParticleSystem.hpp>
+#include "OverchargeConfig.hpp"
 
 namespace Overcharge
 {
     //Overheating Code
-    struct HeatInfo
+    struct HeatState
     {
-        HeatInfo();
-        HeatInfo(float base, float perShot, float cooldown, float max);
+        HeatState();
+        HeatState(
+        UInt8 ammo, UInt8 numProj, UInt16 dmg, UInt16 critDmg, 
+        float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown);
 
-        float   heatVal;
-        float   baseHeatVal;
-        float   heatPerShot;
-        float   cooldownRate;
-        float   maxHeat;
+        bool    bIsOverheated;
+        bool    bEffectActive;
 
-        inline void HeatOnFire()       //Responsible for heating a weapon up
+        UInt8   uiAmmoUsed;
+        UInt8   uiProjectiles;
+        UInt16  uiDamage;
+        UInt16  uiCritDamage;
+
+        float   fProjectileSpeed;
+        float   fProjectileSize;
+        float   fFireRate;
+        float   fAccuracy;
+
+        float   fHeatVal;
+        float   fHeatPerShot;
+        float   fCooldownRate;
+
+        inline void HeatOnFire()
         {
-            heatVal += heatPerShot;         //Ticks up heatVal by the weapons defined heatPerShot value
+            fHeatVal += fHeatPerShot;
         }
     };
 
     struct HeatFX
     {
         HeatFX();
-        HeatFX(NiColor color1, NiColor color2, std::vector<const char*> names);
+        HeatFX(UInt32 col1, UInt32 col2, std::vector<NiAVObjectPtr> names);
 
-        NiColor                 currCol;
-        NiColor                 startCol;
-        NiColor                 targetCol;
+        NiColor     currCol;
+        UInt32      startCol;
+        UInt32      targetCol;
 
-        std::vector<const char*>  blockNames;
+        NiMaterialPropertyPtr       matProp;
+
+        std::vector<NiAVObjectPtr>  targetBlocks;
 
         UInt32  RGBtoUInt32(const NiColor& color) const;
-        NiColor RGBtoHSV(const NiColor& color) const;  //RGB -> Hue, Saturation, Value
-        NiColor HSVtoRGB(const NiColor& hsv) const;    //Hue, Saturation, Value -> RGB
-        NiColor SmoothShift(float currentHeat, float maxHeat) const;
+        NiColor UInt32toRGB(const UInt32 color) const;
+        NiColor UInt32toHSV(const UInt32 color) const;
+        NiColor RGBtoHSV(const NiColor& color) const;                   //RGB -> Hue, Saturation, Value
+        NiColor HSVtoRGB(const NiColor& hsv) const;                     //Hue, Saturation, Value -> RGB
+        NiColor SmoothShift(float currentHeat) const;
     };
 
     struct HeatData
     {
-        HeatData();
-        HeatData(HeatInfo info, HeatFX fx);
+        HeatData(HeatState heat, HeatFX visuals, HeatConfiguration& config);
 
-        UInt32      sourceID;
-        UInt32      heatedID;
-
-        HeatInfo    heat;
         HeatFX      fx;
+        HeatState   state;
 
-        std::vector<NiAVObjectPtr> targetBlocks; 
-
-        inline bool CompareForms(UInt32 actor, UInt32 weapon) const
-        {
-            return sourceID == actor && heatedID == weapon;
-        }
-    };
-
-    struct HeatModifiers
-    {
-        UInt8   numAmmo;
-        UInt8   numProjectiles;
-        UInt8   projSpeed; 
-        UInt8   critEffect;
-
-        UInt16  damage;
-        UInt16  critDamage;
-
-        float   critChance;
-        float   minSpread;
-        float   maxSpread;
+        HeatConfiguration& data;
     };
 
     extern std::unordered_map<UInt64, std::shared_ptr<HeatData>> activeWeapons;
 
-    HeatData MakeHeatFromTemplate(const HeatData& staticInst, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef);
-
-    void HeatModProjectile(Projectile* proj, HeatInfo& heat);
+    HeatData MakeHeatFromConfig(HeatConfiguration& data, const NiAVObjectPtr& sourceNode);
     void WeaponCooldown();
 }

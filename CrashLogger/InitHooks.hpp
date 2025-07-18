@@ -5,5 +5,4 @@
 namespace Overcharge
 {
 	void InitHooks();
-	void InitWeaponData();
 }

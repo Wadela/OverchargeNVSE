@@ -1,7 +1,7 @@
 #pragma once
 #include "MainHeader.hpp"
 #include "Overcharge.hpp"
-
+#include "OverchargeConfig.hpp"
 #include "NiRTTI.hpp"
 #include "NiObject.hpp"
 #include "NiParticleSystem.hpp"
@@ -41,7 +41,6 @@
 #include "BGSImpactData.hpp" 
 #include "TESModel.hpp"
 #include <NifOverride.hpp>
-#include "WeaponDataMap.hpp"
 #include "NiPSysModifier.hpp"
 #include "NiParticleInfo.hpp"
 #include <NiPSysAgeDeathModifier.hpp>
@@ -66,65 +65,11 @@
 
 namespace Overcharge
 {
-	std::unordered_map<UInt32, HeatData>							weaponDataMap;
+	std::unordered_map<UInt64, HeatConfiguration>					weaponDataMap;
 	std::unordered_map<UInt64, std::shared_ptr<HeatData>>			activeWeapons;
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>		activeInstances;
 
 	std::unordered_set<BSPSysSimpleColorModifier*> colorModifiers; 
-
-	inline UInt64 MakeHashKey(UInt32 actorID, UInt32 weaponID) 
-	{
-		return ((UInt64)actorID << 32) | weaponID;
-	}
-
-	static void SetEmissiveColor(NiAVObjectPtr obj, const NiColor& color)
-	{
-		NiGeometryPtr geom = obj ? obj->NiDynamicCast<NiGeometry>() : nullptr;
-
-		if (!geom) return;
-		NiMaterialPropertyPtr matProp = geom->m_kProperties.m_spMaterialProperty;
-
-		if (!matProp) return;
-		matProp->m_emit = color;
-	}
-
-	static void CreateEmissiveColor(NiAVObjectPtr obj, const NiColor& color)
-	{
-		NiGeometryPtr geom = obj ? obj->NiDynamicCast<NiGeometry>() : nullptr;
-
-		if (!geom) return;
-
-		NiMaterialPropertyPtr newMat = NiMaterialProperty::CreateObject();
-		newMat->m_emit = color;
-		geom->m_kProperties.m_spMaterialProperty = newMat;
-	}
-
-	static void TraverseNiNode(const NiNodePtr obj, NiColor& color)
-	{
-		for (int i = 0; i < obj->m_kChildren.m_usSize; i++)
-		{
-			NiAVObject* const child = obj->m_kChildren[i].m_pObject;
-			if (child)
-			{
-				//Checks if RTTI comparison is valid before static casting to avoid dynamic casting every single time
-				if (child->IsNiType<NiParticleSystem>())
-				{
-					NiParticleSystemPtr childPsys = static_cast<NiParticleSystem*>(child);
-					SetEmissiveColor(childPsys.m_pObject, color); 
-				}
-				else if (child->IsNiType<NiNode>())
-				{
-					NiNodePtr childNode = static_cast<NiNode*>(child);
-					TraverseNiNode(childNode.m_pObject, color);
-				}
-				else if (child->IsNiType<NiGeometry>())
-				{
-					NiGeometryPtr childGeom = static_cast<NiGeometry*>(child);
-					SetEmissiveColor(childGeom.m_pObject, color);
-				}
-			}
-		}
-	}
 
 	// Collect all BSValue nodes (game will 'attach' emitters to these)
 	void FindValueNodes(const NiNode* apNode, std::vector<BSValueNode*>& result) {
@@ -152,59 +97,28 @@ namespace Overcharge
 		for (auto it = activeWeapons.begin(); it != activeWeapons.end();)
 		{
 			const auto& instance = it->second;
-			if (!instance) 
+			if (!instance)
 			{
 				it = activeWeapons.erase(it);
 				continue;
 			}
 
-			instance->heat.heatVal -= frameTime * instance->heat.cooldownRate;
-			if (instance->heat.heatVal <= instance->heat.baseHeatVal) 
+			instance->state.fHeatVal -= frameTime * instance->state.fCooldownRate;
+			if (instance->state.fHeatVal <= 0.0f)
 			{
 				it = activeWeapons.erase(it);
 				continue;
 			}
 
-			instance->fx.currCol = instance->fx.SmoothShift(instance->heat.heatVal, instance->heat.maxHeat);
-			for (const auto& node : instance->targetBlocks)
+			instance->fx.currCol = instance->fx.SmoothShift(instance->state.fHeatVal);
+			for (const auto& node : instance->fx.targetBlocks)
 			{
 				if (node && node.m_pObject)
 				{
-					SetEmissiveColor(node.m_pObject, instance->fx.currCol);
+					SetEmissiveColor(node.m_pObject, instance->fx.currCol, instance->fx.matProp);
 				}
 			}
 			++it;
-		}
-	}
-
-	void AmmoChecker(UInt32 ammoForm, float baseHeat, float currHeat)
-	{
-		switch (ammoForm)
-		{
-		case 0x158312: //Bulk
-			baseHeat = 100;
-			if (currHeat <= 100) {
-				currHeat += 100;
-			}
-			break;
-
-		case 0x15830B: //Overcharged
-			baseHeat = 50;
-			if (currHeat <= 50) {
-				currHeat += 50;
-			}
-			break;
-
-		case 0x15830C: //Max Charge
-			baseHeat = 100;
-			if (currHeat <= 100) {
-				currHeat += 100;
-			}
-			break;
-
-		default:
-			baseHeat = 0;
-			break;
 		}
 	}
 
@@ -216,69 +130,40 @@ namespace Overcharge
 		NiNodePtr sourceNode = rActor->Get3D();
 		UInt64 key = MakeHashKey(sourceRef, sourceWeap);
 
-		float oldSpread = rWeap->spread;
-		float oldMinSpread = rWeap->minSpread;
-
-		UInt16 oldWeapDmg = rWeap->usAttackDamage;
-		UInt8 oldNumProj = rWeap->numProjectiles;
-		UInt8 oldAmmoUse = rWeap->ammoUse;
-
 		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
 		UInt32 ammoForm = equippedAmmo->uiFormID;
-
 		auto it = activeWeapons.find(key);
 		if (it != activeWeapons.end())
 		{
-			float& baseHeat = it->second->heat.baseHeatVal;
-			float& heatVal = it->second->heat.heatVal;
-			AmmoChecker(ammoForm, baseHeat, heatVal);
-
-			float heatRatio = heatVal / it->second->heat.maxHeat;
-
-			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
-
-			rWeap->spread += (2 * heatRatio);
-			rWeap->minSpread += (2 * heatRatio);
-			rWeap->usAttackDamage *= (1 + heatRatio);
-			rWeap->ammoUse *= (1 + heatRatio);
-
-			it->second->heat.HeatOnFire();
-
-			if (it->second->heat.heatVal >= it->second->heat.maxHeat)
+			it->second->state.HeatOnFire();
+			if (it->second->state.fHeatVal >= 100.0f)
 			{
 				//PlayAnimPath("meshes\\characters\\_1stperson\\fuck.kf", rActor);
 			}
 		}
 		else
 		{
-			auto newIt = weaponDataMap.find(sourceWeap);
+			UInt64 dataKey = MakeHashKey(sourceWeap, ammoForm); 
+			auto newIt = weaponDataMap.find(dataKey);
 			if (newIt != weaponDataMap.end())
 			{
 				auto [insertIt, inserted] = activeWeapons.try_emplace(
-					key, std::make_shared<HeatData>(MakeHeatFromTemplate(newIt->second, sourceNode.m_pObject, sourceRef, sourceWeap))
+					key, std::make_shared<HeatData>(MakeHeatFromConfig(newIt->second, sourceNode.m_pObject))
 				);
 
-				float& baseHeat = insertIt->second->heat.baseHeatVal;
-				float& heatVal = insertIt->second->heat.heatVal;
-				AmmoChecker(ammoForm, baseHeat, heatVal);
-
 				std::shared_ptr<HeatData> newHeatPtr = insertIt->second;
-				newHeatPtr->heat.HeatOnFire();
-				newHeatPtr->fx.currCol = newHeatPtr->fx.SmoothShift(newHeatPtr->heat.heatVal, newHeatPtr->heat.maxHeat);
+				newHeatPtr->state.HeatOnFire();
+				newHeatPtr->fx.currCol = newHeatPtr->fx.SmoothShift(newHeatPtr->state.fHeatVal);
 
-				for (NiAVObjectPtr& obj : newHeatPtr->targetBlocks)
+				newHeatPtr->fx.matProp = NiMaterialProperty::CreateObject();
+
+				for (NiAVObjectPtr& obj : newHeatPtr->fx.targetBlocks)
 				{
-					CreateEmissiveColor(obj, newHeatPtr->fx.currCol);
+					SetEmissiveColor(obj, newHeatPtr->fx.currCol, newHeatPtr->fx.matProp);
 				}
 			}
 		}
 		ThisStdCall(0x523150, rWeap, rActor);
-
-		rWeap->ammoUse = oldAmmoUse; 
-		rWeap->spread = oldSpread;
-		rWeap->minSpread = oldMinSpread;
-		rWeap->numProjectiles = 1;
-		rWeap->usAttackDamage = oldWeapDmg;
 	}
 
 	inline void __fastcall MuzzleFlashEnable(MuzzleFlash* flash)
@@ -313,7 +198,7 @@ namespace Overcharge
 				activeInstances[psys] = it->second;
 			}
 
-			float heatRatio = it->second->heat.heatVal / it->second->heat.maxHeat;
+			float heatRatio = it->second->state.fHeatVal / 100.0f;
 			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
 			projNode->m_kLocal.m_fScale *= (0.8f + heatRatio);
 			proj->fSpeedMult *= (1.2f - heatRatio);
@@ -370,7 +255,6 @@ namespace Overcharge
 	MagicShaderHitEffect* __fastcall MSHEInit(MagicShaderHitEffect* thisPtr, void* edx, TESObjectREFR* target, TESEffectShader* a3, float duration)
 	{
 		Actor* targetActor = reinterpret_cast<Actor*>(target);
-
 		if (!targetActor) return ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
 
 		Actor* killer = targetActor->pKiller;
@@ -391,85 +275,28 @@ namespace Overcharge
 			a3->Data.edgeColorRGB = col;
 			a3->Data.uiFillColor1 = col;
 		}
-
 		return ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
-	}
-
-
-	void __fastcall SetAshPilePersists(TESObjectREFR* thisPtr, void* edx, bool abVal)
-	{
-		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
-		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
-
-		Actor* killer = targetActor->pKiller;
-		UInt32 killerID = killer->uiFormID;
-		UInt32 killerWeapID = killer->GetCurrentWeaponID();
-		UInt64 key = MakeHashKey(killerID, killerWeapID);
-
-		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end())
-		{
-			//TraverseNiNode(pileNode, it->second->fx.currCol);
-		}
-
-		ThisStdCall(0x565480, thisPtr, abVal); 
-
-		NiNodePtr pileNode = thisPtr->Get3D();
-		if (!pileNode) ThisStdCall(0x565480, thisPtr, abVal);
-	}
-
-	ExtraDataList* __fastcall GetExtraAshPileHook(Explosion* thisPtr)
-	{
-		return ThisStdCall<ExtraDataList*>(0x5D43C0, thisPtr);
-
-		auto fia = thisPtr;
-	}
-
-	void __fastcall SetExtraAshPileHook(ExtraDataList* thisPtr, void* edx, Explosion* a2)
-	{
-		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
-		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
-		auto* idk = *reinterpret_cast<TESObjectACTI**>(ebp - 0x1A0);
-		//auto idk = a2->Get3D();
-		Actor* killer = targetActor->pKiller;
-		UInt32 killerID = killer->uiFormID;
-		UInt32 killerWeapID = killer->GetCurrentWeaponID();
-		UInt64 key = MakeHashKey(killerID, killerWeapID);
-
-		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end())
-		{
-			//TraverseNiNode(pileNode, it->second->fx.currCol);
-		}
-		ThisStdCall(0x41E340, thisPtr, a2);
 	}
 
 	TESObjectREFR* __fastcall CreateRefAtLocation(TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject, NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior, TESWorldSpace* pWorld, TESObjectREFR* pReference, BGSPrimitive* pAddPrimitive, void* pAdditionalData)
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
 		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
-		auto ashRef = reinterpret_cast<TESObjectACTI*>(pObject);
-		auto expl = ThisStdCall<TESObjectREFR*>(0x4698A0, thisPtr, pObject, apLocation, apDirection, pInterior, pWorld, pReference, pAddPrimitive, pAdditionalData);
+		TESObjectREFR* expl = ThisStdCall<TESObjectREFR*>(0x4698A0, thisPtr, pObject, apLocation, apDirection, pInterior, pWorld, pReference, pAddPrimitive, pAdditionalData);
 
 		Actor* killer = targetActor->pKiller;
 		UInt32 killerID = killer->uiFormID;
 		UInt32 killerWeapID = killer->GetCurrentWeaponID();
-		UInt64 key = MakeHashKey(killerID, killerWeapID);
+		UInt64 key = MakeHashKey(killer->uiFormID, killerWeapID);
 
 		auto it = activeWeapons.find(key);
 		if (it != activeWeapons.end())
 		{
-			NiNode* node = ashRef->LoadGraphics(expl);
+			NiNodePtr node = pObject->LoadGraphics(expl);
 			TraverseNiNode(node, it->second->fx.currCol);
 		}
-
 		return expl;
 	}
-
-	//ExtraAshPileRef* __fastcall xAshxAshHook(ExtraAshPileRef* thisPtr)
-	//{
-	//	ThisStdCall(0x4336C0, thisPtr); 
-	//}
 
 	__declspec(naked) void __fastcall ComputeInitPosVelocity(NiPSysVolumeEmitter* thisPtr, void* edx, NiPoint3* arg0, NiPoint3* arg4)
 	{
@@ -493,9 +320,7 @@ namespace Overcharge
 		if (auto it = activeInstances.find(thisPtr->m_pkEmitterObj); it != activeInstances.end())
 		{
 			const auto& heatInfo = it->second;
-
 			thisPtr->m_kInitialColor = heatInfo->fx.currCol;
-
 			for (const auto& modifier : thisPtr->m_pkTarget->m_kModifierList)
 			{
 				if (const auto scm = modifier->NiDynamicCast<BSPSysSimpleColorModifier>())
@@ -584,14 +409,9 @@ namespace Overcharge
 		auto it = activeWeapons.find(key);
 		if (it != activeWeapons.end())
 		{
-			HeatInfo& heatInfo = it->second->heat;
+			float& currInfo = it->second->state.fHeatVal;
 
-			//if (heatInfo.heatVal >= heatInfo.maxHeat)
-			//{
-
-			//}
-
-			float heatRatio = heatInfo.heatVal / heatInfo.maxHeat;
+			float heatRatio = currInfo / 100.0f;
 
 			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
 
@@ -599,42 +419,6 @@ namespace Overcharge
 		}
 
 		ThisStdCall(0x4C0C90, thisPtr, animSpeed);
-	}
-
-	NiCamera* __fastcall StartPShaderHook(TESEffectShader* thisPtr, void* edx, NiAVObject* a1, NiAVObject* a2, NiSourceTexture* apTexture, float a4)
-	{
-		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
-		MagicShaderHitEffect* hitEffect = *reinterpret_cast<MagicShaderHitEffect**>(ebp - 0x3F0);
-
-		thisPtr->Data.colorKey1RGB = 0xFF0000;
-		thisPtr->Data.colorKey2RGB = 0xFF0000;
-		thisPtr->Data.colorKey3RGB = 0xFF0000;
-		thisPtr->Data.uiEdgeColor = 0xFF0000;
-		thisPtr->Data.edgeColorRGB = 0xFF0000;
-		thisPtr->Data.uiFillColor1 = 0xFF0000;
-
-		auto returnVal = ThisStdCall<NiCamera*>(0x5077C0, thisPtr, a1, a2, apTexture, a4);
-
-		return returnVal;
-	}
-
-	__declspec(naked) void __fastcall OriginalApplyMagicShaderHitEffect(MagicShaderHitEffect* apThis)
-	{
-		__asm
-		{
-			push	ebp
-			mov		ebp, esp
-			push	0xFF
-			push	0x81FC75
-			retn
-		}
-	}
-
-	void __fastcall MagicShaderHitHook(MagicShaderHitEffect* thisPtr)
-	{
-		auto var = thisPtr;
-
-		OriginalApplyMagicShaderHitEffect(thisPtr);
 	}
 
 	void InitHooks()
@@ -653,7 +437,6 @@ namespace Overcharge
 		UInt32 GetAttackSpeedMult = 0x645D73;
 		UInt32 GetWeaponAnimMult = 0x9CBE83;
 		UInt32 SetAttackSpeed = 0x894337;
-
 		UInt32 MPSAddon = 0x9BE07A;
 		UInt32 initialPosVelocity = 0xC31CF0;
 		UInt32 updateSCM = 0xC602E0;
@@ -684,14 +467,6 @@ namespace Overcharge
 		WriteRelJump(colorModUpdate, &ColorModifierUpdate);
 		WriteRelCall(SetAttackSpeed, &SetAttackSpeedHook);
 		WriteRelCall(InitMagicShaderCmd, &MSHEInit);
-		//WriteRelCall(GetAshXData, &GetExtraAshPileHook);
-		//WriteRelCall(AshPilePersists, &SetAshPilePersists);
-		//WriteRelCall(SetAshXData, &SetExtraAshPileHook);
 		WriteRelCall(CreateRefAtLoc, &CreateRefAtLocation);
-		//WriteRelCall(MagicShaderAddTempEffect, &AddTempEffect);
-		//WriteRelJump(MagicShaderHitEffectApply, &MagicShaderHitHook);
-		//WriteRelCall(SetupParticleShader, &SetupPShaderHook);
-		//WriteRelCall(StartParticleShader, &StartPShaderHook);
-		//WriteRelCall(DisintegrateEffectShader, &DisintegrationHook);
 	}
 }

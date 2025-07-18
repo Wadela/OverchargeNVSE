@@ -54,3 +54,7 @@ inline UInt8* GetParentBasePtr(void* addressOfReturnAddress, const bool lambda =
 	return *reinterpret_cast<UInt8**>(basePtr);
 }
 
+inline UInt64 MakeHashKey(UInt32 formID1, UInt32 formID2)
+{
+	return ((UInt64)formID1 << 32) | formID2;
+}

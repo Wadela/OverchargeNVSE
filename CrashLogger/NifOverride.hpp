@@ -57,27 +57,6 @@ namespace Overcharge
 		"BigGlow:0"
 	};
 
-	//NiMaterialProperties to change
-	const case_insensitive_set matProps = {
-		"##PLRGlassTube:0",
-		"Plane02:0",
-		"CoreWispyEnergy02:0",
-		"CoreWispyEnergy03",
-		"HorizontalFlash06",
-		"Plane01:0",
-		"Glow:0",
-		"CoreHot01:1",
-		"pWisps01",
-		"pShockTrail",
-		"pEnergyHit",
-		"pRingImpact",
-		"lasergeometry:0",
-		"lasergeometry:1",
-		"planeburst:0",
-		"planeburst:1",
-		"BigGlow:0"
-	};
-
 	static case_insensitive_set extraModels = {
 		"Effects\\MuzzleFlashes\\PlasmaRifleMuzzleFlash.NIF",
 		"mps\\mpsplasmaprojectile.nif",
@@ -94,6 +73,47 @@ namespace Overcharge
 
 	//Auto populated based on editorIds above
 	static case_insensitive_set definedModels{};
+
+	static void SetEmissiveColor(NiAVObjectPtr obj, const NiColor& color, NiMaterialPropertyPtr newMatProp = nullptr)
+	{
+		if (!obj) return;
+		auto geom = obj->NiDynamicCast<NiGeometry>();
+		if (!geom) return;
+
+		auto& matProp = geom->m_kProperties.m_spMaterialProperty;
+		if (newMatProp)
+			matProp = newMatProp;
+
+		if (matProp)
+			matProp->m_emit = color;
+	}
+
+	static void TraverseNiNode(const NiNodePtr obj, NiColor& color)
+	{
+		for (int i = 0; i < obj->m_kChildren.m_usSize; i++)
+		{
+			NiAVObject* const child = obj->m_kChildren[i].m_pObject;
+			if (child)
+			{
+				//Checks if RTTI comparison is valid before static casting to avoid dynamic casting every single time
+				if (child->IsNiType<NiParticleSystem>())
+				{
+					NiParticleSystemPtr childPsys = static_cast<NiParticleSystem*>(child);
+					SetEmissiveColor(childPsys.m_pObject, color);
+				}
+				else if (child->IsNiType<NiNode>())
+				{
+					NiNodePtr childNode = static_cast<NiNode*>(child);
+					TraverseNiNode(childNode.m_pObject, color);
+				}
+				else if (child->IsNiType<NiGeometry>())
+				{
+					NiGeometryPtr childGeom = static_cast<NiGeometry*>(child);
+					SetEmissiveColor(childGeom.m_pObject, color);
+				}
+			}
+		}
+	}
 
 	//Edit Vertex Colors - Primarily for preparing meshes to have emissive colors to pop out more 
 	static void PrepVertexColor(const NiGeometry* geom)

@@ -192,12 +192,12 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="NewParticleStuff.cpp" />
     <ClCompile Include="Overcharge.cpp" />
+    <ClCompile Include="OverchargeConfig.cpp" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="tracy\public\TracyClient.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release - Tracy|Win32'">
       </ForcedIncludeFiles>
     </ClCompile>
-    <ClCompile Include="WeaponDataMap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\nvse\CommandTable.hpp" />
@@ -219,8 +219,8 @@
     <ClInclude Include="main.hpp" />
     <ClInclude Include="MainHeader.hpp" />
     <ClInclude Include="NifOverride.hpp" />
+    <ClInclude Include="OverchargeConfig.hpp" />
     <ClInclude Include="Overcharge.hpp" />
-    <ClInclude Include="WeaponDataMap.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />

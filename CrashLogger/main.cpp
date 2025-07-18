@@ -5,6 +5,7 @@
 #include "NifOverride.hpp"
 #include <BGSSaveLoadGame.hpp>
 #include "Overcharge.hpp"
+#include "OverchargeConfig.hpp"
 //#include <tracy/Tracy.hpp>
 
 bool IsGamePaused()
@@ -42,7 +43,7 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 
 		for (const auto& i : deferredInit) i(); // call all deferred init functions
 
-		Overcharge::InitWeaponData();
+		Overcharge::LoadWeaponConfigs("Data\\NVSE\\Plugins\\OCWeapons");
 		Overcharge::PostLoad();
 	}
 	else if (msg->type == NVSEMessagingInterface::kMessage_MainGameLoop)

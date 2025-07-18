@@ -25,9 +25,6 @@
     <ClCompile Include="..\nvse\utility.cpp">
       <Filter>nvse</Filter>
     </ClCompile>
-    <ClCompile Include="WeaponDataMap.cpp">
-      <Filter>Wadelz\Headers</Filter>
-    </ClCompile>
     <ClCompile Include="tracy\public\TracyClient.cpp">
       <Filter>tracy</Filter>
     </ClCompile>
@@ -36,6 +33,9 @@
     </ClCompile>
     <ClCompile Include="AnimationStuff.cpp">
       <Filter>Wadelz</Filter>
+    </ClCompile>
+    <ClCompile Include="OverchargeConfig.cpp">
+      <Filter>Wadelz\Headers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -92,10 +92,10 @@
     <ClInclude Include="Logging.h">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="WeaponDataMap.hpp">
+    <ClInclude Include="AnimationStuff.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
-    <ClInclude Include="AnimationStuff.hpp">
+    <ClInclude Include="OverchargeConfig.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
   </ItemGroup>

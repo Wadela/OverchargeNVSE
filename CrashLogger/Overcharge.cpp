@@ -2,22 +2,21 @@
 
 namespace Overcharge
 {
-    HeatInfo::HeatInfo() :
-        heatVal(0.0f), baseHeatVal(0.0f), heatPerShot(0.0f), cooldownRate(0.0f), maxHeat(1.0f) {
+    HeatState::HeatState() :
+        bIsOverheated(false), bEffectActive(false), 
+        uiAmmoUsed(0), uiProjectiles(0), uiDamage(0), uiCritDamage(0), 
+        fProjectileSpeed(0.0f), fProjectileSize(0.0f), fFireRate(0.0f), fAccuracy(0.0f),
+        fHeatVal(0.0f), fHeatPerShot(0.0f), fCooldownRate(0.0f) {
     }
 
-    HeatInfo::HeatInfo(float base, float perShot, float cooldown, float max) :
-        heatVal(base), baseHeatVal(base), heatPerShot(perShot), cooldownRate(cooldown), maxHeat(max) {
-    }
+    HeatState::HeatState(
+        UInt8 ammo, UInt8 numProj, UInt16 dmg, UInt16 critDmg,
+        float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown) :
 
-    HeatFX::HeatFX() :
-        currCol(0, 0, 0), startCol(0, 0, 0), targetCol(0, 0, 0),
-        blockNames() {
-    }
-
-    HeatFX::HeatFX(NiColor color1, NiColor color2, std::vector<const char*> names) :
-        currCol(color1), startCol(color1), targetCol(color2),
-        blockNames(names) {
+        bIsOverheated(false), bEffectActive(false),
+        uiAmmoUsed(ammo), uiProjectiles(numProj), uiDamage(dmg), uiCritDamage(critDmg),
+        fProjectileSpeed(projSpd), fProjectileSize(projSize), fFireRate(rof), fAccuracy(accuracy),
+        fHeatVal(0.0f), fHeatPerShot(perShot), fCooldownRate(cooldown) {
     }
 
     UInt32 HeatFX::RGBtoUInt32(const NiColor& color) const
@@ -73,12 +72,27 @@ namespace Overcharge
         return NiColor(r + m, g + m, b + m);
     }
 
-    NiColor HeatFX::SmoothShift(float currentHeat, float maxHeat) const
+    NiColor HeatFX::UInt32toRGB(const UInt32 color) const
     {
-        float progress = std::clamp(currentHeat / maxHeat, 0.0f, 1.0f);
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = ((color) & 0xFF) / 255.0f;
 
-        NiColor startHSV = RGBtoHSV(startCol);
-        NiColor targetHSV = RGBtoHSV(targetCol);
+        return NiColor(r, g, b);
+    }
+
+    NiColor HeatFX::UInt32toHSV(const UInt32 color) const
+    {
+        NiColor RGB = UInt32toRGB(color);
+        return RGBtoHSV(RGB);
+    }
+
+    NiColor HeatFX::SmoothShift(float currentHeat) const
+    {
+        float progress = std::clamp(currentHeat / 100.0f, 0.0f, 1.0f);
+
+        NiColor startHSV = UInt32toHSV(startCol);
+        NiColor targetHSV = UInt32toHSV(targetCol);
 
         float hueDiff = targetHSV.r - startHSV.r;
         if (fabs(hueDiff) > 180.0f) {
@@ -86,7 +100,8 @@ namespace Overcharge
             else hueDiff += 360.0f;
         }
 
-        float interpHue = fmod(startHSV.r + hueDiff * progress + 360.0f, 360.0f);
+        float interpHue = std::fmod(startHSV.r + hueDiff * progress, 360.0f);
+        if (interpHue < 0.0f) interpHue += 360.0f;
         float interpSat = startHSV.g + (targetHSV.g - startHSV.g) * progress;
         float interpVal = startHSV.b + (targetHSV.b - startHSV.b) * progress;
 
@@ -95,39 +110,37 @@ namespace Overcharge
         return HSVtoRGB(resultHSV);
     }
 
-    HeatData::HeatData() :
-        sourceID(0), heatedID(0), heat(), fx(),
+    HeatFX::HeatFX() :
+        currCol(0, 0, 0), startCol(0), targetCol(0),
         targetBlocks() {
     }
 
-    HeatData::HeatData(HeatInfo info, HeatFX fx) :
-        sourceID(0), heatedID(0), heat(info), fx(fx),
-        targetBlocks() {
+    HeatFX::HeatFX(UInt32 col1, UInt32 col2, std::vector<NiAVObjectPtr> names) :
+        currCol(UInt32toRGB(col1)), startCol(col1), targetCol(col2),
+        targetBlocks(names) {
     }
 
-    HeatData MakeHeatFromTemplate(const HeatData& staticData, const NiAVObjectPtr& sourceNode, UInt32 sourceRef, UInt32 weaponRef)
+    HeatData::HeatData(HeatState heat, HeatFX visuals, HeatConfiguration& config) : state(heat), fx(visuals), data(config) {}
+
+    HeatData MakeHeatFromConfig(HeatConfiguration& data, const NiAVObjectPtr& sourceNode)
     {
-        HeatData liveData = staticData;
-        liveData.sourceID = sourceRef;
-        liveData.heatedID = weaponRef;
+        HeatState state = HeatState(data.iMinAmmoUsed, data.iMinProjectiles, data.iMinDamage, data.iMinCritDamage, data.iMinProjectileSpeedPercent, data.iMinProjectileSizePercent, data.fMinFireRate, data.fMinFireRate, data.fHeatPerShot, data.fCooldownPerSecond);
+
+        std::vector<NiAVObjectPtr> blocks;
 
         if (sourceNode)
         {
-            for (const auto& name : liveData.fx.blockNames)
+            for (const auto& name : data.sHeatedNodes)
             {
-                if (NiAVObjectPtr block = sourceNode->GetObjectByName(name))
+                if (NiAVObjectPtr block = sourceNode->GetObjectByName(name.c_str()))
                 {
-                    liveData.targetBlocks.emplace_back(block);
+                    blocks.emplace_back(block);
                 }
             }
         }
-        return liveData;
+        HeatFX visuals(data.iMinColor, data.iMaxColor, blocks);
+        return HeatData(state, visuals, data); 
     }
-    void HeatModProjectile(Projectile* proj, HeatInfo& heat)
-    {
-        if (!proj) return; 
 
-
-    }
 }
 
