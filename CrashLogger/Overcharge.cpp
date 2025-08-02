@@ -120,17 +120,30 @@ namespace Overcharge
         targetBlocks(names) {
     }
 
-    HeatData::HeatData(HeatState heat, HeatFX visuals, HeatConfiguration& config) : state(heat), fx(visuals), data(config) {}
+    HeatData::HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* config) : state(heat), fx(visuals), data(config) {}
 
-    HeatData MakeHeatFromConfig(HeatConfiguration& data, const NiAVObjectPtr& sourceNode)
+    HeatData MakeHeatFromConfig(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode)
     {
-        HeatState state = HeatState(data.iMinAmmoUsed, data.iMinProjectiles, data.iMinDamage, data.iMinCritDamage, data.iMinProjectileSpeedPercent, data.iMinProjectileSizePercent, data.fMinFireRate, data.fMinFireRate, data.fHeatPerShot, data.fCooldownPerSecond);
+        HeatState state;
+        if (data) {
+            state = HeatState(
+                data->iMinAmmoUsed,
+                data->iMinProjectiles,
+                data->iMinDamage,
+                data->iMinCritDamage,
+                data->iMinProjectileSpeedPercent,
+                data->iMinProjectileSizePercent,
+                data->fMinFireRate,
+                data->fMaxFireRate,
+                data->fHeatPerShot,
+                data->fCooldownPerSecond
+            );
+        }
 
         std::vector<NiAVObjectPtr> blocks;
-
-        if (sourceNode)
+        if (sourceNode && data)
         {
-            for (const auto& name : data.sHeatedNodes)
+            for (const auto& name : data->sHeatedNodes)
             {
                 if (NiAVObjectPtr block = sourceNode->GetObjectByName(name.c_str()))
                 {
@@ -138,8 +151,9 @@ namespace Overcharge
                 }
             }
         }
-        HeatFX visuals(data.iMinColor, data.iMaxColor, blocks);
-        return HeatData(state, visuals, data); 
+
+        HeatFX visuals(data ? data->iMinColor : 0, data ? data->iMaxColor : 0, blocks);
+        return HeatData(state, visuals, data);
     }
 
 }

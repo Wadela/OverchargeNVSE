@@ -61,16 +61,16 @@ namespace Overcharge
 
     struct HeatData
     {
-        HeatData(HeatState heat, HeatFX visuals, HeatConfiguration& config);
+        HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* config);
 
         HeatFX      fx;
         HeatState   state;
 
-        HeatConfiguration& data;
+        const HeatConfiguration* data;
     };
 
     extern std::unordered_map<UInt64, std::shared_ptr<HeatData>> activeWeapons;
 
-    HeatData MakeHeatFromConfig(HeatConfiguration& data, const NiAVObjectPtr& sourceNode);
+    HeatData MakeHeatFromConfig(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode);
     void WeaponCooldown();
 }

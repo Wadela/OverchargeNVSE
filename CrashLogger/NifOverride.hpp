@@ -32,48 +32,6 @@
 
 namespace Overcharge
 {
-	static void ShowSceneGraph(NiAVObject* obj)
-	{
-		const void* tree = new uint8_t[0x30];
-		TESMain* tesMain = TESMain::GetSingleton();
-		const char* const name = obj->GetName() ? obj->GetName() : "<null>";
-
-		ThisStdCall(0x4D61B0, tree, tesMain->hInstance, tesMain->hWnd, obj, name, 0x80000000, 0x80000000, 800, 600);
-	}
-
-	//Vertex colored nodes to change
-	const case_insensitive_set vertexColors = {
-		"##PLRGlassTube:0",
-		"CoreWispyEnergy02:0",
-		"CoreWispyEnergy01:1",
-		"CoreHot01:1",
-		"Glow:0",
-		"HorizontalFlash06",
-		"Plane01:0",
-		"lasergeometry:0",
-		"lasergeometry:1",
-		"planeburst:0",
-		"planeburst:1",
-		"BigGlow:0"
-	};
-
-	static case_insensitive_set extraModels = {
-		"Effects\\MuzzleFlashes\\PlasmaRifleMuzzleFlash.NIF",
-		"mps\\mpsplasmaprojectile.nif",
-		"effects\\impactenergygreen01.nif",
-		"effects\\impactenergygreenflesh01.nif",
-		"effects\\impactenergybase01.nif",
-		"projectiles\\plasmaprojectile01.nif",
-		"projectiles\\testlaserbeamsteady.nif",
-		"mps\\mpsenergyimpactred.nif",
-		"Effects\\MuzzleFlashes\\laserriflemuzzleflash.NIF",
-		"weapons\\2handrifle\\plasmarifle.nif",
-		"effects\\goopile01.nif"
-	};
-
-	//Auto populated based on editorIds above
-	static case_insensitive_set definedModels{};
-
 	static void SetEmissiveColor(NiAVObjectPtr obj, const NiColor& color, NiMaterialPropertyPtr newMatProp = nullptr)
 	{
 		if (!obj) return;
@@ -88,6 +46,25 @@ namespace Overcharge
 			matProp->m_emit = color;
 	}
 
+	static void FindValueNodes(const NiNode* apNode, std::vector<BSValueNode*>& result) {
+		for (int i = 0; i < apNode->m_kChildren.m_usSize; i++) {
+			const auto& child = apNode->m_kChildren.m_pBase[i];
+
+			if (const auto pValueNode = child->NiDynamicCast<BSValueNode>()) {
+				result.emplace_back(pValueNode);
+			}
+			else if (const auto pNiNode = child->NiDynamicCast<NiNode>()) {
+				FindValueNodes(pNiNode, result);
+			}
+		}
+	}
+
+	static std::vector<BSValueNode*> FindValueNodes(const NiNode* apNode) {
+		std::vector<BSValueNode*> valueNodes{};
+		FindValueNodes(apNode, valueNodes);
+		return valueNodes;
+	}
+
 	static void TraverseNiNode(const NiNodePtr obj, NiColor& color)
 	{
 		for (int i = 0; i < obj->m_kChildren.m_usSize; i++)
@@ -95,13 +72,7 @@ namespace Overcharge
 			NiAVObject* const child = obj->m_kChildren[i].m_pObject;
 			if (child)
 			{
-				//Checks if RTTI comparison is valid before static casting to avoid dynamic casting every single time
-				if (child->IsNiType<NiParticleSystem>())
-				{
-					NiParticleSystemPtr childPsys = static_cast<NiParticleSystem*>(child);
-					SetEmissiveColor(childPsys.m_pObject, color);
-				}
-				else if (child->IsNiType<NiNode>())
+				if (child->IsNiType<NiNode>())
 				{
 					NiNodePtr childNode = static_cast<NiNode*>(child);
 					TraverseNiNode(childNode.m_pObject, color);
@@ -111,6 +82,29 @@ namespace Overcharge
 					NiGeometryPtr childGeom = static_cast<NiGeometry*>(child);
 					SetEmissiveColor(childGeom.m_pObject, color);
 				}
+			}
+		}
+	}
+
+	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
+	static void UpdateColorMod(NiParticleSystem* childParticle)
+	{
+		if (!childParticle) return;
+
+		for (NiPSysModifier* it : childParticle->m_kModifierList)
+		{
+			if (BSPSysSimpleColorModifier* colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
+			{
+				NiColorA col = colorMod->kColor2.Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
+
+				col.a = colorMod->kColor1.a;
+				colorMod->kColor1 = col;
+
+				col.a = colorMod->kColor2.a;
+				colorMod->kColor2 = col;
+
+				col.a = colorMod->kColor3.a;
+				colorMod->kColor3 = col;
 			}
 		}
 	}
@@ -130,78 +124,8 @@ namespace Overcharge
 		}
 	}
 
-	static void PrepVertexColorData(NiGeometryData* modelData)
-	{
-		for (int i = 0; i < modelData->m_usVertices; i++)
-		{
-			NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(0.65f, 0.65f, 0.65f), 1);
-			col.a = modelData->m_pkColor[i].a;
-
-			modelData->m_pkColor[i] = col;
-		}
-	}
-
-	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
-	static void UpdateColorMod(NiParticleSystem* childParticle)
-	{
-		if (!childParticle->m_kProperties.m_spMaterialProperty) return;
-
-		childParticle->m_kProperties.m_spMaterialProperty->m_emit = NiColor(0.8f, 0.8f, 0.8f);
-
-		for (NiPSysModifier* it : childParticle->m_kModifierList)
-		{
-			if (BSPSysSimpleColorModifier* colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
-			{
-				NiColorA col = colorMod->kColor2.Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
-
-				col.a = colorMod->kColor1.a;
-				colorMod->kColor1 = col;
-
-				col.a = colorMod->kColor2.a;
-				colorMod->kColor2 = col;
-
-				col.a = colorMod->kColor3.a;
-				colorMod->kColor3 = col; 
-			} 
-		}
-	}
-
-	//Update Child Particles to all be prepared for emissive color control
-	static void PrepParticleColor(const NiNode* node)
-	{
-		if (BSValueNode* const valueNode = node->NiDynamicCast<BSValueNode>())
-		{
-			BGSAddonNode* const addonNode = TESDataHandler::GetSingleton()->GetAddonNode(valueNode->iValue);
-			if (addonNode && addonNode->uiIndex)
-			{
-				BSParticleSystemManager* const manager = BSParticleSystemManager::GetInstance();
-				const UInt32 particleSystemIndex = addonNode->particleSystemID;
-				if (BSMasterParticleSystem* const mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
-				{
-					for (int i = 0; i < mps->kChildParticles.m_usSize; i++)
-					{
-						if (NiNode* const mpsNode = mps->GetAt(0)->NiDynamicCast<NiNode>())
-						{
-							for (int i = 0; i < mpsNode->m_kChildren.m_usSize; i++)
-							{
-								if (NiParticleSystem* const childParticle = mpsNode->m_kChildren.m_pBase[i]->NiDynamicCast<NiParticleSystem>())
-								{
-									UpdateColorMod(childParticle);
-								}
-							}
-						}
-						if (NiParticleSystem* mpsGeom = mps->kChildParticles.m_pBase[i]->NiDynamicCast<NiParticleSystem>())  
-						{
-							UpdateColorMod(mpsGeom);
-						}
-					}
-				}
-			}
-		}
-	}
-
 	//Iterates through node children to guide children appropriately
-	static void ProcessNiNode(const NiNode* obj)
+	static void ProcessModel(const NiNode* obj)
 	{
 		for (int i = 0; i < obj->m_kChildren.m_usSize; i++)
 		{
@@ -209,31 +133,20 @@ namespace Overcharge
 
 			if (child) 
 			{
-				//Checks if RTTI comparison is valid before static casting to avoid dynamic casting every single time
 				if (child->IsNiType<NiParticleSystem>())
 				{
 					NiParticleSystem* childPsys = static_cast<NiParticleSystem*>(child);
 					UpdateColorMod(childPsys);
 				}
-				else if (child->IsNiType<BSValueNode>())
-				{
-					BSValueNode* childValNode = static_cast<BSValueNode*>(child);
-					PrepParticleColor(childValNode); 
-				}
 				else if (child->IsNiType<NiNode>())
 				{
 					NiNode* childNode = static_cast<NiNode*>(child);
-					ProcessNiNode(childNode);
+					ProcessModel(childNode);
 				}
 				else if (child->IsNiType<NiGeometry>())
 				{
 					NiGeometry* childGeom = static_cast<NiGeometry*>(child);
 					PrepVertexColor(childGeom);
-				}
-				else if (child->IsNiType<NiGeometryData>())
-				{
-					NiGeometryData* childGeomData = child->NiDynamicCast<NiGeometryData>();
-					PrepVertexColorData(childGeomData);
 				}
 			}
 		}
@@ -241,10 +154,10 @@ namespace Overcharge
 	 
 	static NiNode* __fastcall ModelLoaderLoadFile(const Model* model, const char* filePath) 
 	{
-		if (filePath && (definedModels.contains(filePath) || strstr(filePath, "Flash")))
+		if (filePath && (definedModels.contains(filePath)))
 		{
 			NiNode* node = model->spNode;
-			ProcessNiNode(node);
+			ProcessModel(node);
 			return node;
 		}
 		return model->spNode;
@@ -253,6 +166,8 @@ namespace Overcharge
 	static void __fastcall ModelModel(const Model* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV) 
 	{
 		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, abAssignShaders, abKeepUV);
+
+		if (g_OCSettings.iEnableVisualEffects > 0)
 		ModelLoaderLoadFile(thisPtr, modelPath); 
 	}
 
@@ -268,4 +183,4 @@ namespace Overcharge
 			definedModels.insert(elem); 
 		}
 	}
-}
+} 

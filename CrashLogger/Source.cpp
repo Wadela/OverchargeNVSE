@@ -1,4 +1,5 @@
 #pragma once
+
 #include "MainHeader.hpp"
 #include "Overcharge.hpp"
 #include "OverchargeConfig.hpp"
@@ -61,35 +62,22 @@
 #include "ExtraAshPileRef.hpp"
 #include <TESObjectACTI.hpp>
 #include <BGSPrimitive.hpp>
+#include "SpellItem.hpp"
+#include "TESEnchantableForm.hpp"
+#include "EnchantmentItem.hpp"
+#include "WaldezTools.hpp"
+#include "BGSImpactDataSet.hpp"
+#include "DialoguePackage.hpp"
+#include "BSString.hpp"
 //#include <tracy/Tracy.hpp>
 
 namespace Overcharge
 {
-	std::unordered_map<UInt64, HeatConfiguration>					weaponDataMap;
+	std::unordered_map<UInt64, const HeatConfiguration>				weaponDataMap;
 	std::unordered_map<UInt64, std::shared_ptr<HeatData>>			activeWeapons;
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>		activeInstances;
 
 	std::unordered_set<BSPSysSimpleColorModifier*> colorModifiers; 
-
-	// Collect all BSValue nodes (game will 'attach' emitters to these)
-	void FindValueNodes(const NiNode* apNode, std::vector<BSValueNode*>& result) {
-		for (int i = 0; i < apNode->m_kChildren.m_usSize; i++) {
-			const auto& child = apNode->m_kChildren.m_pBase[i];
-
-			if (const auto pValueNode = child->NiDynamicCast<BSValueNode>()) {
-				result.emplace_back(pValueNode);
-			}
-			else if (const auto pNiNode = child->NiDynamicCast<NiNode>()) {
-				FindValueNodes(pNiNode, result);
-			}
-		}
-	}
-
-	std::vector<BSValueNode*> FindValueNodes(const NiNode* apNode) {
-		std::vector<BSValueNode*> valueNodes{};
-		FindValueNodes(apNode, valueNodes);
-		return valueNodes;
-	}
 
 	void WeaponCooldown()
 	{
@@ -129,41 +117,83 @@ namespace Overcharge
 		UInt32 sourceWeap = rWeap->uiFormID;
 		NiNodePtr sourceNode = rActor->Get3D();
 		UInt64 key = MakeHashKey(sourceRef, sourceWeap);
-
 		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
+		if (!equippedAmmo || g_OCSettings.iEnableGameplayEffects < 1)
+		{
+			ThisStdCall(0x523150, rWeap, rActor);
+			return;
+		}
 		UInt32 ammoForm = equippedAmmo->uiFormID;
+		UInt64 dataKey = MakeHashKey(sourceWeap, ammoForm);
+
+		float oldSpread = rWeap->spread;
+		float oldMinSpread = rWeap->minSpread;
+		UInt16 oldWeapDmg = rWeap->usAttackDamage;
+		UInt8 oldNumProj = rWeap->numProjectiles;
+		UInt8 oldAmmoUse = rWeap->ammoUse;
+
+		auto dataIt = weaponDataMap.find(dataKey);
+		if (dataIt == weaponDataMap.end())
+		{
+			ThisStdCall(0x523150, rWeap, rActor);
+			return;
+		}
 		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end())
+		if (it != activeWeapons.end() )
 		{
 			it->second->state.HeatOnFire();
-			if (it->second->state.fHeatVal >= 100.0f)
+			float& heatVal = it->second->state.fHeatVal;
+			float heatRatio = heatVal / 100.0f;
+			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
+
+			if (dataIt->second.iMinColor != it->second->fx.startCol)
 			{
-				//PlayAnimPath("meshes\\characters\\_1stperson\\fuck.kf", rActor);
+				it->second->fx.startCol = dataIt->second.iMinColor;
+				it->second->fx.targetCol = dataIt->second.iMaxColor;
+				it->second->state.fHeatPerShot = dataIt->second.fHeatPerShot;
+				it->second->state.fCooldownRate = dataIt->second.fCooldownPerSecond;
+				it->second->data = &dataIt->second;
+			}
+			const HeatConfiguration& config = *(it->second->data);
+
+			//change later for better usage when not initializing fields
+			if (config.fMinAccuracy || config.fMaxAccuracy)
+			{
+				it->second->state.fAccuracy = InterpolateTowards(config.fMinAccuracy, config.fMaxAccuracy, heatRatio);
+				rWeap->spread = it->second->state.fAccuracy;
+				rWeap->minSpread = it->second->state.fAccuracy;
+			}
+			if (config.iMinDamage || config.iMaxDamage)
+			{
+				it->second->state.uiDamage = InterpolateTowards(config.iMinDamage, config.iMaxDamage, heatRatio);
+				rWeap->usAttackDamage = it->second->state.uiDamage;
+			}
+			if (heatVal >= config.iAddAmmoThreshold && (config.iMinAmmoUsed > 0 || config.iMaxAmmoUsed > 0)) {
+				it->second->state.uiAmmoUsed = InterpolateTowards<UInt8>(config.iMinAmmoUsed, config.iMaxAmmoUsed, heatRatio);
+				rWeap->ammoUse = it->second->state.uiAmmoUsed;
+			}
+			if (heatVal >= config.iAddProjectileThreshold && (config.iMinProjectiles > 0 || config.iMaxProjectiles > 0)) {
+				it->second->state.uiProjectiles = InterpolateTowards<UInt8>(config.iMinProjectiles, config.iMaxProjectiles, heatRatio);
+				rWeap->numProjectiles = it->second->state.uiProjectiles;
 			}
 		}
-		else
+		else 
 		{
-			UInt64 dataKey = MakeHashKey(sourceWeap, ammoForm); 
-			auto newIt = weaponDataMap.find(dataKey);
-			if (newIt != weaponDataMap.end())
-			{
-				auto [insertIt, inserted] = activeWeapons.try_emplace(
-					key, std::make_shared<HeatData>(MakeHeatFromConfig(newIt->second, sourceNode.m_pObject))
-				);
+			auto [insertIt, inserted] = activeWeapons.try_emplace(
+				key, std::make_shared<HeatData>(MakeHeatFromConfig(&dataIt->second, sourceNode.m_pObject))
+			);
 
-				std::shared_ptr<HeatData> newHeatPtr = insertIt->second;
-				newHeatPtr->state.HeatOnFire();
-				newHeatPtr->fx.currCol = newHeatPtr->fx.SmoothShift(newHeatPtr->state.fHeatVal);
-
-				newHeatPtr->fx.matProp = NiMaterialProperty::CreateObject();
-
-				for (NiAVObjectPtr& obj : newHeatPtr->fx.targetBlocks)
-				{
-					SetEmissiveColor(obj, newHeatPtr->fx.currCol, newHeatPtr->fx.matProp);
-				}
-			}
+			std::shared_ptr<HeatData> newHeatPtr = insertIt->second;
+			newHeatPtr->fx.matProp = NiMaterialProperty::CreateObject();
+			newHeatPtr->state.HeatOnFire();
 		}
 		ThisStdCall(0x523150, rWeap, rActor);
+
+		rWeap->ammoUse = oldAmmoUse;
+		rWeap->spread = oldSpread;
+		rWeap->minSpread = oldMinSpread;
+		rWeap->numProjectiles = oldNumProj;
+		rWeap->usAttackDamage = oldWeapDmg;
 	}
 
 	inline void __fastcall MuzzleFlashEnable(MuzzleFlash* flash)
@@ -172,8 +202,9 @@ namespace Overcharge
 		NiNodePtr muzzleNode = flash->spNode;
 
 		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end())
+		if (it != activeWeapons.end() && g_OCSettings.iEnableVisualEffects > 0)
 		{
+			it->second->fx.currCol = it->second->fx.SmoothShift(it->second->state.fHeatVal);
 			TraverseNiNode(muzzleNode.m_pObject, it->second->fx.currCol);
 			flash->spLight->SetDiffuseColor(it->second->fx.currCol);
 		}
@@ -188,19 +219,24 @@ namespace Overcharge
 		auto it = activeWeapons.find(key);
 		if (it != activeWeapons.end())
 		{
-			for (const auto& valueNode : FindValueNodes(projNode)) 
-			{
-				activeInstances[valueNode] = it->second;
-			}
-			TraverseNiNode(projNode, it->second->fx.currCol);
-			if (const auto& psys = projNode->NiDynamicCast<NiParticleSystem>())
-			{
-				activeInstances[psys] = it->second;
-			}
-
 			float heatRatio = it->second->state.fHeatVal / 100.0f;
 			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
-			projNode->m_kLocal.m_fScale *= (0.8f + heatRatio);
+
+			if (g_OCSettings.iEnableVisualEffects > 0)
+			{
+				for (const auto& valueNode : FindValueNodes(projNode))
+				{
+					activeInstances[valueNode] = it->second;
+				}
+				it->second->fx.currCol = it->second->fx.SmoothShift(it->second->state.fHeatVal);
+				TraverseNiNode(projNode, it->second->fx.currCol);
+				if (const auto& psys = projNode->NiDynamicCast<NiParticleSystem>())
+				{
+					activeInstances[psys] = it->second;
+				}
+				projNode->m_kLocal.m_fScale *= (0.8f + heatRatio);
+			}
+			if (g_OCSettings.iEnableGameplayEffects > 0)
 			proj->fSpeedMult *= (1.2f - heatRatio);
 		}
 		ThisStdCall(0x9A52F0, a1, proj);
@@ -213,12 +249,12 @@ namespace Overcharge
 		UInt64 key = MakeHashKey(pProjectile->pSourceRef->uiFormID, pProjectile->pSourceWeapon->uiFormID);
 
 		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
-		if (!impact) return nullptr;
+		if (!impact || !impact->spParticleObject) return impact;
 
 		NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
 
 		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end() || !impactNode)
+		if (it != activeWeapons.end() && impactNode && g_OCSettings.iEnableVisualEffects > 0)
 		{
 			for (const auto& valueNode : FindValueNodes(impactNode))
 			{
@@ -233,6 +269,10 @@ namespace Overcharge
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
 		Projectile* pProjectile = *reinterpret_cast<Projectile**>(ebp - 0x2B0);
+		Actor* actor = *reinterpret_cast<Actor**>(ebp - 0x18);
+
+		TESForm* magicForm = TESForm::GetByID(0x0044AF7);
+
 		UInt64 key = MakeHashKey(pProjectile->pSourceRef->uiFormID, pProjectile->pSourceWeapon->uiFormID);
 
 		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
@@ -241,7 +281,7 @@ namespace Overcharge
 		NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
 
 		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end() || !impactNode)
+		if (it != activeWeapons.end() && impactNode && g_OCSettings.iEnableVisualEffects > 0)
 		{
 			for (const auto& valueNode : FindValueNodes(impactNode))
 			{
@@ -263,7 +303,7 @@ namespace Overcharge
 		UInt64 key = MakeHashKey(killerID, killerWeapID);
 
 		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end())
+		if (it != activeWeapons.end() && g_OCSettings.iEnableVisualEffects > 0)
 		{
 			auto& fx = it->second->fx;
 			UInt32 col = fx.RGBtoUInt32(fx.currCol);
@@ -290,7 +330,7 @@ namespace Overcharge
 		UInt64 key = MakeHashKey(killer->uiFormID, killerWeapID);
 
 		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end())
+		if (it != activeWeapons.end() && g_OCSettings.iEnableVisualEffects > 0)
 		{
 			NiNodePtr node = pObject->LoadGraphics(expl);
 			TraverseNiNode(node, it->second->fx.currCol);
@@ -310,12 +350,11 @@ namespace Overcharge
 
 	void __fastcall VertexColorModifier(NiPSysVolumeEmitter* thisPtr, void* edx, NiPoint3* arg0, NiPoint3* arg4)
 	{
-		if (!thisPtr || !thisPtr->m_pkEmitterObj || !thisPtr->m_pkTarget)
+		if (!thisPtr || !thisPtr->m_pkEmitterObj || !thisPtr->m_pkTarget || thisPtr->m_pkTarget->GetMaterialProperty()->m_emit == NiColor(0, 0, 0) || g_OCSettings.iEnableVisualEffects < 1)
 		{
 			ComputeInitPosVelocity(thisPtr, edx, arg0, arg4);
 			return;
 		}
-
 		// Look up the heat data for this emitter object
 		if (auto it = activeInstances.find(thisPtr->m_pkEmitterObj); it != activeInstances.end())
 		{
@@ -333,7 +372,6 @@ namespace Overcharge
 				matProp->m_emit = NiColor(1, 1, 1);
 			}
 		}
-
 		ComputeInitPosVelocity(thisPtr, edx, arg0, arg4);
 	}
 
@@ -351,7 +389,7 @@ namespace Overcharge
 
 	inline void __fastcall ColorModifierUpdate(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData) 
 	{
-		if (!apData->m_pkColor || !colorModifiers.contains(apThis)) 
+		if (!apData->m_pkColor || !colorModifiers.contains(apThis) || g_OCSettings.iEnableVisualEffects < 1)
 		{
 			OriginalColorModifierUpdate(apThis, edx, afTime, apData);
 			return;
@@ -373,6 +411,7 @@ namespace Overcharge
 				apData->m_pkColor[i].a = (apThis->kColor2.a - apThis->kColor1.a) * fadeInPercent + apThis->kColor1.a;
 			}
 		}
+		return;
 	}
 
 	void __stdcall ClearTrackedEmitters(NiAVObject* toDelete)
@@ -407,7 +446,7 @@ namespace Overcharge
 		UInt64 key = MakeHashKey(sourceRef, sourceWeap);
 
 		auto it = activeWeapons.find(key);
-		if (it != activeWeapons.end())
+		if (it != activeWeapons.end() && g_OCSettings.iEnableGameplayEffects > 0)
 		{
 			float& currInfo = it->second->state.fHeatVal;
 

@@ -28,14 +28,8 @@
     <ClCompile Include="tracy\public\TracyClient.cpp">
       <Filter>tracy</Filter>
     </ClCompile>
-    <ClCompile Include="NewParticleStuff.cpp">
-      <Filter>Wadelz</Filter>
-    </ClCompile>
-    <ClCompile Include="AnimationStuff.cpp">
-      <Filter>Wadelz</Filter>
-    </ClCompile>
     <ClCompile Include="OverchargeConfig.cpp">
-      <Filter>Wadelz\Headers</Filter>
+      <Filter>Wadelz</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -89,13 +83,13 @@
     <ClInclude Include="Defines.h">
       <Filter>nvse</Filter>
     </ClInclude>
-    <ClInclude Include="Logging.h">
-      <Filter>Wadelz\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="AnimationStuff.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
     <ClInclude Include="OverchargeConfig.hpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="WaldezTools.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
   </ItemGroup>

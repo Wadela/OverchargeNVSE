@@ -103,6 +103,7 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 	if (nvse->isEditor)	return true;
 
 	Overcharge::InitHooks();
+	Overcharge::LoadConfigMain("Data\\NVSE\\Plugins\\Overcharge.ini");
 	g_pluginHandle = nvse->GetPluginHandle();
 	g_seInterface = const_cast<NVSEInterface*>(nvse);
 

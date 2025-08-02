@@ -2,11 +2,28 @@
 
 #include "SimpleINILibrary.h"
 #include "MainHeader.hpp"
-#include "TESForm.hpp"
+#include "TESObjectWEAP.hpp"
+#include "BGSImpactDataSet.hpp"
 
 namespace Overcharge
 {
-	std::vector<std::string> SplitByDelimiter(const std::string& str, char delimiter);
+	extern case_insensitive_set extraModels;
+	extern case_insensitive_set definedModels;
+
+	struct OverchargeSettings
+	{
+		bool   bEnableCustomAnimations = true;
+		bool   bEnableCustomMeshes = true;
+		bool   bEnableCustomSounds = true;
+		bool   bEnableAshPiles = true;
+		bool   bEnableScriptedEffects = true;
+		UInt8  iEnableVisualEffects = 1;
+		UInt8  iEnableGameplayEffects = 1;
+		UInt8  iHUDIndicator = 1;
+		float  fHUDScale = 100.0f;
+		float  fHUDOffsetX = 0.0f;
+		float  fHUDOffsetY = 0.0f;
+	};
 
 	struct HeatConfiguration
 	{
@@ -45,8 +62,12 @@ namespace Overcharge
 		std::vector<std::string> sHeatedNodes;
 	};
 
-	extern std::unordered_map<UInt64, HeatConfiguration> weaponDataMap;
+	extern std::unordered_map<UInt64, const HeatConfiguration> weaponDataMap;
+	extern OverchargeSettings g_OCSettings;
 
+
+	void LoadConfigMain(const std::string& filePath);
+	void InitConfigModelPaths(TESObjectWEAP* rWeap);
 	void LoadWeaponConfigs(const std::string& filePath);
 }
 

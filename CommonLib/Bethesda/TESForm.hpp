@@ -421,4 +421,4 @@ public:
 	static void	__fastcall SetFormIDEx(TESForm* apThis, void*, UInt32 aiID, bool abUpdateFile);
 };
 
-static_assert(sizeof(TESForm) == 0x18);
+ASSERT_SIZE(TESForm, 0x18);

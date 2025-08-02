@@ -180,6 +180,7 @@
     <ClCompile Include="Bethesda\bhkUtilFunctions.cpp" />
     <ClCompile Include="Bethesda\BSFaceGenManager.cpp" />
     <ClCompile Include="Bethesda\BSMemory.cpp" />
+    <ClCompile Include="Bethesda\MagicItem.cpp" />
     <ClCompile Include="Bethesda\MemoryManager.cpp" />
     <ClCompile Include="Bethesda\ModelLoader.cpp" />
     <ClCompile Include="Bethesda\TESForm.cpp" />

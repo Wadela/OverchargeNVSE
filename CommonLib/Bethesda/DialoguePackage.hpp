@@ -2,21 +2,23 @@
 
 #include "TESPackage.hpp"
 #include "Character.hpp"
+#include "BSString.hpp"
 
 class TESSound;
 class TESTopicInfo;
 class TESQuest;
 
-struct DialogueResponse {
-	BSStringT			responseText;	// 000
-	UInt32				emotionType;	// 008
-	SInt32				emotionValue;	// 00C
-	BSStringT			voiceFileName;	// 010
-	TESIdleForm*		speakerIdle;	// 018	idle
-	TESIdleForm*		listenerIdle;	// 01C	idle
-	TESSound*			sound;			// 020
-	UInt32				unk024;			// 024	uninitialized, unused in xEdit
-	UInt32				unk028;			// 028
+class DialogueResponse {
+public:
+	BSString		strResponseText;
+	UInt32			uiEmotionType;
+	UInt32			uiEmotionValue;
+	BSString		strVoiceFilePath;
+	TESIdleForm*	pSpeakerAnimation;
+	TESIdleForm*	pListenerAnimation;
+	TESSound*		pSound;
+	Bitfield8		ucFlags;
+	UInt32			uiResponseNumber;
 };
 
 struct DialogueItem {

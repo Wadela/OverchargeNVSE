@@ -2,19 +2,69 @@
 
 namespace Overcharge
 {
-	std::vector<std::string> SplitByDelimiter(const std::string& str, char delimiter)
-	{
-		std::vector<std::string> result;
-		std::stringstream ss(str);
-		std::string item;
+	case_insensitive_set extraModels{};
+	case_insensitive_set definedModels{};
+	OverchargeSettings g_OCSettings;
 
-		while (std::getline(ss, item, delimiter)) {
-			size_t start = item.find_first_not_of(" \t");
-			size_t end = item.find_last_not_of(" \t");
-			if (start != std::string::npos && end != std::string::npos)
-				result.push_back(item.substr(start, end - start + 1));
+	void LoadConfigMain(const std::string& filePath)
+	{
+		const auto& settings = std::filesystem::directory_entry(filePath);
+
+		CSimpleIniA ini;
+		ini.SetUnicode();
+
+		if (ini.LoadFile(settings.path().string().c_str()) < 0)
+		{
+			Log() << std::format("Failed to load settings from '{}'", filePath);
+			return;
 		}
-		return result;
+
+		//Global
+		g_OCSettings.iEnableVisualEffects = ini.GetLongValue("Global", "iEnableVisualEffects", 1);
+		g_OCSettings.iEnableGameplayEffects = ini.GetLongValue("Global", "iEnableGameplayEffects", 1);
+		g_OCSettings.bEnableCustomAnimations = ini.GetBoolValue("Global", "bEnableCustomAnimations", true);
+		g_OCSettings.bEnableCustomMeshes = ini.GetBoolValue("Global", "bEnableCustomMeshes", true);
+		g_OCSettings.bEnableCustomSounds = ini.GetBoolValue("Global", "bEnableCustomSounds", true);
+
+		//User Interface
+		g_OCSettings.iHUDIndicator = ini.GetLongValue("User Interface", "iHUDIndicator", 1);
+		g_OCSettings.fHUDScale = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDScale", 100.0));
+		g_OCSettings.fHUDOffsetX = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDOffsetX", 0.0));
+		g_OCSettings.fHUDOffsetY = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDOffsetY", 0.0));
+
+		//Experimental
+		g_OCSettings.bEnableAshPiles = ini.GetBoolValue("Experimental", "bEnableAshPiles", true);
+		g_OCSettings.bEnableScriptedEffects = ini.GetBoolValue("Experimental", "bEnableScriptedEffects", true);
+
+		//Load all ash pile entries
+
+		if (g_OCSettings.bEnableScriptedEffects == true)
+		{
+			for (int i = 0;; ++i)
+			{
+				std::string key = "sAshPile" + std::to_string(i);
+				const char* val = ini.GetValue("Experimental", key.c_str(), nullptr);
+
+				if (!val)
+					break;
+
+				definedModels.emplace(val);
+			}
+		}
+	}
+
+	void InitConfigModelPaths(TESObjectWEAP* rWeap)
+	{
+		if (!rWeap || !rWeap->projectile || !rWeap->impactDataSet) return;
+
+		definedModels.insert(rWeap->projectile->kMuzzleFlash.kModel.StdStr());
+		definedModels.insert(rWeap->projectile->kModel.StdStr());
+
+		for (auto impact : rWeap->impactDataSet->impactDatas)
+		{
+			if (impact)
+			definedModels.insert(impact->kModel.StdStr());
+		}
 	}
 
 	void LoadWeaponConfigs(const std::string& filePath)
@@ -24,7 +74,20 @@ namespace Overcharge
 			if (entry.path().extension() == ".ini")
 			{
 				std::string weapEID = entry.path().stem().string();
-				UInt32 weapFID = TESForm::GetFormIDByEdID(weapEID.c_str());
+
+				TESForm* weapForm = TESForm::GetByID(weapEID.c_str());
+
+				if (!weapForm)
+				{
+					Log() << "Could not find form from editor ID: " << weapEID;
+					continue;
+				}
+
+				UInt32 weapFID = weapForm->uiFormID;
+				if (TESObjectWEAP* rWeap = reinterpret_cast<TESObjectWEAP*>(weapForm))
+				{
+					InitConfigModelPaths(rWeap);
+				}
 				if (!weapFID)
 				{
 					Log() << "Could not find editor ID: " << weapEID;
@@ -68,10 +131,12 @@ namespace Overcharge
 					config.iHeatEffectFlags = ini.GetLongValue(secItem, "iHeatEffectFlags", 0);
 					config.iMinDamage = ini.GetLongValue(secItem, "iMinDamage", 0);
 					config.iMaxDamage = ini.GetLongValue(secItem, "iMaxDamage", 0);
-					config.iMinCritDamage = ini.GetLongValue(secItem, "iMinCritDamage", 0);
-					config.iMaxCritDamage = ini.GetLongValue(secItem, "iMaxCritDamage", 0);
+					config.iMinCritDamage = ini.GetLongValue(secItem, "iMinCriticalDamage", 0);
+					config.iMaxCritDamage = ini.GetLongValue(secItem, "iMaxCriticalDamage", 0);
 					config.iMinProjectileSpeedPercent = ini.GetLongValue(secItem, "iMinProjectileSpeedPercent", 0);
 					config.iMaxProjectileSpeedPercent = ini.GetLongValue(secItem, "iMaxProjectileSpeedPercent", 0);
+					config.iMinProjectileSizePercent = ini.GetLongValue(secItem, "iMinProjectileSizePercent", 0);
+					config.iMaxProjectileSizePercent = ini.GetLongValue(secItem, "iMaxProjectileSizePercent", 0);
 					std::string value = ini.GetValue(secItem, "iMinColor", "0");  // default as string!
 					config.iMinColor = static_cast<UInt32>(std::stoul(value, nullptr, 16));
 					std::string value2 = ini.GetValue(secItem, "iMaxColor", "0");  // default as string!

@@ -1,6 +1,6 @@
 #pragma once
 #include "TESForm.hpp"
-
+#include "actor.hpp"
 class TESObjectREFR;
 class TESIdleForm;
 class TESTopic;
@@ -343,7 +343,7 @@ public:
 		//	04C, 05C and 06C are the same 4 DWord struct onBegin onEnd onChange, { TESIdle* idle; EmbeddedScript* script; Topic* topic; UInt32 unk0C; }
 		//	07C is a DWord
 
-	void				SetTarget(TESObjectREFR* refr);
+	/*void				SetTarget(TESObjectREFR* refr);
 	void				SetTarget(TESForm* baseForm, UInt32 count);
 	void				SetTarget(EnumObjectType typeCode, UInt32 count);
 	void				SetCount(UInt32 aCount);
@@ -376,6 +376,6 @@ public:
 	static const char*	StringForObjectCode(UInt8 objCode);
 	static UInt8		ObjectCodeForString(const char* objString);
 	static bool			IsValidObjectCode(UInt8 o) { return o < kObjectType_Max; }
-	static const char*	StringForProcedureCode(EnumProcedureType proc);
+	static const char*	StringForProcedureCode(EnumProcedureType proc);*/
 };
 static_assert(sizeof(TESPackage) == 0x80);

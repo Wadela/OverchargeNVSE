@@ -121,8 +121,8 @@ public:
 	virtual void					GetUnk0B4();
 	virtual void					FindSpecialIdletoPlay();
 	virtual void					Unk_12();
-	virtual void					Unk_13();
-	virtual void					Unk_14();
+	virtual MagicItem*				GetCurrentPackageSpell() const;
+	virtual void					SetCurrentPackageSpell(MagicItem* apSpell);
 	virtual void					Unk_15();
 	virtual void					Unk_16();
 	virtual void					Unk_17();
