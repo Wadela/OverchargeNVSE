@@ -189,9 +189,10 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="NifOverride.cpp" />
     <ClCompile Include="Overcharge.cpp" />
     <ClCompile Include="OverchargeConfig.cpp" />
-    <ClCompile Include="Source.cpp" />
+    <ClCompile Include="OverchargeHooks.cpp" />
     <ClCompile Include="tracy\public\TracyClient.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release - Tracy|Win32'">
       </ForcedIncludeFiles>
@@ -209,7 +210,6 @@
     <ClInclude Include="..\libraries\json.h" />
     <ClInclude Include="..\libraries\SimpleINILibrary.h" />
     <ClInclude Include="..\nvse\utility.h" />
-    <ClInclude Include="AnimationStuff.hpp" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="definitions.h" />
     <ClInclude Include="InitHooks.hpp" />
@@ -218,6 +218,7 @@
     <ClInclude Include="NifOverride.hpp" />
     <ClInclude Include="OverchargeConfig.hpp" />
     <ClInclude Include="Overcharge.hpp" />
+    <ClInclude Include="OverchargeHooks.hpp" />
     <ClInclude Include="WaldezTools.hpp" />
   </ItemGroup>
   <ItemGroup>

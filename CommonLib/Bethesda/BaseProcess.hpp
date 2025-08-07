@@ -367,7 +367,7 @@ public:
 	virtual void					PushActorAway(Actor* pushed, Float32 posX, Float32 posY, Float32 posZ, Float32 force);
 	virtual void					UpdateKnockState();
 	virtual void					Unk_108();
-	virtual void					Unk_109();
+	virtual void					SetWeaponSequence(int index, BSAnimGroupSequence* sequence);
 	virtual void					Unk_10A();
 	virtual float					GetAngle1D0();
 	virtual void					Unk_10C();
@@ -383,7 +383,7 @@ public:
 	virtual void					SetWeaponOut(Actor* actor, bool weaponOut);
 	virtual void					Unk_117();
 	virtual void					Unk_118();
-	virtual void					Unk_119(Actor* actor);
+	virtual void					Update3DModel(Actor* actor);
 	virtual void					Set3DUpdateFlag(UInt32 unk);
 	virtual void					Unk_11B();
 	virtual void					Unk_11C();

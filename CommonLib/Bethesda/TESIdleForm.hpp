@@ -36,12 +36,12 @@ public:
 	};
 
 	TESModelAnim		anim;			// 018
-	TESCondition	conditions;		// 030
+	TESCondition		conditions;		// 030
 	Data				data;			// 038
 	UInt32				unk040;			// 040	NiFormArray, contains all idle anims in path if eIFgf_flagUnknown is set
-	TESIdleForm* parent;		// 044
-	TESIdleForm* previous;		// 048
-	BSStringT				str04C;			// 04C
+	TESIdleForm*		parent;			// 044
+	TESIdleForm*		previous;		// 048
+	BSString			str04C;			// 04C
 };
 
 ASSERT_SIZE(TESIdleForm, 0x54);

@@ -6,6 +6,7 @@
 #include <BGSSaveLoadGame.hpp>
 #include "Overcharge.hpp"
 #include "OverchargeConfig.hpp"
+#include <OverchargeHooks.hpp>
 //#include <tracy/Tracy.hpp>
 
 bool IsGamePaused()

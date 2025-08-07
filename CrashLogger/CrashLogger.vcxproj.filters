@@ -16,7 +16,7 @@
       <Filter>nvse</Filter>
     </ClCompile>
     <ClCompile Include="definitions.cpp" />
-    <ClCompile Include="Source.cpp">
+    <ClCompile Include="OverchargeHooks.cpp">
       <Filter>Wadelz</Filter>
     </ClCompile>
     <ClCompile Include="Overcharge.cpp">
@@ -29,6 +29,9 @@
       <Filter>tracy</Filter>
     </ClCompile>
     <ClCompile Include="OverchargeConfig.cpp">
+      <Filter>Wadelz</Filter>
+    </ClCompile>
+    <ClCompile Include="NifOverride.cpp">
       <Filter>Wadelz</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,15 +86,13 @@
     <ClInclude Include="Defines.h">
       <Filter>nvse</Filter>
     </ClInclude>
-    <ClInclude Include="AnimationStuff.hpp">
-      <Filter>Wadelz\Headers</Filter>
-    </ClInclude>
     <ClInclude Include="OverchargeConfig.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
     <ClInclude Include="WaldezTools.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
+    <ClInclude Include="OverchargeHooks.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="exports.def" />

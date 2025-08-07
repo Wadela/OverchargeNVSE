@@ -4,20 +4,13 @@
 #include "NiFixedString.hpp"
 #include "NiParticles.hpp"
 #include "NiParticlesData.hpp"
+#include "NiPSysData.hpp"
 
 class NiParticleInfo;
 class NiParticleSystem;
 class NiParticlesData;
 
 NiSmartPointer(NiPSysModifier);
-
-struct NiPSysData : NiParticlesData
-{
-	NiParticleInfo*		m_pkParticleInfo;
-	float*				m_pfRotationSpeeds;
-	unsigned __int16	m_usNumAddedParticles;
-	unsigned __int16	m_usAddedParticlesBase;
-};
 
 class NiPSysModifier : public NiObject {
 public:

@@ -4,16 +4,16 @@ namespace Overcharge
 {
 	case_insensitive_set extraModels{};
 	case_insensitive_set definedModels{};
+
+	std::unordered_map<UInt64, const HeatConfiguration>	weaponDataMap;
 	OverchargeSettings g_OCSettings;
 
 	void LoadConfigMain(const std::string& filePath)
 	{
-		const auto& settings = std::filesystem::directory_entry(filePath);
-
 		CSimpleIniA ini;
 		ini.SetUnicode();
 
-		if (ini.LoadFile(settings.path().string().c_str()) < 0)
+		if (ini.LoadFile(filePath.c_str()) < 0)
 		{
 			Log() << std::format("Failed to load settings from '{}'", filePath);
 			return;
@@ -37,8 +37,7 @@ namespace Overcharge
 		g_OCSettings.bEnableScriptedEffects = ini.GetBoolValue("Experimental", "bEnableScriptedEffects", true);
 
 		//Load all ash pile entries
-
-		if (g_OCSettings.bEnableScriptedEffects == true)
+		if (g_OCSettings.iEnableVisualEffects == true)
 		{
 			for (int i = 0;; ++i)
 			{
@@ -84,21 +83,21 @@ namespace Overcharge
 				}
 
 				UInt32 weapFID = weapForm->uiFormID;
+				if (!weapFID)
+				{
+					Log() << "Could not find form ID: " << weapEID;
+					continue;
+				}
 				if (TESObjectWEAP* rWeap = reinterpret_cast<TESObjectWEAP*>(weapForm))
 				{
 					InitConfigModelPaths(rWeap);
-				}
-				if (!weapFID)
-				{
-					Log() << "Could not find editor ID: " << weapEID;
-					continue;
 				}
 
 				CSimpleIniA ini;
 				ini.SetUnicode();
 				if (ini.LoadFile(entry.path().string().c_str()) < 0)
 				{
-					Log() << std::format("Failed to load config: {}", filePath);
+					Log() << std::format("Failed to load config: {}", entry.path().string());
 					continue;
 				}
 
@@ -151,7 +150,7 @@ namespace Overcharge
 					std::string nodes = ini.GetValue(secItem, "sHeatedNodes", "");
 					config.sHeatedNodes = SplitByDelimiter(nodes, ',');
 
-					auto [insertIt, inserted] = weaponDataMap.try_emplace(key, config);
+					weaponDataMap.try_emplace(key, config);
 				}
 			}
 		}

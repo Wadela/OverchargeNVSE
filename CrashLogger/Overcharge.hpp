@@ -1,8 +1,6 @@
 #pragma once
 
 #include "MainHeader.hpp"
-#include "NiColor.hpp"
-#include <NiParticleSystem.hpp>
 #include "OverchargeConfig.hpp"
 
 namespace Overcharge
@@ -50,13 +48,6 @@ namespace Overcharge
         NiMaterialPropertyPtr       matProp;
 
         std::vector<NiAVObjectPtr>  targetBlocks;
-
-        UInt32  RGBtoUInt32(const NiColor& color) const;
-        NiColor UInt32toRGB(const UInt32 color) const;
-        NiColor UInt32toHSV(const UInt32 color) const;
-        NiColor RGBtoHSV(const NiColor& color) const;                   //RGB -> Hue, Saturation, Value
-        NiColor HSVtoRGB(const NiColor& hsv) const;                     //Hue, Saturation, Value -> RGB
-        NiColor SmoothShift(float currentHeat) const;
     };
 
     struct HeatData
@@ -69,8 +60,17 @@ namespace Overcharge
         const HeatConfiguration* data;
     };
 
-    extern std::unordered_map<UInt64, std::shared_ptr<HeatData>> activeWeapons;
+    UInt32  RGBtoUInt32(const NiColor& color);
+    NiColor UInt32toRGB(const UInt32 color);
+    NiColor UInt32toHSV(const UInt32 color);
+    NiColor RGBtoHSV(const NiColor& color);                         //RGB -> Hue, Saturation, Value
+    NiColor HSVtoRGB(const NiColor& hsv);                           //Hue, Saturation, Value -> RGB
+
+    NiColor DesaturateRGB(NiColor rgb, float factor);
+    NiColorA DesaturateRGBA(NiColorA rgba, float factor);
+
+    NiColor SmoothColorShift(float currentHeat, UInt32 startCol, UInt32 targetCol);
 
     HeatData MakeHeatFromConfig(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode);
-    void WeaponCooldown();
+
 }

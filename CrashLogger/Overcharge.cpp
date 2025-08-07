@@ -19,7 +19,7 @@ namespace Overcharge
         fHeatVal(0.0f), fHeatPerShot(perShot), fCooldownRate(cooldown) {
     }
 
-    UInt32 HeatFX::RGBtoUInt32(const NiColor& color) const
+    UInt32 RGBtoUInt32(const NiColor& color)
     {
         UInt8 r = static_cast<UInt8>(color.r * 255.0f + 0.5f);
         UInt8 g = static_cast<UInt8>(color.g * 255.0f + 0.5f);
@@ -28,7 +28,7 @@ namespace Overcharge
         return (b << 16) | (g << 8) | r;
     }
 
-    NiColor HeatFX::RGBtoHSV(const NiColor& color) const //RGB -> Hue, Saturation, Value
+    NiColor RGBtoHSV(const NiColor& color) //RGB -> Hue, Saturation, Value
     {
         float r = color.r, g = color.g, b = color.b;
         float max = (std::max)({ r, g, b });
@@ -55,7 +55,7 @@ namespace Overcharge
         return out;
     }
 
-    NiColor HeatFX::HSVtoRGB(const NiColor& hsv) const //Hue, Saturation, Value -> RGB
+    NiColor HSVtoRGB(const NiColor& hsv)//Hue, Saturation, Value -> RGB
     {
         float C = hsv.b * hsv.g;
         float X = C * (1 - fabs(fmod(hsv.r / 60.0f, 2) - 1));
@@ -72,7 +72,7 @@ namespace Overcharge
         return NiColor(r + m, g + m, b + m);
     }
 
-    NiColor HeatFX::UInt32toRGB(const UInt32 color) const
+    NiColor UInt32toRGB(const UInt32 color)
     {
         float r = ((color >> 16) & 0xFF) / 255.0f;
         float g = ((color >> 8) & 0xFF) / 255.0f;
@@ -81,13 +81,28 @@ namespace Overcharge
         return NiColor(r, g, b);
     }
 
-    NiColor HeatFX::UInt32toHSV(const UInt32 color) const
+    NiColor UInt32toHSV(const UInt32 color)
     {
         NiColor RGB = UInt32toRGB(color);
         return RGBtoHSV(RGB);
     }
 
-    NiColor HeatFX::SmoothShift(float currentHeat) const
+    NiColor DesaturateRGB(NiColor rgb, float factor)
+    {
+        NiColor hsv = RGBtoHSV(rgb);
+        hsv.g *= (1.0f - factor);
+        return HSVtoRGB(hsv);
+    }
+
+    NiColorA DesaturateRGBA(NiColorA rgba, float factor)
+    {
+        NiColor hsv = RGBtoHSV(NiColor(rgba.r, rgba.g, rgba.b));
+        hsv.g *= (1.0f - factor);
+        NiColor rgb = HSVtoRGB(hsv);
+        return NiColorA(rgb.r, rgb.g, rgb.b, rgba.a);
+    }
+
+    NiColor SmoothColorShift(float currentHeat, UInt32 startCol, UInt32 targetCol)
     {
         float progress = std::clamp(currentHeat / 100.0f, 0.0f, 1.0f);
 
