@@ -189,7 +189,6 @@
       </ForcedIncludeFiles>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="NifOverride.cpp" />
     <ClCompile Include="Overcharge.cpp" />
     <ClCompile Include="OverchargeConfig.cpp" />
     <ClCompile Include="OverchargeHooks.cpp" />

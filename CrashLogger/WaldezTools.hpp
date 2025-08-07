@@ -50,6 +50,36 @@ T InterpolateTowards(T minVal, T maxVal, float ratio) {
 	return static_cast<T>(std::round(std::clamp(interp, low, high)));
 }
 
+template<typename T>
+T InterpolateBasePercent(T baseValue, float minPercent, float maxPercent, float ratio)
+{
+	float minVal = minPercent / 100.0f;
+	float maxVal = maxPercent / 100.0f;
+	float totalPercent = minVal + (maxVal - minVal) * ratio;
+	float low = (std::min)(minVal, maxVal);
+	float high = (std::max)(minVal, maxVal);
+	totalPercent = std::clamp(totalPercent, low, high);
+
+	return static_cast<T>(baseValue * totalPercent);
+}
+
+template <typename T>
+T ScaleByPercentRange(T baseVal, T min, T max, float ratio)
+{
+	ratio = std::clamp(ratio, 0.0f, 1.0f);
+	if (baseVal == static_cast<T>(0)) {
+		return static_cast<T>(0);
+	}
+	float minPercent = static_cast<float>(min) / static_cast<float>(baseVal);
+	float maxPercent = static_cast<float>(max) / static_cast<float>(baseVal);
+	float totalPercent = minPercent + (maxPercent - minPercent) * ratio;
+	float low = (std::min)(minPercent, maxPercent);
+	float high = (std::max)(minPercent, maxPercent);
+	totalPercent = std::clamp(totalPercent, low, high);
+
+	return static_cast<T>(baseVal * totalPercent);
+}
+
 inline std::vector<std::string> SplitByDelimiter(const std::string& str, char delimiter)
 {
 	std::vector<std::string> result;

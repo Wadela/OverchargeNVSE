@@ -126,12 +126,12 @@ namespace Overcharge
     }
 
     HeatFX::HeatFX() :
-        currCol(0, 0, 0), startCol(0), targetCol(0),
+        currCol(0, 0, 0),
         targetBlocks() {
     }
 
-    HeatFX::HeatFX(UInt32 col1, UInt32 col2, std::vector<NiAVObjectPtr> names) :
-        currCol(UInt32toRGB(col1)), startCol(col1), targetCol(col2),
+    HeatFX::HeatFX(UInt32 col, std::vector<NiAVObjectPtr> names) :
+        currCol(UInt32toRGB(col)),
         targetBlocks(names) {
     }
 
@@ -167,7 +167,7 @@ namespace Overcharge
             }
         }
 
-        HeatFX visuals(data ? data->iMinColor : 0, data ? data->iMaxColor : 0, blocks);
+        HeatFX visuals(data ? data->iMinColor : 0, blocks);
         return HeatData(state, visuals, data);
     }
 

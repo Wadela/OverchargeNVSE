@@ -21,10 +21,10 @@ namespace Overcharge
         UInt16  uiDamage;
         UInt16  uiCritDamage;
 
+        float   fAccuracy;
+        float   fFireRate;
         float   fProjectileSpeed;
         float   fProjectileSize;
-        float   fFireRate;
-        float   fAccuracy;
 
         float   fHeatVal;
         float   fHeatPerShot;
@@ -39,11 +39,9 @@ namespace Overcharge
     struct HeatFX
     {
         HeatFX();
-        HeatFX(UInt32 col1, UInt32 col2, std::vector<NiAVObjectPtr> names);
+        HeatFX(UInt32 col, std::vector<NiAVObjectPtr> names);
 
         NiColor     currCol;
-        UInt32      startCol;
-        UInt32      targetCol;
 
         NiMaterialPropertyPtr       matProp;
 

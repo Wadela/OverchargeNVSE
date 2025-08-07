@@ -30,12 +30,12 @@ namespace Overcharge
 		}
 	}
 
-	inline void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, Actor* rActor)
+	static inline void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, Actor* rActor)
 	{
 		const NiNodePtr sourceNode = rActor->Get3D();
 
 		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
-		if (!equippedAmmo || g_OCSettings.iEnableGameplayEffects < 1)
+		if (!equippedAmmo)
 		{
 			ThisStdCall(0x523150, rWeap, rActor);
 			return;
@@ -48,17 +48,42 @@ namespace Overcharge
 			ThisStdCall(0x523150, rWeap, rActor);
 			return;
 		}
-
 		auto heat = GetOrCreateHeat(rActor->uiFormID, rWeap->uiFormID, sourceNode.m_pObject, dataIt->second);
 		heat->state.HeatOnFire();
-		if (heat->data != &dataIt->second)
-		{
-			heat->data = &dataIt->second;
-		}
+
+		//Backup Weapon Values - Backup needed since we're editing the baseform.
+		const UInt8 ogAmmoUse = rWeap->ammoUse;
+		const UInt8 ogProjectiles = rWeap->numProjectiles;
+		const UInt16 ogDamage = rWeap->usAttackDamage;
+		const UInt16 ogCritDamage = rWeap->criticalDamage;
+		const float ogMinSpread = rWeap->minSpread;
+
+		//Using ScaleByPercentRange() just in case a user has altered the base values at all.
+		const HeatConfiguration* config = heat->data;
+		const float hRatio = heat->state.fHeatVal / 100.0f;
+		heat->state.uiAmmoUsed = ScaleByPercentRange(rWeap->ammoUse, config->iMinAmmoUsed, config->iMaxAmmoUsed, hRatio);
+		heat->state.uiProjectiles = ScaleByPercentRange(rWeap->numProjectiles, config->iMinProjectiles, config->iMaxProjectiles, hRatio);
+		heat->state.uiDamage = ScaleByPercentRange(rWeap->usAttackDamage, config->iMinDamage, config->iMaxDamage, hRatio);
+		heat->state.uiCritDamage = ScaleByPercentRange(rWeap->criticalDamage, config->iMinCritDamage, config->iMaxCritDamage, hRatio);
+		heat->state.fAccuracy = ScaleByPercentRange(rWeap->minSpread, config->fMinAccuracy, config->fMaxAccuracy, hRatio);
+
+		rWeap->ammoUse = heat->state.uiAmmoUsed;
+		rWeap->numProjectiles = heat->state.uiProjectiles;
+		rWeap->usAttackDamage = heat->state.uiDamage;
+		rWeap->criticalDamage = heat->state.uiCritDamage;
+		rWeap->minSpread = heat->state.fAccuracy;
+
 		ThisStdCall(0x523150, rWeap, rActor);
+
+		//Restore Weapon Values - Need to restore so only the current weapon is altered.
+		rWeap->ammoUse = ogAmmoUse;
+		rWeap->numProjectiles = ogProjectiles;
+		rWeap->usAttackDamage = ogDamage;
+		rWeap->criticalDamage = ogCritDamage;
+		rWeap->minSpread = ogMinSpread;
 	}
 
-	inline void __fastcall MuzzleFlashEnable(MuzzleFlash* flash)
+	static inline void __fastcall MuzzleFlashEnable(MuzzleFlash* flash)
 	{
 		const NiNodePtr muzzleNode = flash->spNode;
 		UInt32 sourceID = flash->pSourceActor->uiFormID;
@@ -75,7 +100,7 @@ namespace Overcharge
 		ThisStdCall(0x9BB690, flash);
 	}
 
-	void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* proj)
+	static inline void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* proj)
 	{
 		const NiNodePtr projNode = proj->Get3D();
 		UInt32 sourceID = proj->pSourceRef->uiFormID;
@@ -83,10 +108,34 @@ namespace Overcharge
 
 		if (auto heat = GetActiveHeat(sourceID, weapID))
 		{
+			//Update Projectile Values - Don't need to backup because they're references.
+			float heatRatio = heat->state.fHeatVal / 100.0f;
+			projNode->m_kLocal.m_fScale = 
+				InterpolateBasePercent(
+					projNode->m_kLocal.m_fScale, 
+					heat->data->iMinProjectileSizePercent, 
+					heat->data->iMaxProjectileSizePercent, 
+					heatRatio
+				);
+			heat->state.fProjectileSize = projNode->m_kLocal.m_fScale;
+
+			proj->fSpeedMult =
+				InterpolateBasePercent(
+					proj->fSpeedMult,
+					heat->data->iMinProjectileSpeedPercent,
+					heat->data->iMaxProjectileSpeedPercent,
+					heatRatio
+				);
+			heat->state.fProjectileSpeed = proj->fSpeedMult;
+
+			//Update Current Color - Need to update early since it races WeaponCooldown() for current color.
 			heat->fx.currCol = SmoothColorShift(heat->state.fHeatVal, heat->data->iMinColor, heat->data->iMaxColor);
+
+			//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
 			TraverseNiNode<BSValueNode>(projNode, [&heat](BSValueNode* valueNode) {
 				activeInstances[valueNode] = heat;
 				});
+
 			TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometry* geom) {
 				SetEmissiveColor(geom, heat->fx.currCol);
 				});
@@ -97,53 +146,46 @@ namespace Overcharge
 		ThisStdCall(0x9A52F0, a1, proj);
 	}
 
-	BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
+	static inline void ImpactBase(Projectile* pProjectile, BSTempEffectParticle* impact)
+	{
+		if (!impact || !impact->spParticleObject || !pProjectile) return;
+
+		const NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
+		if (!impactNode) return;
+
+		UInt32 sourceID = pProjectile->pSourceRef->uiFormID;
+		UInt32 weapID = pProjectile->pSourceWeapon->uiFormID;
+		if (auto heat = GetActiveHeat(sourceID, weapID))
+		{
+			//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
+			TraverseNiNode<BSValueNode>(impactNode, [&heat](BSValueNode* valueNode) {
+				activeInstances[valueNode] = heat;
+				});
+			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometry* geom) {
+				SetEmissiveColor(geom, heat->fx.currCol);
+				});
+		}
+	}
+
+	static BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
 		Projectile* pProjectile = *reinterpret_cast<Projectile**>(ebp - 0x2B8);
 		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
-		if (!impact || !impact->spParticleObject || !pProjectile) return impact;
-
-		const NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
-		UInt32 sourceID = pProjectile->pSourceRef->uiFormID;
-		UInt32 weapID = pProjectile->pSourceWeapon->uiFormID;
-
-		if (auto heat = GetActiveHeat(sourceID, weapID))
-		{
-			TraverseNiNode<BSValueNode>(impactNode, [&heat](BSValueNode* valueNode) {
-				activeInstances[valueNode] = heat;
-				});
-			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometry* geom) {
-				SetEmissiveColor(geom, heat->fx.currCol);
-				});
-		}
+		ImpactBase(pProjectile, impact);
 		return impact;
 	}
 
-	BSTempEffectParticle* __cdecl ImpactActorWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
+	static BSTempEffectParticle* __cdecl ImpactActorWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
 		Projectile* pProjectile = *reinterpret_cast<Projectile**>(ebp - 0x2B0);
 		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
-		if (!impact || !impact->spParticleObject || !pProjectile) return impact;
-
-		const NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
-		UInt32 sourceID = pProjectile->pSourceRef->uiFormID;
-		UInt32 weapID = pProjectile->pSourceWeapon->uiFormID;
-
-		if (auto heat = GetActiveHeat(sourceID, weapID))
-		{
-			TraverseNiNode<BSValueNode>(impactNode, [&heat](BSValueNode* valueNode) {
-				activeInstances[valueNode] = heat;
-				});
-			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometry* geom) {
-				SetEmissiveColor(geom, heat->fx.currCol);
-				});
-		}
+		ImpactBase(pProjectile, impact);
 		return impact;
 	}
 
-	MagicShaderHitEffect* __fastcall MSHEInit(MagicShaderHitEffect* thisPtr, void* edx, TESObjectREFR* target, TESEffectShader* a3, float duration)
+	static MagicShaderHitEffect* __fastcall MSHEInit(MagicShaderHitEffect* thisPtr, void* edx, TESObjectREFR* target, TESEffectShader* a3, float duration)
 	{
 		Actor* targetActor = reinterpret_cast<Actor*>(target);
 		if (!targetActor) return ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
@@ -165,7 +207,7 @@ namespace Overcharge
 		return ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
 	}
 
-	TESObjectREFR* __fastcall CreateRefAtLocation(TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject, NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior, TESWorldSpace* pWorld, TESObjectREFR* pReference, BGSPrimitive* pAddPrimitive, void* pAdditionalData)
+	static TESObjectREFR* __fastcall CreateRefAtLocation(TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject, NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior, TESWorldSpace* pWorld, TESObjectREFR* pReference, BGSPrimitive* pAddPrimitive, void* pAdditionalData)
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
 		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
@@ -177,6 +219,7 @@ namespace Overcharge
 
 		if (auto heat = GetActiveHeat(killerID, killerWeapID))
 		{
+			//LoadGraphics() is called earlier than the game usually would so we can control the pile's color.
 			NiNodePtr node = pObject->LoadGraphics(expl);
 
 			TraverseNiNode<NiGeometry>(node, [&heat](NiGeometry* geom) {
@@ -197,7 +240,7 @@ namespace Overcharge
 		}
 	}
 
-	void __fastcall VertexColorModifier(NiPSysVolumeEmitter* thisPtr, void* edx, NiPoint3* arg0, NiPoint3* arg4)
+	static void __fastcall VertexColorModifier(NiPSysVolumeEmitter* thisPtr, void* edx, NiPoint3* arg0, NiPoint3* arg4)
 	{
 		if (!thisPtr || !thisPtr->m_pkEmitterObj || !thisPtr->m_pkTarget)
 		{
@@ -206,6 +249,7 @@ namespace Overcharge
 		}
 		if (auto it = activeInstances.find(thisPtr->m_pkEmitterObj); it != activeInstances.end())
 		{
+			//Bright or more opaque particles should typically use a DstBlendMode of 'One' so checking it filters particles like smoke or dust.
 			NiAlphaPropertyPtr alpha = thisPtr->m_pkTarget->GetAlphaProperty();
 			if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::AlphaFunction::ALPHA_ONE))
 			{
@@ -217,11 +261,13 @@ namespace Overcharge
 				thisPtr->m_kInitialColor = heatInfo->fx.currCol;
 				for (const auto& modifier : thisPtr->m_pkTarget->m_kModifierList)
 				{
+					//Adding the active color modifier to target it for a later detour of its update.
 					if (const auto scm = modifier->NiDynamicCast<BSPSysSimpleColorModifier>())
 					{
 						colorModifiers.emplace(scm);
 					}
 				}
+				//Disabling emissive colors so the vertex colors control the appearance.
 				if (auto matProp = thisPtr->m_pkTarget->GetMaterialProperty())
 				{
 					matProp->m_emit = NiColor(1, 1, 1);
@@ -243,13 +289,14 @@ namespace Overcharge
 		}
 	}
 
-	inline void __fastcall ColorModifierUpdate(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData) 
+	static inline void __fastcall ColorModifierUpdate(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData) 
 	{
 		if (!apData->m_pkColor || !colorModifiers.contains(apThis) || g_OCSettings.iEnableVisualEffects < 1)
 		{
 			OriginalColorModifierUpdate(apThis, edx, afTime, apData);
 			return;
 		}
+		//Detour Original Function - We ONLY update alphas otherwise the color modifier will reset vertex colors
 		for (int i = 0; i < apData->m_usActiveVertices; ++i) 
 		{
 			NiParticleInfo* pInfo = &apData->m_pkParticleInfo[i];
@@ -270,7 +317,7 @@ namespace Overcharge
 		return;
 	}
 
-	void __stdcall ClearTrackedEmitters(NiAVObject* toDelete)
+	static void __stdcall ClearTrackedEmitters(NiAVObject* toDelete)
 	{
 		activeInstances.erase(toDelete);
 
@@ -295,16 +342,14 @@ namespace Overcharge
 		}
 	}
 
-	void __fastcall SetAttackSpeedHook(Animation* thisPtr, void* edx, float animSpeed) 
+	static void __fastcall SetAttackSpeedHook(Animation* thisPtr, void* edx, float animSpeed) 
 	{
 		UInt32 sourceRef = thisPtr->pActor->uiFormID;
 		UInt32 sourceWeap = thisPtr->pActor->GetCurrentWeaponID();
 		if (auto heat = GetActiveHeat(sourceRef, sourceWeap))
 		{
-			float& currInfo = heat->state.fHeatVal;
-			float heatRatio = currInfo / 100.0f;
-			heatRatio = std::clamp(heatRatio, 0.0f, 1.0f);
-			animSpeed *= (1.0f + heatRatio);
+			float heatRatio = heat->state.fHeatVal / 100.0f;	
+			animSpeed = ScaleByPercentRange(animSpeed, heat->data->fMinFireRate, heat->data->fMaxFireRate, heatRatio);
 		}
 		ThisStdCall(0x4C0C90, thisPtr, animSpeed);
 	}

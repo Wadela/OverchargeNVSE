@@ -43,6 +43,7 @@ namespace Overcharge
 			heat->fx.matProp = NiMaterialProperty::CreateObject();
 			it->second = std::move(heat);
 		}
+		it->second->data = &config;
 		return it->second;
 	}
 
