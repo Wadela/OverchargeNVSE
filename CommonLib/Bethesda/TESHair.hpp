@@ -22,7 +22,7 @@ public:
 	TESModel		kModel;		// 24
 	TESTexture		kTexture;	// 3C
 
-	EHairFlags		eHairFlags;
+	EnumHairFlags	eHairFlags;
 	UInt8			pad49[3];	// 49
 };
 static_assert(sizeof(TESHair) == 0x4C);

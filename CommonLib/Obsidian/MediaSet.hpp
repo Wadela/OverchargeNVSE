@@ -1,5 +1,8 @@
 #pragma once
 #include "TESForm.hpp"
+#include "TESFullName.hpp"
+
+class TESSound;
 
 // 0xC4
 class MediaSet :
@@ -8,7 +11,7 @@ class MediaSet :
 {
 	struct MediaSetNameAndDB
 	{
-		BSStringT name;
+		BSString name;
 		float decibels;
 		float unk10;
 	};

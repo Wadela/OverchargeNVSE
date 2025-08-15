@@ -7,6 +7,11 @@ static const UInt32 s_Console__Print = 0x0071D0A0;
 
 class ConsoleManager {
 public:
+#if RUNTIME
+	MEMBER_FN_PREFIX(ConsoleManager);
+	DEFINE_MEMBER_FN(Print, void, s_Console__Print, const char* fmt, va_list args);
+#endif
+
 	ConsoleManager();
 	~ConsoleManager();
 
@@ -16,8 +21,8 @@ public:
 
 
 	void*				pScriptContext;
-	NiTList<BSStringT<char>> lPrintedLines;
-	NiTList<BSStringT<char>> lInputHistory;
+	NiTList<BSString>	lPrintedLines;
+	NiTList<BSString>	lInputHistory;
 	UInt32				uiHistoryIndex;
 	UInt32				uiUnk020;
 	UInt32				uiPrintedCount;

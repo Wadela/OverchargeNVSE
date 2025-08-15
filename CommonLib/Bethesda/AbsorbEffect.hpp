@@ -1,18 +1,20 @@
 #pragma once
+
 #include "ValueModifierEffect.hpp"
+#include "Gamebryo/NiSmartPointer.hpp"
 
-class NiRefObject;
+class NiNode;
+class BoltShaderProperty;
 
-// 0x5C
-class AbsorbEffect : public ValueModifierEffect
-{
+class AbsorbEffect : public ValueModifierEffect {
 public:
 	AbsorbEffect();
 	~AbsorbEffect();
 
-	NiRefObject* unk4C;
-	NiRefObject* unk50;
-	NiRefObject* unk54;
-	NiRefObject* unk58;
+	NiPointer<NiNode>				spRootNode;
+	NiPointer<NiNode>				spCasterNode;
+	NiPointer<NiNode>				spTargetNode;
+	NiPointer<BoltShaderProperty>	spShaderProperty;
 };
-static_assert(sizeof(AbsorbEffect) == 0x5C);
+
+ASSERT_SIZE(AbsorbEffect, 0x5C);

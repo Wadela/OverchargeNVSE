@@ -121,7 +121,9 @@
     <ClCompile Include="TESObjectREFR.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="Bethesda\MagicItem.cpp" />
+    <ClCompile Include="Bethesda\MagicItem.cpp">
+      <Filter>Type Methods</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp">
@@ -152,9 +154,6 @@
       <Filter>Types</Filter>
     </ClInclude>
     <ClInclude Include="Bethesda\ActorPathingMessageQueue.hpp">
-      <Filter>Types</Filter>
-    </ClInclude>
-    <ClInclude Include="Bethesda\ActorProcessManager.hpp">
       <Filter>Types</Filter>
     </ClInclude>
     <ClInclude Include="Bethesda\ActorsScriptTaskData.hpp">
@@ -725,9 +724,6 @@
       <Filter>Types</Filter>
     </ClInclude>
     <ClInclude Include="Bethesda\BSFaceGenBaseMorphExtraData.hpp">
-      <Filter>Types</Filter>
-    </ClInclude>
-    <ClInclude Include="Bethesda\BSFaceGenBinaryFile.hpp">
       <Filter>Types</Filter>
     </ClInclude>
     <ClInclude Include="Bethesda\BSFaceGenImage.hpp">
@@ -3928,12 +3924,21 @@
     <ClInclude Include="FastModifierCollection.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="NiTransformController.hpp" />
-    <ClInclude Include="BSAnimGroupSequence.cpp" />
     <ClInclude Include="NiTextKey.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="NiTextKeyExtraData.hpp" />
+    <ClInclude Include="CombatWorldStateList.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="NiTextKeyExtraData.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="NiTransformController.hpp">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="BSAnimGroupSequence.cpp">
+      <Filter>Type Methods</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Types">

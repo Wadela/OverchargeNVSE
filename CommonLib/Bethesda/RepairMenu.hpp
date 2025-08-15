@@ -1,6 +1,9 @@
 #pragma once
 #include "Menu.hpp"
 
+class MenuItemEntryList;
+class InventoryChanges;
+
 // 8C
 class RepairMenu : public Menu			// 1035
 {

@@ -1,59 +1,23 @@
 #pragma once
+
 #include "TESForm.hpp"
 
-// 0x24
-class BGSListForm :
-	public TESForm,					// 00
-	public BSSimpleList<TESForm*>	// 18 Added as a parent to be able to use BGSList as list
-{
+class BGSListForm : public TESForm {
 public:
 	BGSListForm();
 	~BGSListForm();
 
-	UInt32	uiNumAddedObjects;	// number of objects added via script - assumed to be at the start of the list
+	BSSimpleList<TESForm*>	kList;
+	uint32_t				uiNumAddedObjects;
 
-	SInt32 AddAt(TESForm* pForm, SInt32 n, bool const checkDupes = false) {
-		if (checkDupes) {
-			if (GetIndexOf(pForm) != eListInvalid)
-				return eListInvalid;
-		}
-		auto const result = BSSimpleList::AddAt(pForm, n);
-		if (result >= 0 && IsAddedObject(n))
-			uiNumAddedObjects++;
-
-		return result;
+	uint32_t Count() const {
+		return kList.ItemsInList();
 	}
 
-	SInt32 GetIndexOf(TESForm* pForm);
-
-
-	SInt32 RemoveForm(TESForm* pForm);
-	SInt32 ReplaceForm(TESForm* pForm, TESForm* pReplaceWith);
-
-	bool IsAddedObject(SInt32 idx) { return (idx >= 0) && (idx < uiNumAddedObjects); }
-
-#if RUNTIME
-	[[nodiscard]] static game_unique_ptr<BGSListForm> MakeUnique();
-#endif
-
-	SInt32 AddAt(TESForm* pForm, const SInt32 n) {
-		const SInt32 result = BSSimpleList::AddAt(pForm, n);
-		if (result >= 0 && IsAddedObject(n)) uiNumAddedObjects++;
-		return result;
+	TESForm* GetAt(uint32_t auID) const {
+		auto pResult = kList.GetAt(auID);
+		return pResult ? pResult->GetItem() : nullptr;
 	}
-
-	SInt32 GetIndexOf(TESForm* pForm);
-
-	TESForm* RemoveNth(SInt32 n) {
-		TESForm* form = BSSimpleList::RemoveNth(n);
-		if (form && IsAddedObject(n)) uiNumAddedObjects--;
-		return form;
-	}
-
-	SInt32 RemoveForm(TESForm* pForm);
-	SInt32 ReplaceForm(TESForm* pForm, TESForm* pReplaceWith);
-
-	bool IsAddedObject(SInt32 idx) { return (idx >= 0) && (idx < uiNumAddedObjects); }
-	bool ContainsRecursive(TESForm* form, UInt32 reclvl = 0);
 };
-static_assert(sizeof(BGSListForm) == 0x24);
+
+ASSERT_SIZE(BGSListForm, 0x024);

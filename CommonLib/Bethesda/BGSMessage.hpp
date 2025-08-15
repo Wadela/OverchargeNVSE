@@ -2,6 +2,7 @@
 #include "TESForm.hpp"
 #include "TESCondition.hpp"
 #include "TESDescription.hpp"
+#include "TESFullName.hpp"
 
 class BGSMenuIcon;
 
@@ -20,7 +21,7 @@ public:
 	};
 
 	struct Button {
-		BSStringT			kButtonText;	// 000
+		BSString			kButtonText;	// 000
 		TESCondition		kCondition;		// 008
 	};
 

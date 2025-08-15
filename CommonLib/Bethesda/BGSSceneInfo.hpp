@@ -1,36 +1,39 @@
 #pragma once
-#include "MemoryManager.hpp"
-#include "NiNode.hpp"
+
+#include "BSMemObject.hpp"
+#include "Gamebryo/NiNode.hpp"
 #include "BSString.hpp"
+
+class TESForm;
 
 class BGSSceneInfo {
 public:
 	BGSSceneInfo();
 	virtual ~BGSSceneInfo();
 
-	struct SCENE_INFO_DATA_STRUCT {
-		SCENE_INFO_DATA_STRUCT();
-		~SCENE_INFO_DATA_STRUCT();
+	struct Data {
+		Data();
+		~Data();
 
 		float pData[16];
 	};
 
 
-	SCENE_INFO_DATA_STRUCT SceneData;
-	TESForm* pAssociatedForm;
-
-	BS_ALLOCATOR;
+	Data		kSceneData;
+	TESForm*	pAssociatedForm;
 
 	void SetAssociatedForm(TESForm* apForm);
-	TESForm* GetAssociatedForm();
+	TESForm* GetAssociatedForm() const;
 
-	void SetSceneData(float apData, UInt32 auiIndex);
-	float GetSceneData(UInt32 auiIndex);
+	void SetSceneData(float apData, uint32_t auiIndex);
+	float GetSceneData(uint32_t auiIndex) const;
 
-	double GetMsUsage(UInt32 aeIndex);
+	double GetMsUsage(uint32_t aeIndex);
 
 	void CollectSceneDataFromNode(NiNode* apNode, bool abIncludeAddonNodes, bool abTrackActors);
 
 	static void CollectSceneDataForLoadedArea(float& afOutTNumber, float& afOutMNumber, bool abCollectTextures, bool abIncludeAddonNodes);
-	static void BuildMNumberString(float afMnumber, BSStringT& aOutText, bool abActor);
+	static void BuildMNumberString(float afMnumber, BSString& aOutText, bool abActor);
 };
+
+ASSERT_SIZE(BGSSceneInfo, 0x48)

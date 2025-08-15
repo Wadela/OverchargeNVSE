@@ -4,8 +4,10 @@
 #include "TESIcon.hpp"
 #include "BGSPickupPutdownSounds.hpp"
 #include "BSSimpleList.hpp"
+#include "TESFullName.hpp"
 
 class TESDescription;
+class TESNPC;
 
 // 0x80
 class BGSNote :

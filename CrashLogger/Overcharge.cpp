@@ -3,18 +3,22 @@
 namespace Overcharge
 {
     HeatState::HeatState() :
-        bIsOverheated(false), bEffectActive(false), 
-        uiAmmoUsed(0), uiProjectiles(0), uiDamage(0), uiCritDamage(0), 
+        bIsOverheated(false), uiAmmoUsed(0), uiProjectiles(0),
+        uiAmmoThreshold(0), uiProjThreshold(0), uiEnchThreshold(0), uiOCEffectThreshold(0),
+        uiDamage(0), uiCritDamage(0), uiObjectEffectID(0),
         fProjectileSpeed(0.0f), fProjectileSize(0.0f), fFireRate(0.0f), fAccuracy(0.0f),
         fHeatVal(0.0f), fHeatPerShot(0.0f), fCooldownRate(0.0f) {
     }
 
     HeatState::HeatState(
-        UInt8 ammo, UInt8 numProj, UInt16 dmg, UInt16 critDmg,
-        float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown) :
+            UInt8 OCEffect, UInt8 ammo, UInt8 numProj,
+            UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
+            UInt16 dmg, UInt16 critDmg, UInt32 enchID,
+            float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown) :
 
-        bIsOverheated(false), bEffectActive(false),
-        uiAmmoUsed(ammo), uiProjectiles(numProj), uiDamage(dmg), uiCritDamage(critDmg),
+        bIsOverheated(false), uiAmmoUsed(ammo), uiProjectiles(numProj), 
+        uiAmmoThreshold(ammoTH), uiProjThreshold(projTH), uiEnchThreshold(enchTH), uiOCEffectThreshold(effectTH),
+        uiDamage(dmg), uiCritDamage(critDmg), uiObjectEffectID(enchID),
         fProjectileSpeed(projSpd), fProjectileSize(projSize), fFireRate(rof), fAccuracy(accuracy),
         fHeatVal(0.0f), fHeatPerShot(perShot), fCooldownRate(cooldown) {
     }
@@ -142,14 +146,20 @@ namespace Overcharge
         HeatState state;
         if (data) {
             state = HeatState(
+                data->iOverchargeEffect,
                 data->iMinAmmoUsed,
                 data->iMinProjectiles,
+                data->iAddAmmoThreshold,
+                data->iAddProjectileThreshold,
+                data->iObjectEffectThreshold,
+                data->iOverchargeEffectThreshold,
                 data->iMinDamage,
                 data->iMinCritDamage,
+                data->iObjectEffectID,
                 data->iMinProjectileSpeedPercent,
                 data->iMinProjectileSizePercent,
                 data->fMinFireRate,
-                data->fMaxFireRate,
+                data->fMinAccuracy,
                 data->fHeatPerShot,
                 data->fCooldownPerSecond
             );

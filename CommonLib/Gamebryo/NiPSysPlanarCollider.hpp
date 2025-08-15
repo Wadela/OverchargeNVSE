@@ -2,6 +2,7 @@
 
 #include "NiPSysCollider.hpp"
 #include "NiAVObject.hpp"
+#include "NiPlane.hpp"
 
 NiSmartPointer(NiPSysPlanarCollider);
 

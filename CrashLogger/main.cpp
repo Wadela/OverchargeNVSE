@@ -4,7 +4,6 @@
 #include "InitHooks.hpp"
 #include "NifOverride.hpp"
 #include <BGSSaveLoadGame.hpp>
-#include "Overcharge.hpp"
 #include "OverchargeConfig.hpp"
 #include <OverchargeHooks.hpp>
 //#include <tracy/Tracy.hpp>

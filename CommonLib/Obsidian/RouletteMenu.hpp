@@ -1,6 +1,9 @@
 #pragma once
 #include "Menu.hpp"
 
+class NiControllerSequence;
+class TESCasino;
+
 // 0x4014
 class RouletteMenu : public Menu
 {

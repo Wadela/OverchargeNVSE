@@ -1,4 +1,5 @@
 #pragma once
+
 #include "TileImage.hpp"
 
 // 48
@@ -14,4 +15,5 @@ class RadialTile : public TileImage
 		distanceMax = kTileValue_user5
 	};
 };
-static_assert(sizeof(RadialTile) == 0x48);
+
+ASSERT_SIZE(RadialTile, 0x48);

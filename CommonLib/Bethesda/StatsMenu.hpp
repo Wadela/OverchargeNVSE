@@ -3,11 +3,16 @@
 #include "ListBox.hpp"
 #include <ActorValue.hpp>
 
+class BGSPerk;
+class SpellItem;
+class AlchemyItem;
+class EffectSetting;
+class TESReputation;
+
 struct PerkRank
 {
 	BGSPerk*	perk;
 	UInt8		rank;
-	UInt8		pad05[3];
 };
 
 // 2A4
@@ -178,8 +183,8 @@ public:
 	TileImage*						tile174;			// 174
 	TileImage*						tile178;			// 178
 	TileImage*						tile17C;			// 17C
-	ListBox<EnumActorValueCode>		kStatsList;			// 180
-	ListBox<EnumActorValueCode>		kSkillList;			// 1B0
+	ListBox<ActorValue::Index>		kStatsList;			// 180
+	ListBox<ActorValue::Index>		kSkillList;			// 1B0
 	ListBox<PerkRank>				kPerkRankList;		// 1E0
 	ListBox<EnumMiscStatCode>		miscStatIDList;		// 210
 	ListBox<StatusEffect>			statusEffListBox;	// 240
@@ -191,4 +196,5 @@ public:
 
 	static StatsMenu* GetSingleton() { return *reinterpret_cast<StatsMenu**>(0x11DACE0); };
 };
-static_assert(sizeof(StatsMenu) == 0x2A4);
+ASSERT_SIZE(StatsMenu, 0x2A4);
+

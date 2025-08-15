@@ -16,6 +16,7 @@
 
 class BGSVoiceType;
 class TESHair;
+class TESEyes;
 
 class TESRace :
 	public TESForm,

@@ -15,12 +15,12 @@ public:
 	NiColorA							kOverlayColor;
 	float								fTileAlpha;
 	NiPoint4							kTexScroll;
-	NiTexturingProperty::ClampMode	eClampMode;
+	NiTexturingProperty::ClampMode		eClampMode;
 	bool								byte90;
 	bool								bRotates;
 	bool								bHasVtxColors;
 	bool								bNoTexture;
-	BSStringT							strTexturePath;
+	BSString							strTexturePath;
 	RECT								kScissorRect;
 	bool								bUseScissorTest;
 

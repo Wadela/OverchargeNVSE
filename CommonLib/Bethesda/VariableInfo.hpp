@@ -24,7 +24,7 @@ struct VariableInfo
 	EnumType		eType;		// 10
 	UInt8			pad11[3];	// 11
 	UInt32			unk14;		// 14
-	BSStringT<char>	kName;		// 18
+	BSString		kName;		// 18
 
 	ScriptLocal* Resolve(ScriptEventList* evenBSSimpleList);
 	TESForm* GetTESForm();

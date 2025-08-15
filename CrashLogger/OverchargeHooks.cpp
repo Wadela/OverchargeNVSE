@@ -1,5 +1,7 @@
 #include  "OverchargeHooks.hpp"
 
+std::unordered_map<Actor*, BSAnimGroupSequence*> activeAnims;
+
 namespace Overcharge
 {
 	std::unordered_map<UInt64, std::shared_ptr<HeatData>>		activeWeapons;
@@ -146,12 +148,16 @@ namespace Overcharge
 		ThisStdCall(0x9A52F0, a1, proj);
 	}
 
-	static inline void ImpactBase(Projectile* pProjectile, BSTempEffectParticle* impact)
+	static BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
 	{
-		if (!impact || !impact->spParticleObject || !pProjectile) return;
+		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
+		Projectile* pProjectile = *reinterpret_cast<Projectile**>(ebp - 0x2B8);
+		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
+
+		if (!impact || !impact->spParticleObject || !pProjectile) return impact;
 
 		const NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
-		if (!impactNode) return;
+		if (!impactNode) return impact;
 
 		UInt32 sourceID = pProjectile->pSourceRef->uiFormID;
 		UInt32 weapID = pProjectile->pSourceWeapon->uiFormID;
@@ -165,14 +171,6 @@ namespace Overcharge
 				SetEmissiveColor(geom, heat->fx.currCol);
 				});
 		}
-	}
-
-	static BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
-	{
-		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
-		Projectile* pProjectile = *reinterpret_cast<Projectile**>(ebp - 0x2B8);
-		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
-		ImpactBase(pProjectile, impact);
 		return impact;
 	}
 
@@ -180,17 +178,42 @@ namespace Overcharge
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
 		Projectile* pProjectile = *reinterpret_cast<Projectile**>(ebp - 0x2B0);
+		Actor* actor = *reinterpret_cast<Actor**>(ebp - 0x18);
 		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
-		ImpactBase(pProjectile, impact);
+
+		if (!impact || !impact->spParticleObject || !pProjectile) return impact;
+
+		const NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
+		if (!impactNode) return impact;
+
+		UInt32 sourceID = pProjectile->pSourceRef->uiFormID;
+		UInt32 weapID = pProjectile->pSourceWeapon->uiFormID;
+		if (auto heat = GetActiveHeat(sourceID, weapID))		{
+			if (actor && heat->data->iObjectEffectID && heat->state.fHeatVal >= heat->data->iObjectEffectThreshold)
+			{
+				TESForm* effect = TESForm::GetByID(heat->data->iObjectEffectID);
+				actor->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, actor, 1, 0);
+			}
+
+			//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
+			TraverseNiNode<BSValueNode>(impactNode, [&heat](BSValueNode* valueNode) {
+				activeInstances[valueNode] = heat;
+				});
+			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometry* geom) {
+				SetEmissiveColor(geom, heat->fx.currCol);
+				});
+		}
 		return impact;
 	}
 
 	static MagicShaderHitEffect* __fastcall MSHEInit(MagicShaderHitEffect* thisPtr, void* edx, TESObjectREFR* target, TESEffectShader* a3, float duration)
 	{
+		MagicShaderHitEffect* mshe = ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
 		Actor* targetActor = reinterpret_cast<Actor*>(target);
-		if (!targetActor) return ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
+		if (!targetActor) return mshe;
 
 		Actor* killer = targetActor->pKiller;
+		if (!killer) return mshe;
 		UInt32 killerID = killer->uiFormID;
 		UInt32 killerWeapID = killer->GetCurrentWeaponID();
 
@@ -204,7 +227,7 @@ namespace Overcharge
 			a3->Data.edgeColorRGB = col;
 			a3->Data.uiFillColor1 = col;
 		}
-		return ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
+		return mshe;
 	}
 
 	static TESObjectREFR* __fastcall CreateRefAtLocation(TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject, NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior, TESWorldSpace* pWorld, TESObjectREFR* pReference, BGSPrimitive* pAddPrimitive, void* pAdditionalData)
@@ -214,6 +237,7 @@ namespace Overcharge
 		TESObjectREFR* expl = ThisStdCall<TESObjectREFR*>(0x4698A0, thisPtr, pObject, apLocation, apDirection, pInterior, pWorld, pReference, pAddPrimitive, pAdditionalData);
 
 		Actor* killer = targetActor->pKiller;
+		if (!killer) return expl;
 		UInt32 killerID = killer->uiFormID;
 		UInt32 killerWeapID = killer->GetCurrentWeaponID();
 

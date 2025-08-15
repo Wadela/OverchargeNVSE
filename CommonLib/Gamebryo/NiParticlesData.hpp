@@ -28,4 +28,4 @@ public:
 	CREATE_OBJECT(NiParticlesData, 0xA96600)
 };
 
-//ASSERT_SIZE(NiParticlesData, 0x70);
+ASSERT_SIZE(NiParticlesData, 0x70);

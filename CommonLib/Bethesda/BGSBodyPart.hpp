@@ -25,11 +25,11 @@ public:
 		kFlags_Absolute			= 1 << 6,
 	};
 
-	BSStringT			kPartNode;					// 04
-	BSStringT			kVATSTarget;				// 0C
-	BSStringT			kStartNode;					// 14
-	BSStringT			kPartName;					// 1C
-	BSStringT			kTargetBone;				// 24
+	BSString			kPartNode;					// 04
+	BSString			kVATSTarget;				// 0C
+	BSString			kStartNode;					// 14
+	BSString			kPartName;					// 1C
+	BSString			kTargetBone;				// 24
 	TESModel			kLimbReplacement;			// 2C
 	UInt32				unk44[6];					// 44	Another model?
 	Float32				fDamageMult;				// 5C

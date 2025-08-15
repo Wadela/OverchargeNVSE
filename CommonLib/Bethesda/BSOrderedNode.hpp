@@ -16,6 +16,7 @@ public:
 	bool bHasStaticBound;
 
 	CREATE_OBJECT(BSOrderedNode, 0xBC2CB0);
+	NIRTTI_ADDRESS(0x1201F84);
 
 	static void __fastcall OnVisibleEx(BSOrderedNode* apThis, void*, BSCullingProcess* apCuller);
 };

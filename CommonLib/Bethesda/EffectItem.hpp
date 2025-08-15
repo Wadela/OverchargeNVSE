@@ -48,35 +48,6 @@ public:
 	Float32			fCost;				// 18 on autocalc items this seems to be the cost
 	TESCondition	conditions;			// 1C
 
-	//bool HasActorValue() const;
-	//UInt32 GetActorValue() const;
-	//bool IsValidActorValue(UInt32 actorValue) const;
-	//void SetActorValue(UInt32 actorValue);
-
-	//bool IsScriptedEffect() const;
-	//UInt32 ScriptEffectRefId() const;
-	//UInt32 ScriptEffectSchool() const;
-	//UInt32 ScriptEffectVisualEffectCode() const;
-	//bool IsScriptEffectHostile() const;
-
-	//EffectItem* Clone() const;
-	//void CopyFrom(const EffectItem* from);
-	//static EffectItem* Create();
-	//static EffectItem* ProxyEffectItemFor(UInt32 effectCode);
-	//
-	//bool operator<(EffectItem*rhs) const;
-	//// return the magicka cost of this effect item
-	//// adjust for skill level if actorCasting is used
-	//float MagickaCost(TESForm* actorCasting = NULL) const;
-
-	//void SetMagnitude(UInt32 magnitude);
-	//void ModMagnitude(float modBy);
-	//void SetArea(UInt32 area);
-	//void ModArea(float modBy);
-	//void SetDuration(UInt32 duration);
-	//void ModDuration(float modBy);
-	//void SetRange(UInt32 range);
-	//bool IsHostile() const;
 	__forceinline int	GetSkillCode() { return ThisCall<signed int>(0x403EA0, this); };
 };
 static_assert(sizeof(EffectItem) == 0x24);
@@ -87,7 +58,7 @@ public:
 	EffectItemList();
 	~EffectItemList();
 
-	UInt32	unk00C;	// 00C
+	UInt32	uiHostileCount;	// 00C
 
 	virtual void Unk_00();
 	virtual void Unk_01();
@@ -99,11 +70,6 @@ public:
 	UInt32		CountItems() const;
 	const char* GetNthEIName(UInt32 whichEffect) const;
 
-	//	bool HasNonHostileItem() const;
-	//	UInt32 CountHostileItems() const;
-	//	UInt32 AddItem(EffectItem* effectItem);
-	//	UInt32 AddItemCopy(EffectItem* effectItem);
-	//	UInt32 CopyItemFrom(EffectItemList& fromList, UInt32 whichItem);
-	//	bool RemoveItem(UInt32 whichItem);
+
 };
 static_assert(sizeof(EffectItemList) == 0x10);

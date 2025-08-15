@@ -10,7 +10,7 @@ public:
 	BYTE						byte6C;
 	DWORD						dword70;
 	float						float74;
-	BSStringT					strWindowName;
+	BSString					strWindowName;
 	BYTE						byte80;
 	NiNodePtr					spNode84;
 	NiPointer<ShadowSceneNode>	spShadowSceneNode;

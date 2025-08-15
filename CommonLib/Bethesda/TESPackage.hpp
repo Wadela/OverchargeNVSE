@@ -6,6 +6,7 @@ class TESIdleForm;
 class TESTopic;
 class TESPackageData;
 class BGSIdleCollection;
+class TESCombatStyle;
 
 // 0x80
 class TESPackage : public TESForm

@@ -442,9 +442,9 @@ public:
 	bool MapWindowPointToBufferPoint(UInt32 auiX, UInt32 auiY, float& arfX, float& arfY, NiRenderTargetGroup* apTarget);
 };
 
-//ASSERT_SIZE(NiDX9Renderer, 0xB80);
-//ASSERT_OFFSET(NiDX9Renderer, m_pkAdapterDesc, 0x5D8);
-//ASSERT_OFFSET(NiDX9Renderer, m_kDefaultBound, 0x674);
-//ASSERT_OFFSET(NiDX9Renderer, m_eReplacementDataFormat, 0x880);
-//ASSERT_OFFSET(NiDX9Renderer, m_kBuffersToUseAtDisplayFrame, 0x900);
-//ASSERT_OFFSET(NiDX9Renderer, m_kD3DShaders, 0x90C);
+ASSERT_SIZE(NiDX9Renderer, 0xB80);
+ASSERT_OFFSET(NiDX9Renderer, m_pkAdapterDesc, 0x5D8);
+ASSERT_OFFSET(NiDX9Renderer, m_kDefaultBound, 0x674);
+ASSERT_OFFSET(NiDX9Renderer, m_eReplacementDataFormat, 0x880);
+ASSERT_OFFSET(NiDX9Renderer, m_kBuffersToUseAtDisplayFrame, 0x900);
+ASSERT_OFFSET(NiDX9Renderer, m_kD3DShaders, 0x90C);

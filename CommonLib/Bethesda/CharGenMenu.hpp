@@ -1,5 +1,6 @@
 #pragma once
 #include "Menu.hpp"
+#include "ListBox.hpp"
 
 class CharGenMenu : public Menu
 {

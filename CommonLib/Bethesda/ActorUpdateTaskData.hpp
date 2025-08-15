@@ -10,4 +10,4 @@ public:
 
 	static void __fastcall ExecuteTaskEx(ActorUpdateTaskData* apThis, void*, Actor* apActor);
 };
-static_assert(sizeof(ActorUpdateTaskData) == 0x3C);
+ASSERT_SIZE(ActorUpdateTaskData, 0x3C);

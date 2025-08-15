@@ -3,6 +3,8 @@
 
 struct ScriptEventList;
 class TESObjectREFR;
+class TESForm;
+class Script;
 
 // 0x14
 class ExtraScript : public BSExtraData {

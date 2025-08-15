@@ -25,7 +25,7 @@ public:
 	};
 
 	NiTexturePtr					spTexture;
-	BSStringT						strTexturePath;
+	BSString						strTexturePath;
 	NiTexturingProperty::ClampMode	eClampMode;
 	FalloffData						kFalloffData;
 

@@ -12,4 +12,4 @@ struct ActorPackage {
 	float			fPackageStartTime;
 	Bitfield32		uiFlags;
 };
-static_assert(sizeof(ActorPackage) == 0x18);
+ASSERT_SIZE(ActorPackage, 0x18);

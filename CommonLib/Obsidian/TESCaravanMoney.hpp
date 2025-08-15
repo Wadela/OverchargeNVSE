@@ -4,6 +4,7 @@
 #include "BGSMessageIcon.hpp"
 #include "TESValueForm.hpp"
 #include "BGSPickupPutdownSounds.hpp"
+#include "TESFullname.hpp"
 
 // 0xCC
 class TESCaravanMoney :

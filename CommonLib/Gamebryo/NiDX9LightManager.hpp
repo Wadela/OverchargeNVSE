@@ -6,6 +6,7 @@
 #include "NiVertexColorProperty.hpp"
 #include "NiTexturingProperty.hpp"
 #include "NiLight.hpp"
+#include "NiTPointerMap.hpp"
 
 class NiDX9LightManager {
 public:

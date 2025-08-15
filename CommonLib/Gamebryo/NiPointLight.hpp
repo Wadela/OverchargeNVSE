@@ -43,5 +43,4 @@ public:
 	CREATE_OBJECT(NiPointLight, 0xA7D6E0);
 	NIRTTI_ADDRESS(0x11F4A98);
 };
-
-ASSERT_SIZE(NiPointLight, LIGHT_SIZE);
+static_assert(sizeof(NiPointLight) == LIGHT_SIZE);

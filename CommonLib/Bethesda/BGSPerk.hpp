@@ -3,6 +3,7 @@
 #include "TESDescription.hpp"
 #include "TESIcon.hpp"
 #include "TESCondition.hpp"
+#include "TESFullName.hpp"
 
 class BGSPerkEntry;
 

@@ -1,6 +1,9 @@
 #pragma once
+
 #include "TESFullName.hpp"
 #include "EffectItem.hpp"
+
+class TESFile;
 
 // 0x1C
 class MagicItem :
@@ -13,7 +16,7 @@ public:
 
 	class Data {
 	public:
-		int32_t		iCostOverride;
+		SInt32		iCostOverride;
 		Bitfield32	uiFlags;
 	};
 
@@ -29,7 +32,7 @@ public:
 	virtual void					CopyMagicItemData(MagicItem* apItem);
 	virtual void					SaveMagicItemComponents();
 	virtual void					Endian();
-	virtual void					LoadMagicItemChunk(TESFile* apFile, uint32_t aeChunkID);
+	virtual void					LoadMagicItemChunk(TESFile* apFile, UInt32 aeChunkID);
 
 	//uint32_t GetMagicItemFormID() const;
 };

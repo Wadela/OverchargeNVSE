@@ -45,11 +45,11 @@ public:
 	Data* pkData;
 
 	// flag member functions
-	bool IsVisible() { return (data->flags & kFlag_Visible) == kFlag_Visible; }
-	bool CanTravel() { return (data->flags & kFlag_CanTravel) == kFlag_CanTravel; }
-	bool IsHidden() { return (data->flags & kFlag_Hidden) == kFlag_Hidden; }
-	void SetVisible(bool visible) { data->flags = (visible) ? (data->flags | kFlag_Visible) : (data->flags & ~kFlag_Visible); }
-	void SetCanTravel(bool travel) { data->flags = (travel) ? (data->flags | kFlag_CanTravel) : (data->flags & ~kFlag_CanTravel); }
-	void SetHidden(bool hidden) { data->flags = (hidden) ? (data->flags | kFlag_Hidden) : (data->flags & ~kFlag_Hidden); }
+	bool IsVisible() { return (pkData->flags & kFlag_Visible) == kFlag_Visible; }
+	bool CanTravel() { return (pkData->flags & kFlag_CanTravel) == kFlag_CanTravel; }
+	bool IsHidden() { return (pkData->flags & kFlag_Hidden) == kFlag_Hidden; }
+	void SetVisible(bool visible) { pkData->flags = (visible) ? (pkData->flags | kFlag_Visible) : (pkData->flags & ~kFlag_Visible); }
+	void SetCanTravel(bool travel) { pkData->flags = (travel) ? (pkData->flags | kFlag_CanTravel) : (pkData->flags & ~kFlag_CanTravel); }
+	void SetHidden(bool hidden) { pkData->flags = (hidden) ? (pkData->flags | kFlag_Hidden) : (pkData->flags & ~kFlag_Hidden); }
 };
 static_assert(sizeof(ExtraMapMarker) == 0x10);

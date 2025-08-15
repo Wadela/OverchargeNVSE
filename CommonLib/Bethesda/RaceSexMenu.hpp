@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Menu.hpp"
 
 class RaceSexMenu : public Menu

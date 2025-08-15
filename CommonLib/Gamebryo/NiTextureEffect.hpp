@@ -3,6 +3,7 @@
 #include "NiDynamicEffect.hpp"
 #include "NiTexture.hpp"
 #include "NiTexturingProperty.hpp"
+#include "NiPlane.hpp"
 
 NiSmartPointer(NiTextureEffect);
 

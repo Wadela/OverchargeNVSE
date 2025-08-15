@@ -3,6 +3,8 @@
 #include "Tile.hpp"
 #include "BSSoundHandle.hpp"
 
+class TESObjectREFR;
+
 // 2C
 struct HackingText
 {
@@ -12,7 +14,7 @@ struct HackingText
 		kBlinks = 0x2,
 	};
 
-	String str;
+	BSString str;
 	Tile*	pkTileText;
 	Tile::Value*	pkTileValueVisibility;
 	UInt32 displayRate;

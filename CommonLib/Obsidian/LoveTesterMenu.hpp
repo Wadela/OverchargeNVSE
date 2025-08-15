@@ -1,6 +1,8 @@
 #pragma once
 #include "Menu.hpp"
 
+class NiSourceTexture;
+
 // 0x230
 class LoveTesterMenu : public Menu
 {

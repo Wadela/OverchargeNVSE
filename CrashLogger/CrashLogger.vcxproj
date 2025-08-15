@@ -179,6 +179,7 @@
     <ClCompile Include="..\nvse\SafeWrite.cpp" />
     <ClCompile Include="..\nvse\Utilities.cpp" />
     <ClCompile Include="..\nvse\utility.cpp" />
+    <ClCompile Include="CommandsOvercharge.cpp" />
     <ClCompile Include="definitions.cpp" />
     <ClCompile Include="dllmain.c">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -209,6 +210,7 @@
     <ClInclude Include="..\libraries\json.h" />
     <ClInclude Include="..\libraries\SimpleINILibrary.h" />
     <ClInclude Include="..\nvse\utility.h" />
+    <ClInclude Include="CommandsOvercharge.hpp" />
     <ClInclude Include="Defines.h" />
     <ClInclude Include="definitions.h" />
     <ClInclude Include="InitHooks.hpp" />

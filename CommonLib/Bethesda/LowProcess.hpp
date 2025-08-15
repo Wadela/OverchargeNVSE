@@ -3,6 +3,12 @@
 #include "NiPoint2.hpp"
 #include "BSSimpleList.hpp"
 
+class TESForm;
+class ExtraDataList;
+class TESBoundObject;
+class BGSListForm;
+class TESFaction;
+
 class LowProcess : public BaseProcess
 {
 public:

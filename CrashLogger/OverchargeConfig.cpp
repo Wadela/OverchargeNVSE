@@ -118,16 +118,20 @@ namespace Overcharge
 					}
 					UInt64 key = MakeHashKey(weapFID, ammoFID);
 
+					config.bCanOverheat = ini.GetLongValue(secItem, "bCanOverheat", 1);
+					config.bCustomMeshes = ini.GetLongValue(secItem, "bAddCustomMeshes", 1);
 					config.iWeaponType = ini.GetLongValue(secItem, "iWeaponType", 0);
+
 					config.iMinProjectiles = ini.GetLongValue(secItem, "iMinProjectiles", 0);
 					config.iMaxProjectiles = ini.GetLongValue(secItem, "iMaxProjectiles", 0);
-					config.iAddProjectileThreshold = ini.GetLongValue(secItem, "iAddProjectileThreshold", 0);
 					config.iMinAmmoUsed = ini.GetLongValue(secItem, "iMinAmmoUsed", 0);
 					config.iMaxAmmoUsed = ini.GetLongValue(secItem, "iMaxAmmoUsed", 0);
+					config.iOverchargeEffect = ini.GetLongValue(secItem, "iOverchargeEffect", 0);
+					config.iOverchargeEffectThreshold = ini.GetLongValue(secItem, "iOverchargeEffectThreshold", 0);
 					config.iAddAmmoThreshold = ini.GetLongValue(secItem, "iAddAmmoThreshold", 0);
-					config.iHeatEffectThreshold = ini.GetLongValue(secItem, "iHeatEffectThreshold", 0);
-					config.iOverchargeFlags = ini.GetLongValue(secItem, "iOverchargeFlags", 0);
-					config.iHeatEffectFlags = ini.GetLongValue(secItem, "iHeatEffectFlags", 0);
+					config.iAddProjectileThreshold = ini.GetLongValue(secItem, "iAddProjectileThreshold", 0);
+					config.iObjectEffectThreshold = ini.GetLongValue(secItem, "iObjectEffectThreshold", 0);
+
 					config.iMinDamage = ini.GetLongValue(secItem, "iMinDamage", 0);
 					config.iMaxDamage = ini.GetLongValue(secItem, "iMaxDamage", 0);
 					config.iMinCritDamage = ini.GetLongValue(secItem, "iMinCriticalDamage", 0);
@@ -136,10 +140,17 @@ namespace Overcharge
 					config.iMaxProjectileSpeedPercent = ini.GetLongValue(secItem, "iMaxProjectileSpeedPercent", 0);
 					config.iMinProjectileSizePercent = ini.GetLongValue(secItem, "iMinProjectileSizePercent", 0);
 					config.iMaxProjectileSizePercent = ini.GetLongValue(secItem, "iMaxProjectileSizePercent", 0);
-					std::string value = ini.GetValue(secItem, "iMinColor", "0");  // default as string!
-					config.iMinColor = static_cast<UInt32>(std::stoul(value, nullptr, 16));
-					std::string value2 = ini.GetValue(secItem, "iMaxColor", "0");  // default as string!
-					config.iMaxColor = static_cast<UInt32>(std::stoul(value2, nullptr, 16));
+
+					std::string objEffect = ini.GetValue(secItem, "sObjectEffectID", "");
+					if (UInt32 effectID = TESForm::GetFormIDByEdID(objEffect.c_str()))
+					{
+						config.iObjectEffectID = effectID;
+					}
+					std::string minColor = ini.GetValue(secItem, "iMinColor", "0");  
+					config.iMinColor = static_cast<UInt32>(std::stoul(minColor, nullptr, 16));
+					std::string maxColor = ini.GetValue(secItem, "iMaxColor", "0");  
+					config.iMaxColor = static_cast<UInt32>(std::stoul(maxColor, nullptr, 16));
+
 					config.fHeatPerShot = ini.GetDoubleValue(secItem, "fHeatPerShot", 0.0);
 					config.fCooldownPerSecond = ini.GetDoubleValue(secItem, "fCooldownPerSecond", 0.0);
 					config.fMinFireRate = ini.GetDoubleValue(secItem, "fMinFireRate", 0.0);
@@ -147,8 +158,16 @@ namespace Overcharge
 					config.fMinAccuracy = ini.GetDoubleValue(secItem, "fMinAccuracy", 0.0);
 					config.fMaxAccuracy = ini.GetDoubleValue(secItem, "fMaxAccuracy", 0.0);
 					config.sAnimFileName = ini.GetValue(secItem, "sAnimFileName", "");
+
 					std::string nodes = ini.GetValue(secItem, "sHeatedNodes", "");
 					config.sHeatedNodes = SplitByDelimiter(nodes, ',');
+
+					std::string extraNodeString = ini.GetValue(secItem, "sExtraModels", "");
+					auto extraNodes = SplitByDelimiter(extraNodeString, ',');
+					for (std::string extraNode : extraNodes)
+					{
+						extraModels.insert(extraNode);
+					}
 
 					weaponDataMap.try_emplace(key, config);
 				}

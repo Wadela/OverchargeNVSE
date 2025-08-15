@@ -95,3 +95,44 @@ inline std::vector<std::string> SplitByDelimiter(const std::string& str, char de
 	}
 	return result;
 }
+
+template<typename T, size_t N>
+inline std::string FlagsToString(T flags, const std::array<std::pair<T, std::string_view>, N>& flagNames)
+{
+	if (flags == T(0)) return "None";
+	if (flags == ~T(0)) return "All";
+
+	std::ostringstream oss;
+	bool first = true;
+
+	for (const auto& [flag, name] : flagNames)
+	{
+		if (flags & flag)
+		{
+			if (!first) oss << " | ";
+			oss << name;
+			first = false;
+		}
+	}
+	return oss.str();
+}
+
+template<typename T, size_t N>
+inline T StringToFlags(const std::string_view& str, char delimter, const std::array<std::pair<T, std::string_view>, N>& flagNames)
+{
+	T result = 0;
+	auto strings = SplitByDelimiter(str, delimter);
+
+	for (const auto& string : strings)
+	{
+		for (const auto& [flag, name] : flagNames)
+		{
+			if (string == name)
+			{
+				result |= flag;
+				break;
+			}
+		}
+	}
+	return result;
+}

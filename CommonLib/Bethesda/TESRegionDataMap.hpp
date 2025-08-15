@@ -8,6 +8,6 @@ public:
 	TESRegionDataMap();
 	~TESRegionDataMap();
 
-	BSStringT kRegionName;	// 08
+	BSString kRegionName;	// 08
 };
 static_assert(sizeof(TESRegionDataMap) == 0x10);

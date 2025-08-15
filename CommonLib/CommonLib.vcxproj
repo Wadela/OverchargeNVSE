@@ -229,7 +229,6 @@
     <ClInclude Include="Bethesda\ActorPathHandler.hpp" />
     <ClInclude Include="Bethesda\ActorPathingMessage.hpp" />
     <ClInclude Include="Bethesda\ActorPathingMessageQueue.hpp" />
-    <ClInclude Include="Bethesda\ActorProcessManager.hpp" />
     <ClInclude Include="Bethesda\ActorsScriptTaskData.hpp" />
     <ClInclude Include="Bethesda\ActorUpdateTaskData.hpp" />
     <ClInclude Include="Bethesda\ActorValue.hpp" />
@@ -414,7 +413,6 @@
     <ClInclude Include="Bethesda\BSExtraData.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenAnimationData.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenBaseMorphExtraData.hpp" />
-    <ClInclude Include="Bethesda\BSFaceGenBinaryFile.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenImage.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenKeyframe.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenKeyframeMultiple.hpp" />
@@ -1098,6 +1096,7 @@
     <ClInclude Include="Bitwise.hpp" />
     <ClInclude Include="BSAnimGroupSequence.cpp" />
     <ClInclude Include="BSParticleSystemManager.h" />
+    <ClInclude Include="CombatWorldStateList.hpp" />
     <ClInclude Include="FastModifierCollection.hpp" />
     <ClInclude Include="Gamebryo\Ni2DBuffer.hpp" />
     <ClInclude Include="Gamebryo\NiAccumulator.hpp" />

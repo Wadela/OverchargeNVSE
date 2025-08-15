@@ -1,6 +1,8 @@
 #pragma once
 #include "Menu.hpp"
 
+class Actor;
+
 // A0
 class RepairServicesMenu : public Menu	// 1058
 {

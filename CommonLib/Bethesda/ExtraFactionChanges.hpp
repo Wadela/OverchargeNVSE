@@ -1,25 +1,18 @@
 #pragma once
+
 #include "BSExtraData.hpp"
 #include "BSSimpleList.hpp"
 
-class TESFaction;
+class FACTION_RANK;
 
-// 0x10
 class ExtraFactionChanges : public BSExtraData {
 public:
 	ExtraFactionChanges();
 	virtual ~ExtraFactionChanges();
 
-	struct Data
-	{
-		TESFaction* pkFaction;
-		UInt8		ucRank;
-		UInt8		pad[3];
-	};
+	BSSimpleList<FACTION_RANK*>* pFactionChanges;
 
-	BSSimpleList<Data*>* pkData;
-
-	static ExtraFactionChanges* Create();
+	EXTRADATATYPE(FACTIONCHANGES);
 };
-static_assert(sizeof(BSSimpleList<ExtraFactionChanges::Data*>) == 0x8);
-static_assert(sizeof(ExtraFactionChanges) == 0x10);
+
+ASSERT_SIZE(ExtraFactionChanges, 0x10);

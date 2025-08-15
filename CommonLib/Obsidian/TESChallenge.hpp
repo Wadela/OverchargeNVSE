@@ -3,6 +3,7 @@
 #include "TESDescription.hpp"
 #include "TESScriptableForm.hpp"
 #include "BGSMessageIcon.hpp"
+#include "TESFullname.hpp"
 
 // 0x7C
 class TESChallenge :

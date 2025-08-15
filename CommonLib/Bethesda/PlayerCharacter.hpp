@@ -34,7 +34,7 @@ class TESReputation;
 class TESTopic;
 class TESWorldspace;
 class Animation;
-class BipedAnim;
+struct BipedAnim;
 
 class PlayerCharacter : public Character {
 public:

@@ -2,6 +2,7 @@
 
 #include "NiDX9DeviceDesc.hpp"
 #include "NiTPointerList.hpp"
+#include "NiTArray.hpp"
 
 class NiDX9AdapterDesc {
 public:

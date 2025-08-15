@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Menu.hpp"
 
 class LevelUpMenu : public Menu
@@ -25,22 +26,22 @@ public:
 		kCloseMenu = 999  // (any value >= 2 could work)
 	};
 
-	UInt32						currentPage; // 0 for skills, 1 for perks
-	TileText*					tileTitle;
-	TileImage*					tileSkills;
-	TileImage*					tilePerks;
-	TileImage*					tileSelectionIcon;
-	TileText*					tileSelectionText;
-	TileText*					tilePointCounter;
-	TileImage*					tileBtnReset;
-	TileImage*					tileBtnContinue;
-	TileImage*					tileBtnBack;
-	TileImage*					tileStatsIconBadge;
-	UInt32						numAssignedSkillPoints;
-	UInt32						numAssignedPerks;
-	UInt32						numSkillPointsToAssign;
-	UInt32						numPerksToAssign;
-	ListBox<ActorValueCode>		skillListBox;
+	uint32_t						currentPage; // 0 for skills, 1 for perks
+	TileText* tileTitle;
+	TileImage* tileSkills;
+	TileImage* tilePerks;
+	TileImage* tileSelectionIcon;
+	TileText* tileSelectionText;
+	TileText* tilePointCounter;
+	TileImage* tileBtnReset;
+	TileImage* tileBtnContinue;
+	TileImage* tileBtnBack;
+	TileImage* tileStatsIconBadge;
+	uint32_t						numAssignedSkillPoints;
+	uint32_t						numAssignedPerks;
+	uint32_t						numSkillPointsToAssign;
+	uint32_t						numPerksToAssign;
+	ListBox<Index>		skillListBox;
 	ListBox<BGSPerk>			perkListBox;
 	TList<BGSPerk>				availablePerks; // perks to show in the perk listBox
 
@@ -48,4 +49,5 @@ public:
 
 	static LevelUpMenu* GetSingleton() { return *reinterpret_cast<LevelUpMenu**>(0x11D9FDC); }
 };
-static_assert(sizeof(LevelUpMenu) == 0xCC);
+
+ASSERT_SIZE(LevelUpMenu, 0xCC);

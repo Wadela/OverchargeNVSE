@@ -6,6 +6,7 @@
 #include "SafeWrite.hpp"
 #include "NifOverride.hpp"
 
+
 //Gamebryo
 #include <NiPoint3.hpp>
 #include <NiPointLight.hpp>
@@ -18,6 +19,8 @@
 #include <TESEffectShader.hpp>
 #include <Animation.hpp>
 #include <MuzzleFlash.hpp>
+#include <EffectSetting.hpp>
+#include <MagicItemForm.hpp>
 
 //#include <tracy/Tracy.hpp>
 

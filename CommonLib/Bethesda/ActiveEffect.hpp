@@ -70,4 +70,4 @@ public:
 
 	void Remove(bool abRemoveImmediately);
 };
-static_assert(sizeof(ActiveEffect) == 0x048);
+ASSERT_SIZE(ActiveEffect, 0x048);

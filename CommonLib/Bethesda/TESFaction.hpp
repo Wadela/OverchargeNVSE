@@ -4,6 +4,8 @@
 #include "TESTexture.hpp"
 #include "TESReactionForm.hpp"
 
+class TESReputation;
+
 // 0x4C
 class TESFaction :
 	public TESForm,			// 00

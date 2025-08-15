@@ -13,7 +13,7 @@ class NiNode;
 class NiAVObject;
 class NiGeometry;
 
-struct Animation;
+class Animation;
 struct BipedAnim;
 struct ScriptEventList;
 

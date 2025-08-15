@@ -10,16 +10,23 @@ namespace Overcharge
     {
         HeatState();
         HeatState(
-        UInt8 ammo, UInt8 numProj, UInt16 dmg, UInt16 critDmg, 
+        UInt8 OCEffect, UInt8 ammo, UInt8 numProj, 
+        UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH, 
+        UInt16 dmg, UInt16 critDmg, UInt32 enchID,
         float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown);
 
         bool    bIsOverheated;
-        bool    bEffectActive;
-
+        UInt8   uiOCEffect;
         UInt8   uiAmmoUsed;
         UInt8   uiProjectiles;
+        UInt8   uiAmmoThreshold;
+        UInt8   uiProjThreshold;
+        UInt8   uiEnchThreshold;
+        UInt8   uiOCEffectThreshold;
         UInt16  uiDamage;
         UInt16  uiCritDamage;
+
+        UInt32  uiObjectEffectID;
 
         float   fAccuracy;
         float   fFireRate;
@@ -41,19 +48,19 @@ namespace Overcharge
         HeatFX();
         HeatFX(UInt32 col, std::vector<NiAVObjectPtr> names);
 
-        NiColor     currCol;
+        NiColor                    currCol;
 
-        NiMaterialPropertyPtr       matProp;
+        NiMaterialPropertyPtr      matProp;
 
-        std::vector<NiAVObjectPtr>  targetBlocks;
+        std::vector<NiAVObjectPtr> targetBlocks;
     };
 
     struct HeatData
     {
         HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* config);
 
-        HeatFX      fx;
-        HeatState   state;
+        HeatFX    fx;
+        HeatState state;
 
         const HeatConfiguration* data;
     };

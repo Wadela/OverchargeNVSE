@@ -53,7 +53,7 @@ namespace Overcharge
 	}
 
 	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
-	static void UpdateColorMod(NiParticleSystem* childParticle)
+	static void PrepColorMod(NiParticleSystem* childParticle)
 	{
 		if (!childParticle) return;
 
@@ -100,7 +100,7 @@ namespace Overcharge
 			NiNode* node = model->spNode;
 
 			TraverseNiNode<NiParticleSystem>(node, [](NiParticleSystem* psys) {
-				UpdateColorMod(psys);
+				PrepColorMod(psys);
 				});
 
 			TraverseNiNode<NiGeometry>(node, [](NiGeometry* geom) {

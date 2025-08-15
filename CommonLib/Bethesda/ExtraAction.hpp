@@ -1,6 +1,8 @@
 #pragma once
 #include "BSExtraData.hpp"
 
+class TESForm;
+
 // 0x14
 class ExtraAction : public BSExtraData
 {
