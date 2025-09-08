@@ -371,11 +371,11 @@ public:
 	virtual void					Unk_10A();
 	virtual float					GetAngle1D0();
 	virtual void					Unk_10C();
-	virtual void					ResetAttackLoopTimer();
-	virtual void					DecreaseAttackLoopShootTime();
-	virtual void					SetByte1D8();
-	virtual bool					GetByte1D8();
-	virtual void					Unk_111();
+	virtual void                    SetIsNextAttackLoopQueued(UInt8 bLoopAttacks);		//Needs to be untoggled or else a weapon will fire extremely quickly, [likely] every frame.
+	virtual UInt8					GetIsNextAttackLoopQueued(Actor* apActor);			//Returns if a weapon has a looping attack that is queued. Cleared after firing. Likely a boolean, but needs more testing to decide for sure, especially in VATS.
+	virtual void                    SetShotsToFire(UInt8 aucCount);						//This is multiplied by TESObjectWEAP->ucNumProjectiles to get the final number of projectiles fired; This differs in that it works like setting the number of times to fire per trigger pull.
+	virtual UInt8					GetShotsToFire() const;								//Returns the number of times to fire per trigger pull. 
+	virtual float                   GetAttackLoopTime();								//Needs more Testing but is generally used to check whether an Attack Loop is completing. ```
 	virtual void					Unk_112();
 	virtual bool					WantsWeaponOut();
 	virtual void					SetWantsWeaponOut(bool);

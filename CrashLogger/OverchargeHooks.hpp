@@ -51,4 +51,5 @@ namespace Overcharge
 	}
 
 	void WeaponCooldown();
+	void WeaponLockOut(Actor* rActor, TESObjectWEAP* rWeap);
 }

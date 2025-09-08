@@ -118,19 +118,24 @@ namespace Overcharge
 					}
 					UInt64 key = MakeHashKey(weapFID, ammoFID);
 
-					config.bCanOverheat = ini.GetLongValue(secItem, "bCanOverheat", 1);
-					config.bCustomMeshes = ini.GetLongValue(secItem, "bAddCustomMeshes", 1);
 					config.iWeaponType = ini.GetLongValue(secItem, "iWeaponType", 0);
-
 					config.iMinProjectiles = ini.GetLongValue(secItem, "iMinProjectiles", 0);
 					config.iMaxProjectiles = ini.GetLongValue(secItem, "iMaxProjectiles", 0);
 					config.iMinAmmoUsed = ini.GetLongValue(secItem, "iMinAmmoUsed", 0);
 					config.iMaxAmmoUsed = ini.GetLongValue(secItem, "iMaxAmmoUsed", 0);
-					config.iOverchargeEffect = ini.GetLongValue(secItem, "iOverchargeEffect", 0);
+
+					std::string OCEffectString = ini.GetValue(secItem, "sOverchargeEffects", "");
+					UInt8 OCEffects = StringToFlags(OCEffectString, ',', OCEffectNames);
+					config.iOverchargeEffect = OCEffects;
+
 					config.iOverchargeEffectThreshold = ini.GetLongValue(secItem, "iOverchargeEffectThreshold", 0);
 					config.iAddAmmoThreshold = ini.GetLongValue(secItem, "iAddAmmoThreshold", 0);
 					config.iAddProjectileThreshold = ini.GetLongValue(secItem, "iAddProjectileThreshold", 0);
 					config.iObjectEffectThreshold = ini.GetLongValue(secItem, "iObjectEffectThreshold", 0);
+
+					std::string OCString = ini.GetValue(secItem, "sOverchargeFlags", "");
+					UInt16 OCFlags = StringToFlags(OCString, ',', OCFlagNames);
+					config.iOverchargeFlags = OCFlags;
 
 					config.iMinDamage = ini.GetLongValue(secItem, "iMinDamage", 0);
 					config.iMaxDamage = ini.GetLongValue(secItem, "iMaxDamage", 0);
@@ -157,10 +162,8 @@ namespace Overcharge
 					config.fMaxFireRate = ini.GetDoubleValue(secItem, "fMaxFireRate", 0.0);
 					config.fMinAccuracy = ini.GetDoubleValue(secItem, "fMinAccuracy", 0.0);
 					config.fMaxAccuracy = ini.GetDoubleValue(secItem, "fMaxAccuracy", 0.0);
-					config.sAnimFileName = ini.GetValue(secItem, "sAnimFileName", "");
 
-					std::string nodes = ini.GetValue(secItem, "sHeatedNodes", "");
-					config.sHeatedNodes = SplitByDelimiter(nodes, ',');
+					config.sHeatedNodes = ini.GetValue(secItem, "sHeatedNodes", "");
 
 					std::string extraNodeString = ini.GetValue(secItem, "sExtraModels", "");
 					auto extraNodes = SplitByDelimiter(extraNodeString, ',');

@@ -6,7 +6,9 @@
 #include <BGSSaveLoadGame.hpp>
 #include "OverchargeConfig.hpp"
 #include <OverchargeHooks.hpp>
+#include "CommandsOvercharge.hpp"
 //#include <tracy/Tracy.hpp>
+
 
 bool IsGamePaused()
 {
@@ -142,6 +144,10 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 	g_loggingInterface = static_cast<NVSELoggingInterface*>(nvse->QueryInterface(NVSEInterface::kInterface_LoggingInterface));
 
 	for (const auto& i : pluginLoad) i(); // call all plugin load functions
+
+	g_seInterface->RegisterCommand(&kCommandInfo_GetHeatState);
+	g_seInterface->RegisterCommand(&kCommandInfo_SetHeatState);
+	g_seInterface->RegisterCommand(&kCommandInfo_GetHeatConfig);
 
 	return true;
 }

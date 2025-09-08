@@ -12,31 +12,36 @@ namespace Overcharge
 
 	enum OCFlags : UInt16
 	{
-		OCFlags_None = 0,
+		OCFlags_None		  = 0,
 
-		OCFlags_Overheat = 1 << 0,
-		OCFlags_Meshes = 1 << 1,
-		OCFlags_Animations = 1 << 2,
-		OCFlags_Sounds = 1 << 3,
-		OCFlags_Gameplay = 1 << 4,
-		OCFlags_EnchEffects = 1 << 5,
+		OCFlags_Scripts		  = 1 << 0,
+		OCFlags_Meshes		  = 1 << 1,
+		OCFlags_Animations	  = 1 << 2,
+		OCFlags_Sounds		  = 1 << 3,
+		OCFlags_Gameplay	  = 1 << 4,
+		OCFlags_EnchEffects	  = 1 << 5,
 		OCFlags_MuzzleFlashes = 1 << 6,
-		OCFlags_Projectiles = 1 << 7,
-		OCFlags_Impacts = 1 << 8,
-		OCFlags_KillEffects = 1 << 9,
-		OCFlags_AshPiles = 1 << 10,
-		OCFlags_WeapMods = 1 << 11,
-		OCFlags_Perks = 1 << 12,
+		OCFlags_Projectiles	  = 1 << 7,
+		OCFlags_Impacts		  = 1 << 8,
+		OCFlags_KillEffects	  = 1 << 9,
+		OCFlags_AshPiles	  = 1 << 10,
+		OCFlags_WeapMods	  = 1 << 11,
+		OCFlags_Perks		  = 1 << 12,
 
-		OCFlags_All = 0xFFFF
+		OCFlags_All			  = 0xFFFF
 	};
 
 	enum OCEffect : UInt8
 	{
-		OCEffects_None = 0,
+		OCEffects_None			 = 0,
+
+		OCEffects_Overheat		 = 1 << 0,
+		OCEffects_Overcharge	 = 1 << 1,
+		OCEffects_ChargeDelay	 = 1 << 2,
+		OCEffects_WeapTypeEffect = 1 << 3,
 
 
-		OCEffects_All = 0xFF
+		OCEffects_All			 = 0xFF
 	};
 
 	enum OCWeaps : UInt8
@@ -49,21 +54,29 @@ namespace Overcharge
 		OCWeap_Thrown
 	};
 
-	constexpr std::array<std::pair<OCFlags, std::string_view>, 14> OCFlagNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 14> OCFlagNames
 	{ {
-		{ OCFlags_Overheat,      "Overheat" },
-		{ OCFlags_Meshes,        "Meshes" },
-		{ OCFlags_Animations,    "Animations" },
-		{ OCFlags_Sounds,        "Sounds" },
-		{ OCFlags_Gameplay,      "Gameplay" },
-		{ OCFlags_EnchEffects,   "EnchEffects" },
+		{ OCFlags_Scripts,		 "Scripts"		 },
+		{ OCFlags_Meshes,        "Meshes"		 },
+		{ OCFlags_Animations,    "Animations"	 },
+		{ OCFlags_Sounds,        "Sounds"		 },
+		{ OCFlags_Gameplay,      "Gameplay"		 },
+		{ OCFlags_EnchEffects,   "EnchEffects"	 },
 		{ OCFlags_MuzzleFlashes, "MuzzleFlashes" },
-		{ OCFlags_Projectiles,   "Projectiles" },
-		{ OCFlags_Impacts,       "Impacts" },
-		{ OCFlags_KillEffects,   "KillEffects" },
-		{ OCFlags_AshPiles,      "AshPiles" },
-		{ OCFlags_WeapMods,      "WeapMods" },
-		{ OCFlags_Perks,         "Perks" }
+		{ OCFlags_Projectiles,   "Projectiles"   },
+		{ OCFlags_Impacts,       "Impacts"		 },
+		{ OCFlags_KillEffects,   "KillEffects"	 },
+		{ OCFlags_AshPiles,      "AshPiles"		 },
+		{ OCFlags_WeapMods,      "WeapMods"		 },
+		{ OCFlags_Perks,         "Perks"		 }
+	} };
+
+	constexpr std::array<std::pair<UInt8, std::string_view>, 6> OCEffectNames
+	{ {
+		{ OCEffects_Overheat,		"Overheat"	 },
+		{ OCEffects_Overcharge,		"Overcharge" },
+		{ OCEffects_ChargeDelay,	"Delay"		 },
+		{ OCEffects_WeapTypeEffect, "Special"	 }
 	} };
 
 	struct OverchargeSettings
@@ -116,9 +129,7 @@ namespace Overcharge
 		float fMinAccuracy = 0;
 		float fMaxAccuracy = 0;
 
-		std::string sAnimFileName;
-
-		std::vector<std::string> sHeatedNodes;
+		std::string sHeatedNodes;
 	};
 
 	extern std::unordered_map<UInt64, const HeatConfiguration> weaponDataMap;

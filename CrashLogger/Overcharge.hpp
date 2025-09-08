@@ -15,7 +15,7 @@ namespace Overcharge
         UInt16 dmg, UInt16 critDmg, UInt32 enchID,
         float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown);
 
-        bool    bIsOverheated;
+        bool    bIsWeaponLocked;
         UInt8   uiOCEffect;
         UInt8   uiAmmoUsed;
         UInt8   uiProjectiles;
@@ -77,5 +77,8 @@ namespace Overcharge
     NiColor SmoothColorShift(float currentHeat, UInt32 startCol, UInt32 targetCol);
 
     HeatData MakeHeatFromConfig(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode);
+
+
+
 
 }

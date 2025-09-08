@@ -1,4 +1,5 @@
 #include  "OverchargeHooks.hpp"
+#include <OSInputGlobals.hpp>
 
 std::unordered_map<Actor*, BSAnimGroupSequence*> activeAnims;
 
@@ -8,6 +9,9 @@ namespace Overcharge
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
 	std::unordered_set<BSPSysSimpleColorModifier*>				colorModifiers; 
 
+	std::vector<NiAVObject*> rotationTester;
+
+
 	void WeaponCooldown()
 	{
 		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
@@ -15,7 +19,38 @@ namespace Overcharge
 		for (auto it = activeWeapons.begin(); it != activeWeapons.end();)
 		{
 			auto& instance = it->second;
-			if (!instance || (instance->state.fHeatVal -= frameTime * instance->data->fCooldownPerSecond) <= 0.0f)
+			if (!instance)
+			{
+				++it;
+				continue;
+			}
+			if (instance->state.uiOCEffect & (1 << 1))
+			{
+				instance->state.fHeatVal = std::clamp(
+					instance->state.fHeatVal + (frameTime * instance->state.fHeatPerShot),
+					0.0f,
+					100.0f
+				);
+			}
+			if (instance->state.uiOCEffect & (1 << 2) && (instance->state.fHeatVal <= 10.0f))
+			{
+				instance->state.fHeatVal = (instance->state.fHeatVal <= 10.0f)
+					? std::clamp(instance->state.fHeatVal + (frameTime * instance->state.fHeatPerShot), 0.0f, 100.0f)
+					: instance->state.fHeatVal;
+			}
+			else instance->state.fHeatVal = std::clamp(
+				 instance->state.fHeatVal - (frameTime * instance->state.fCooldownRate),
+				 0.0f,
+				 100.0f
+			);
+
+			float angle = (instance->state.fHeatVal / 100.0f) * (std::numbers::pi_v<float>);
+			for (auto geom : rotationTester)
+			{
+				if (geom) geom->m_kLocal.m_Rotate.MakeYRotation(angle);
+			}
+
+			if (instance->state.fHeatVal <= 0.0f)
 			{
 				it = activeWeapons.erase(it);
 				continue;
@@ -27,15 +62,46 @@ namespace Overcharge
 				if (node && node.m_pObject)
 					SetEmissiveColor(node.m_pObject, instance->fx.currCol, instance->fx.matProp);
 			}
-
 			++it;
 		}
+	}
+
+	bool __fastcall PlayFireAnimation(Actor* rActor, void* edx, UInt8 groupID)
+	{
+		if (!rActor || !rActor->pkBaseProcess) return ThisStdCall<bool>(0x893A40, rActor, groupID);
+
+		UInt32 weapID = rActor->GetCurrentWeaponID();
+		auto rWeap = (TESForm::GetByID(weapID));
+		auto rWeapRef = reinterpret_cast<TESObjectWEAP*>(rWeap);
+		const auto ogFireRate = rWeapRef->animAttackMult;
+
+		if (rWeap)
+		{
+			auto heat = GetActiveHeat(rActor->uiFormID, rWeap->uiFormID);
+			if (heat && rWeapRef)
+			{
+				float heatRatio = heat->state.fHeatVal / 100.0f;
+				rWeapRef->animAttackMult = ScaleByPercentRange(rWeapRef->animAttackMult, heat->data->fMinFireRate, heat->data->fMaxFireRate, heatRatio);
+				if (heat->state.fHeatVal >= 98.0f)
+				{
+					heat->state.uiOCEffect |= OCEffects_Overheat;
+				}
+			}
+			if (heat && heat->state.bIsWeaponLocked || heat && (heat->state.uiOCEffect & OCEffects_Overheat) != 0)
+			{
+				rActor->pkBaseProcess->SetIsNextAttackLoopQueued(0);
+				rActor->pkBaseProcess->SetForceFireWeapon(0);
+				rActor->pkBaseProcess->SetIsFiringAutomaticWeapon(0);
+				return ThisStdCall<bool>(0x893A40, rActor, 0xFF);
+			}
+		}
+		return ThisStdCall<bool>(0x893A40, rActor, groupID);
+		rWeapRef->animAttackMult = ogFireRate; 
 	}
 
 	static inline void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, Actor* rActor)
 	{
 		const NiNodePtr sourceNode = rActor->Get3D();
-
 		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
 		if (!equippedAmmo)
 		{
@@ -59,6 +125,7 @@ namespace Overcharge
 		const UInt16 ogDamage = rWeap->usAttackDamage;
 		const UInt16 ogCritDamage = rWeap->criticalDamage;
 		const float ogMinSpread = rWeap->minSpread;
+		//const float ogFirerate = rWeap->semiAutoFireDelayMin;
 
 		//Using ScaleByPercentRange() just in case a user has altered the base values at all.
 		const HeatConfiguration* config = heat->data;
@@ -69,11 +136,18 @@ namespace Overcharge
 		heat->state.uiCritDamage = ScaleByPercentRange(rWeap->criticalDamage, config->iMinCritDamage, config->iMaxCritDamage, hRatio);
 		heat->state.fAccuracy = ScaleByPercentRange(rWeap->minSpread, config->fMinAccuracy, config->fMaxAccuracy, hRatio);
 
+		//rWeap->semiAutoFireDelayMin = 20.0f;
 		rWeap->ammoUse = heat->state.uiAmmoUsed;
 		rWeap->numProjectiles = heat->state.uiProjectiles;
 		rWeap->usAttackDamage = heat->state.uiDamage;
 		rWeap->criticalDamage = heat->state.uiCritDamage;
 		rWeap->minSpread = heat->state.fAccuracy;
+
+		if (NiAVObjectPtr block = sourceNode->GetObjectByName("##OCNode:0"))
+		{
+			rotationTester.emplace_back(block);
+		}
+
 
 		ThisStdCall(0x523150, rWeap, rActor);
 
@@ -366,18 +440,6 @@ namespace Overcharge
 		}
 	}
 
-	static void __fastcall SetAttackSpeedHook(Animation* thisPtr, void* edx, float animSpeed) 
-	{
-		UInt32 sourceRef = thisPtr->pActor->uiFormID;
-		UInt32 sourceWeap = thisPtr->pActor->GetCurrentWeaponID();
-		if (auto heat = GetActiveHeat(sourceRef, sourceWeap))
-		{
-			float heatRatio = heat->state.fHeatVal / 100.0f;	
-			animSpeed = ScaleByPercentRange(animSpeed, heat->data->fMinFireRate, heat->data->fMaxFireRate, heatRatio);
-		}
-		ThisStdCall(0x4C0C90, thisPtr, animSpeed);
-	}
-
 	void InitHooks()
 	{
 		// Hook Addresses
@@ -412,6 +474,10 @@ namespace Overcharge
 		UInt32 SetAshXData = 0x5DBDBA;
 		UInt32 CreateRefAtLoc = 0x5DBD56;
 
+		UInt32 FireWeaponAnim = 0x949CF1;
+
+		UInt32 Subtitle = 0x7052B8;
+		UInt32 runDialogueResult = 0x83C88E;
 		// Hooks
 
 		WriteRelCall(actorFire, &FireWeaponWrapper);
@@ -422,8 +488,9 @@ namespace Overcharge
 		WriteRelJump(initialPosVelocity, &VertexColorModifier);
 		WriteRelJump(clearUnrefEmitters, &ClearUnrefEmittersHook);
 		WriteRelJump(colorModUpdate, &ColorModifierUpdate);
-		WriteRelCall(SetAttackSpeed, &SetAttackSpeedHook);
 		WriteRelCall(InitMagicShaderCmd, &MSHEInit);
 		WriteRelCall(CreateRefAtLoc, &CreateRefAtLocation);
+
+		WriteRelCall(FireWeaponAnim, &PlayFireAnimation);
 	}
 }

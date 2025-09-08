@@ -118,7 +118,7 @@ inline std::string FlagsToString(T flags, const std::array<std::pair<T, std::str
 }
 
 template<typename T, size_t N>
-inline T StringToFlags(const std::string_view& str, char delimter, const std::array<std::pair<T, std::string_view>, N>& flagNames)
+inline T StringToFlags(const std::string& str, char delimter, const std::array<std::pair<T, std::string_view>, N>& flagNames)
 {
 	T result = 0;
 	auto strings = SplitByDelimiter(str, delimter);
