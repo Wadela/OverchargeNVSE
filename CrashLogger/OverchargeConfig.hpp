@@ -79,6 +79,25 @@ namespace Overcharge
 		{ OCEffects_WeapTypeEffect, "Special"	 }
 	} };
 
+	constexpr std::array<std::pair<UInt8, std::string_view>, 15> OCWeapTypeNames
+	{ {
+		{ TESObjectWEAP::kWeapType_HandToHandMelee,		"h2h" },
+		{ TESObjectWEAP::kWeapType_OneHandMelee,		"1hm" },
+		{ TESObjectWEAP::kWeapType_TwoHandMelee,		"2hm" },
+		{ TESObjectWEAP::kWeapType_OneHandPistol,       "1hp" },
+		{ TESObjectWEAP::kWeapType_OneHandPistolEnergy, "1hp" },
+		{ TESObjectWEAP::kWeapType_TwoHandRifle,		"2hr" },
+		{ TESObjectWEAP::kWeapType_TwoHandAutomatic,	"2ha" },
+		{ TESObjectWEAP::kWeapType_TwoHandRifleEnergy,  "2hr" },
+		{ TESObjectWEAP::kWeapType_TwoHandHandle,		"2hh" },
+		{ TESObjectWEAP::kWeapType_TwoHandLauncher,		"2hl" },
+		{ TESObjectWEAP::kWeapType_OneHandGrenade,      "1gt" },
+		{ TESObjectWEAP::kWeapType_OneHandMine,			"1md" },
+		{ TESObjectWEAP::kWeapType_OneHandLunchboxMine, "1lm" },
+		{ TESObjectWEAP::kWeapType_OneHandThrown,		"1ht" },
+		{ TESObjectWEAP::kWeapType_Last,				"Unk" }
+	} };
+
 	struct OverchargeSettings
 	{
 		bool   bEnableCustomAnimations = true;
@@ -129,6 +148,7 @@ namespace Overcharge
 		float fMinAccuracy = 0;
 		float fMaxAccuracy = 0;
 
+		std::string sAnimFile;
 		std::string sHeatedNodes;
 	};
 

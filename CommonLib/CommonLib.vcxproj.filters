@@ -124,6 +124,7 @@
     <ClCompile Include="Bethesda\MagicItem.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
+    <ClCompile Include="Bethesda\BSShaderAccumulator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp">

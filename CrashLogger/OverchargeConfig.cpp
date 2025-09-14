@@ -76,7 +76,7 @@ namespace Overcharge
 
 				TESForm* weapForm = TESForm::GetByID(weapEID.c_str());
 
-				if (!weapForm)
+				if (!weapForm || weapForm->eTypeID != TESForm::kType_TESObjectWEAP)
 				{
 					Log() << "Could not find form from editor ID: " << weapEID;
 					continue;
@@ -88,10 +88,9 @@ namespace Overcharge
 					Log() << "Could not find form ID: " << weapEID;
 					continue;
 				}
-				if (TESObjectWEAP* rWeap = reinterpret_cast<TESObjectWEAP*>(weapForm))
-				{
-					InitConfigModelPaths(rWeap);
-				}
+
+				TESObjectWEAP* rWeap = reinterpret_cast<TESObjectWEAP*>(weapForm);
+				InitConfigModelPaths(rWeap);
 
 				CSimpleIniA ini;
 				ini.SetUnicode();
@@ -162,6 +161,14 @@ namespace Overcharge
 					config.fMaxFireRate = ini.GetDoubleValue(secItem, "fMaxFireRate", 0.0);
 					config.fMinAccuracy = ini.GetDoubleValue(secItem, "fMinAccuracy", 0.0);
 					config.fMaxAccuracy = ini.GetDoubleValue(secItem, "fMaxAccuracy", 0.0);
+
+					config.sAnimFile = "OCAnims\\";
+					std::string animFile = ini.GetValue(secItem, "sAnimationFile", "");
+					if (animFile.empty())
+					{
+						config.sAnimFile += "Overheat" + EnumToString(rWeap->eWeaponType, OCWeapTypeNames) + ".kf";
+					}
+					else config.sAnimFile += animFile;
 
 					config.sHeatedNodes = ini.GetValue(secItem, "sHeatedNodes", "");
 

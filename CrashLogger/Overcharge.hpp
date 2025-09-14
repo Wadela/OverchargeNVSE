@@ -15,7 +15,7 @@ namespace Overcharge
         UInt16 dmg, UInt16 critDmg, UInt32 enchID,
         float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown);
 
-        bool    bIsWeaponLocked;
+        UInt8   uiTicksPassed;
         UInt8   uiOCEffect;
         UInt8   uiAmmoUsed;
         UInt8   uiProjectiles;
@@ -40,6 +40,7 @@ namespace Overcharge
         inline void HeatOnFire()
         {
             fHeatVal += fHeatPerShot;
+            uiTicksPassed = 0;
         }
     };
 

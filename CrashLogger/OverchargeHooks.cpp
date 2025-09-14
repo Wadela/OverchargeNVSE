@@ -1,66 +1,99 @@
 #include  "OverchargeHooks.hpp"
-#include <OSInputGlobals.hpp>
-
-std::unordered_map<Actor*, BSAnimGroupSequence*> activeAnims;
+#include <BSShaderUtil.hpp>
+#include "MTRenderingSystem.hpp"
 
 namespace Overcharge
 {
 	std::unordered_map<UInt64, std::shared_ptr<HeatData>>		activeWeapons;
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
 	std::unordered_set<BSPSysSimpleColorModifier*>				colorModifiers; 
+	std::unordered_set<NiParticleSystem*>						worldSpaceParticles;
 
-	std::vector<NiAVObject*> rotationTester;
+	bool UpdateWeaponInstance(std::shared_ptr<HeatData> instance, float frameTime, bool isPlayer = false)
+	{
+		if (!instance) return false;
+
+		if (!(instance->state.uiOCEffect & (1 << 0)) && instance->state.fHeatVal > 100)
+		{
+			instance->state.uiOCEffect |= (1 << 0);
+		}
+
+		if (instance->state.uiOCEffect & (1 << 1) && 
+			instance->state.fHeatVal < 99) {
+			instance->state.fHeatVal += frameTime * instance->state.fHeatPerShot;
+			instance->state.uiTicksPassed = 0;
+		}
+
+		if (instance->state.uiOCEffect & (1 << 2) && 
+			instance->state.fHeatVal <= instance->state.uiOCEffectThreshold) {
+			instance->state.fHeatVal += frameTime * instance->state.fHeatPerShot;
+			instance->state.uiTicksPassed = 0;
+		}
+
+		instance->fx.currCol = SmoothColorShift(
+			instance->state.fHeatVal,
+			instance->data->iMinColor,
+			instance->data->iMaxColor
+		);
+
+		for (const auto& node : instance->fx.targetBlocks) {
+			if (node && node.m_pObject) {
+				SetEmissiveColor(node.m_pObject, instance->fx.currCol, instance->fx.matProp);
+			}
+		}
+
+		if (instance->state.uiTicksPassed < 255) ++instance->state.uiTicksPassed;
+		float timePassed = instance->state.uiTicksPassed * frameTime;
+
+		constexpr float cooldownDelaySeconds = 0.2f;
+		if (timePassed >= cooldownDelaySeconds) {
+			instance->state.fHeatVal -= frameTime * instance->state.fCooldownRate;
+			if (instance->state.fHeatVal < 0.0f) instance->state.fHeatVal = 0.0f; 
+		}
+
+		constexpr float eraseDelaySeconds = 1.0f;
+		if (instance->state.fHeatVal <= 0.0f && timePassed >= eraseDelaySeconds) {
+			return false;
+		}
+
+		return true;
+	}
 
 
 	void WeaponCooldown()
 	{
 		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
+		const UInt32 playerID = PlayerCharacter::GetSingleton()->uiFormID;
 
-		for (auto it = activeWeapons.begin(); it != activeWeapons.end();)
+		for (auto it = activeWeapons.begin(); it != activeWeapons.end(); )
 		{
 			auto& instance = it->second;
-			if (!instance)
+			if (!instance) { ++it; continue; }
+
+			UInt32 actorID = static_cast<UInt32>(it->first >> 32);
+			if (actorID == playerID)
 			{
-				++it;
+				if (!UpdateWeaponInstance(instance, frameTime, true))
+				{
+					it = activeWeapons.erase(it);
+					continue;
+				}
+			}
+			++it;
+		}
+
+		for (auto it = activeWeapons.begin(); it != activeWeapons.end(); )
+		{
+			auto& instance = it->second;
+			if (!instance) { ++it; continue; }
+
+			UInt32 actorID = static_cast<UInt32>(it->first >> 32);
+			if (actorID == playerID) { ++it; continue; } 
+
+			if (!UpdateWeaponInstance(instance, frameTime, false))
+			{
+				it = activeWeapons.erase(it); 
 				continue;
-			}
-			if (instance->state.uiOCEffect & (1 << 1))
-			{
-				instance->state.fHeatVal = std::clamp(
-					instance->state.fHeatVal + (frameTime * instance->state.fHeatPerShot),
-					0.0f,
-					100.0f
-				);
-			}
-			if (instance->state.uiOCEffect & (1 << 2) && (instance->state.fHeatVal <= 10.0f))
-			{
-				instance->state.fHeatVal = (instance->state.fHeatVal <= 10.0f)
-					? std::clamp(instance->state.fHeatVal + (frameTime * instance->state.fHeatPerShot), 0.0f, 100.0f)
-					: instance->state.fHeatVal;
-			}
-			else instance->state.fHeatVal = std::clamp(
-				 instance->state.fHeatVal - (frameTime * instance->state.fCooldownRate),
-				 0.0f,
-				 100.0f
-			);
-
-			float angle = (instance->state.fHeatVal / 100.0f) * (std::numbers::pi_v<float>);
-			for (auto geom : rotationTester)
-			{
-				if (geom) geom->m_kLocal.m_Rotate.MakeYRotation(angle);
-			}
-
-			if (instance->state.fHeatVal <= 0.0f)
-			{
-				it = activeWeapons.erase(it);
-				continue;
-			}
-
-			instance->fx.currCol = SmoothColorShift(instance->state.fHeatVal, instance->data->iMinColor, instance->data->iMaxColor);
-			for (const auto& node : instance->fx.targetBlocks)
-			{
-				if (node && node.m_pObject)
-					SetEmissiveColor(node.m_pObject, instance->fx.currCol, instance->fx.matProp);
 			}
 			++it;
 		}
@@ -82,17 +115,13 @@ namespace Overcharge
 			{
 				float heatRatio = heat->state.fHeatVal / 100.0f;
 				rWeapRef->animAttackMult = ScaleByPercentRange(rWeapRef->animAttackMult, heat->data->fMinFireRate, heat->data->fMaxFireRate, heatRatio);
-				if (heat->state.fHeatVal >= 98.0f)
+				if (heat->state.uiOCEffect != 0)
 				{
-					heat->state.uiOCEffect |= OCEffects_Overheat;
+					rActor->pkBaseProcess->SetIsNextAttackLoopQueued(0);
+					rActor->pkBaseProcess->SetForceFireWeapon(0);
+					rActor->pkBaseProcess->SetIsFiringAutomaticWeapon(0);
+					return ThisStdCall<bool>(0x893A40, rActor, 0xFF);
 				}
-			}
-			if (heat && heat->state.bIsWeaponLocked || heat && (heat->state.uiOCEffect & OCEffects_Overheat) != 0)
-			{
-				rActor->pkBaseProcess->SetIsNextAttackLoopQueued(0);
-				rActor->pkBaseProcess->SetForceFireWeapon(0);
-				rActor->pkBaseProcess->SetIsFiringAutomaticWeapon(0);
-				return ThisStdCall<bool>(0x893A40, rActor, 0xFF);
 			}
 		}
 		return ThisStdCall<bool>(0x893A40, rActor, groupID);
@@ -119,13 +148,33 @@ namespace Overcharge
 		auto heat = GetOrCreateHeat(rActor->uiFormID, rWeap->uiFormID, sourceNode.m_pObject, dataIt->second);
 		heat->state.HeatOnFire();
 
+		if (sourceNode)
+		{
+			auto smokeNode = sourceNode->GetObjectByName("OCSmoke");
+			auto smokePsys = sourceNode->GetObjectByName("OCSmoke01");
+			if (NiParticleSystemPtr smoke = smokePsys->NiDynamicCast<NiParticleSystem>())
+			{
+				worldSpaceParticles.emplace(smoke.m_pObject);
+			}
+			//auto smokeCtlr = smoke->GetControllers();
+			//if (heat->state.fHeatVal >= 100)
+			//{
+				//smokeCtlr->SetActive(true);
+				//auto pSceneGraph = TESMain::GetWorldRoot();
+				//auto pCullingProcess = pSceneGraph->GetCullingProcess();
+				//auto firstCam = TESMain::Get1stCamNode();
+				//CdeclCall<void>(0xB6BEE0, firstCam, smokeNode, pCullingProcess);
+			//}
+			//else
+				//smokeCtlr->SetActive(false);
+		}
+
 		//Backup Weapon Values - Backup needed since we're editing the baseform.
 		const UInt8 ogAmmoUse = rWeap->ammoUse;
 		const UInt8 ogProjectiles = rWeap->numProjectiles;
 		const UInt16 ogDamage = rWeap->usAttackDamage;
 		const UInt16 ogCritDamage = rWeap->criticalDamage;
 		const float ogMinSpread = rWeap->minSpread;
-		//const float ogFirerate = rWeap->semiAutoFireDelayMin;
 
 		//Using ScaleByPercentRange() just in case a user has altered the base values at all.
 		const HeatConfiguration* config = heat->data;
@@ -136,18 +185,11 @@ namespace Overcharge
 		heat->state.uiCritDamage = ScaleByPercentRange(rWeap->criticalDamage, config->iMinCritDamage, config->iMaxCritDamage, hRatio);
 		heat->state.fAccuracy = ScaleByPercentRange(rWeap->minSpread, config->fMinAccuracy, config->fMaxAccuracy, hRatio);
 
-		//rWeap->semiAutoFireDelayMin = 20.0f;
 		rWeap->ammoUse = heat->state.uiAmmoUsed;
 		rWeap->numProjectiles = heat->state.uiProjectiles;
 		rWeap->usAttackDamage = heat->state.uiDamage;
 		rWeap->criticalDamage = heat->state.uiCritDamage;
 		rWeap->minSpread = heat->state.fAccuracy;
-
-		if (NiAVObjectPtr block = sourceNode->GetObjectByName("##OCNode:0"))
-		{
-			rotationTester.emplace_back(block);
-		}
-
 
 		ThisStdCall(0x523150, rWeap, rActor);
 
@@ -440,6 +482,33 @@ namespace Overcharge
 		}
 	}
 
+	__declspec(naked) void __fastcall UpdatePsysWorldData(NiParticleSystem* thisPtr, void* edx, NiUpdateData* apData)
+	{
+		__asm
+		{
+			mov     eax, [esp + 0x4]
+			push    ebx
+			push    0xC1ADD5
+			retn
+		}
+	}
+
+	static inline void __fastcall TogglePsysWorldUpdate(NiParticleSystem* thisPtr, void* edx, NiUpdateData* apData)
+	{
+		if (!thisPtr || !apData || !thisPtr->m_bWorldSpace || !worldSpaceParticles.contains(thisPtr))
+		UpdatePsysWorldData(thisPtr, edx, apData);
+		else
+		{
+			auto camera1st = PlayerCharacter::GetSingleton()->Get3D();
+			ThisStdCall(0xA68C60, thisPtr, apData);
+			memcpy(&thisPtr->m_kUnmodifiedWorld, &thisPtr->m_kWorld, sizeof(thisPtr->m_kUnmodifiedWorld));
+			thisPtr->m_kWorld.m_Translate = camera1st->m_kWorld.m_Translate;
+			memcpy(&thisPtr->m_kWorld.m_Rotate, &NiMatrix3::IDENTITY, sizeof(NiMatrix3));
+		}
+		return;
+	}
+
+
 	void InitHooks()
 	{
 		// Hook Addresses
@@ -492,5 +561,8 @@ namespace Overcharge
 		WriteRelCall(CreateRefAtLoc, &CreateRefAtLocation);
 
 		WriteRelCall(FireWeaponAnim, &PlayFireAnimation);
+
+		//Testing
+		WriteRelJump(0xC1ADD0, &TogglePsysWorldUpdate);
 	}
 }

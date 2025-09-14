@@ -136,3 +136,14 @@ inline T StringToFlags(const std::string& str, char delimter, const std::array<s
 	}
 	return result;
 }
+
+template <typename T, size_t N>
+std::string EnumToString(T value, const std::array<std::pair<T, std::string_view>, N>& table)
+{
+	for (const auto& [num, str] : table) {
+		if (value == num) {
+			return std::string(str);
+		}
+	}
+	return "Unk";
+}

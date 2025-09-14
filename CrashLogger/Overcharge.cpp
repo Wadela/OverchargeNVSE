@@ -3,7 +3,7 @@
 namespace Overcharge
 {
     HeatState::HeatState() :
-        bIsWeaponLocked(false), uiOCEffect(0), uiAmmoUsed(0), uiProjectiles(0),
+        uiTicksPassed(0), uiOCEffect(0), uiAmmoUsed(0), uiProjectiles(0),
         uiAmmoThreshold(0), uiProjThreshold(0), uiEnchThreshold(0), uiOCEffectThreshold(0),
         uiDamage(0), uiCritDamage(0), uiObjectEffectID(0),
         fAccuracy(0.0f), fFireRate(0.0f), fProjectileSpeed(0.0f), fProjectileSize(0.0f),
@@ -16,7 +16,7 @@ namespace Overcharge
         UInt16 dmg, UInt16 critDmg, UInt32 enchID,
         float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown) :
 
-        bIsWeaponLocked(false), uiOCEffect(OCEffect), uiAmmoUsed(ammo), uiProjectiles(numProj),
+        uiTicksPassed(0), uiOCEffect(OCEffect), uiAmmoUsed(ammo), uiProjectiles(numProj),
         uiAmmoThreshold(ammoTH), uiProjThreshold(projTH), uiEnchThreshold(enchTH), uiOCEffectThreshold(effectTH),
         uiDamage(dmg), uiCritDamage(critDmg), uiObjectEffectID(enchID),
         fProjectileSpeed(projSpd), fProjectileSize(projSize), fFireRate(rof), fAccuracy(accuracy),
