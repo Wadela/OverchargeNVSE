@@ -37,6 +37,13 @@ inline UInt8* GetParentBasePtr(void* addressOfReturnAddress, const bool lambda =
 	return *reinterpret_cast<UInt8**>(basePtr);
 }
 
+inline bool CaseInsensitiveCmp(std::string_view a, std::string_view b)
+{
+	return a.size() == b.size() &&
+		std::equal(a.begin(), a.end(), b.begin(),
+			[](char c1, char c2) { return std::tolower(c1) == std::tolower(c2); });
+}
+
 inline UInt64 MakeHashKey(UInt32 formID1, UInt32 formID2)
 {
 	return ((UInt64)formID1 << 32) | formID2;
@@ -118,16 +125,23 @@ inline std::string FlagsToString(T flags, const std::array<std::pair<T, std::str
 }
 
 template<typename T, size_t N>
-inline T StringToFlags(const std::string& str, char delimter, const std::array<std::pair<T, std::string_view>, N>& flagNames)
+inline T StringToFlags(const std::string& str, char delimiter, const std::array<std::pair<T, std::string_view>, N>& flagNames)
 {
 	T result = 0;
-	auto strings = SplitByDelimiter(str, delimter);
-
-	for (const auto& string : strings)
+	auto strings = SplitByDelimiter(str, delimiter);
+	for (auto s : strings)
 	{
+		s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isspace(c); }));
+		s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char c) { return !std::isspace(c); }).base(), s.end());
+
+		if (s.empty()) continue;
+
+		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
 		for (const auto& [flag, name] : flagNames)
 		{
-			if (string == name)
+			std::string nameLower(name);
+			std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), [](unsigned char c) { return std::tolower(c); });
+			if (s == nameLower)
 			{
 				result |= flag;
 				break;
@@ -146,4 +160,10 @@ std::string EnumToString(T value, const std::array<std::pair<T, std::string_view
 		}
 	}
 	return "Unk";
+}
+
+template <typename Container, typename T>
+inline bool ContainsValue(const Container& c, const T& value)
+{
+	return std::find(c.begin(), c.end(), value) != c.end();
 }

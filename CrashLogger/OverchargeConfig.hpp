@@ -4,11 +4,24 @@
 #include "MainHeader.hpp"
 #include "TESObjectWEAP.hpp"
 #include "BGSImpactDataSet.hpp"
+#include "ModelLoader.hpp"
 
 namespace Overcharge
 {
 	extern case_insensitive_set extraModels;
 	extern case_insensitive_set definedModels;
+
+	enum OCXAddons
+	{
+		None			  = 0,
+		OCXColor		  = 1 << 0,
+		OCXParticle		  = 1 << 1,
+		OCXToggleOnEffect = 1 << 2,
+		OCXRotateX		  = 1 << 3,
+		OCXRotateY		  = 1 << 4,
+		OCXRotateZ		  = 1 << 5,
+		OCXScale		  = 1 << 6,
+	};
 
 	enum OCFlags : UInt16
 	{
@@ -53,6 +66,17 @@ namespace Overcharge
 		OCWeap_Explosive,
 		OCWeap_Thrown
 	};
+
+	constexpr std::array<std::pair<UInt32, std::string_view>, 7> OCXAddonNames
+	{ {
+		{ OCXColor,				"color"	     },
+		{ OCXParticle,			"particle"   },
+		{ OCXToggleOnEffect,	"oneffect"	 },
+		{ OCXRotateX,			"rotateX"	 },
+		{ OCXRotateY,			"rotatey"    },
+		{ OCXRotateZ,			"rotatez"    },
+		{ OCXScale	,			"scale"	     }
+	} };
 
 	constexpr std::array<std::pair<UInt16, std::string_view>, 14> OCFlagNames
 	{ {
@@ -113,13 +137,26 @@ namespace Overcharge
 		float  fHUDOffsetY = 0.0f;
 	};
 
+	struct OCXNode
+	{
+		std::unique_ptr<BSString> targetParent;
+
+		UInt32 flags;
+
+		float    xNodeScale;
+		NiPoint3 xNodeTranslate;
+		NiPoint3 xNodeRotation;
+
+		std::string extraNode;
+	};
+
 	struct HeatConfiguration
 	{
 		UInt8 iWeaponType = OCWeap_None;
-		UInt8 iMinProjectiles = 0;
-		UInt8 iMaxProjectiles = 0;
-		UInt8 iMinAmmoUsed = 0;
-		UInt8 iMaxAmmoUsed = 0;
+		UInt8 iMinProjectiles = 0xFF;
+		UInt8 iMaxProjectiles = 0xFF;
+		UInt8 iMinAmmoUsed = 0xFF;
+		UInt8 iMaxAmmoUsed = 0xFF;
 		UInt8 iOverchargeEffect = OCEffects_None;
 		UInt8 iOverchargeEffectThreshold = 0; 
 		UInt8 iAddAmmoThreshold = 0;
@@ -128,31 +165,32 @@ namespace Overcharge
 
 		UInt16 iOverchargeFlags = OCFlags_None;
 
-		UInt16 iMinDamage = 0;
-		UInt16 iMaxDamage = 0;
-		UInt16 iMinCritDamage = 0;
-		UInt16 iMaxCritDamage = 0;
-		UInt16 iMinProjectileSpeedPercent = 0;
-		UInt16 iMaxProjectileSpeedPercent = 0;
-		UInt16 iMinProjectileSizePercent = 0;
-		UInt16 iMaxProjectileSizePercent = 0;
+		UInt16 iMinDamage = 0xFFFF;
+		UInt16 iMaxDamage = 0xFFFF;
+		UInt16 iMinCritDamage = 0xFFFF;
+		UInt16 iMaxCritDamage = 0xFFFF;
+		UInt16 iMinProjectileSpeedPercent = 0xFFFF;
+		UInt16 iMaxProjectileSpeedPercent = 0xFFFF;
+		UInt16 iMinProjectileSizePercent = 0xFFFF;
+		UInt16 iMaxProjectileSizePercent = 0xFFFF;
 
 		UInt32 iObjectEffectID = 0;
-		UInt32 iMinColor = 0;
-		UInt32 iMaxColor = 0;
+		UInt32 iMinColor = 0xFFFFFF;
+		UInt32 iMaxColor = 0xFFFFFF;
 
 		float fHeatPerShot = 0;
 		float fCooldownPerSecond = 0;
-		float fMinFireRate = 0;
-		float fMaxFireRate = 0;
-		float fMinAccuracy = 0;
-		float fMaxAccuracy = 0;
+		float fMinFireRate = -1;
+		float fMaxFireRate = -1;
+		float fMinAccuracy = -1;
+		float fMaxAccuracy = -1;
 
 		std::string sAnimFile;
 		std::string sHeatedNodes;
 	};
 
 	extern std::unordered_map<UInt64, const HeatConfiguration> weaponDataMap;
+	extern std::vector<OCXNode> OCExtraModels;
 	extern OverchargeSettings g_OCSettings;
 
 

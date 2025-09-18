@@ -276,11 +276,11 @@ bool Cmd_GetHeatConfig_Execute(COMMAND_ARGS)
 			resultString = FlagsToString(config.iOverchargeEffect, Overcharge::OCEffectNames);
 			break;
 		case 3:
-			resultString = config.sAnimFile;
+			resultString = config.sAnimFile.c_str();
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
 		case 4:
-			resultString = config.sHeatedNodes;
+			resultString = config.sHeatedNodes.c_str();
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
 		case 5:

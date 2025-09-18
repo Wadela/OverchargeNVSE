@@ -2,9 +2,12 @@
 
 #include "MainHeader.hpp"
 #include "OverchargeConfig.hpp"
+#include "NiParticleSystem.hpp"
 
 namespace Overcharge
 {
+
+
     //Overheating Code
     struct HeatState
     {
@@ -47,13 +50,13 @@ namespace Overcharge
     struct HeatFX
     {
         HeatFX();
-        HeatFX(UInt32 col, std::vector<NiAVObjectPtr> names);
+        HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names);
 
         NiColor                    currCol;
 
         NiMaterialPropertyPtr      matProp;
 
-        std::vector<NiAVObjectPtr> targetBlocks;
+        std::vector<std::pair<UInt32, NiAVObjectPtr>> targetBlocks;
     };
 
     struct HeatData

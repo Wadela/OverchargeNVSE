@@ -1,4 +1,4 @@
-#include  "OverchargeHooks.hpp"
+#include "OverchargeHooks.hpp"
 #include <BSShaderUtil.hpp>
 #include "MTRenderingSystem.hpp"
 
@@ -7,7 +7,7 @@ namespace Overcharge
 	std::unordered_map<UInt64, std::shared_ptr<HeatData>>		activeWeapons;
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
 	std::unordered_set<BSPSysSimpleColorModifier*>				colorModifiers; 
-	std::unordered_set<NiParticleSystem*>						worldSpaceParticles;
+	std::vector<NiParticleSystemPtr>							worldSpaceParticles;
 
 	bool UpdateWeaponInstance(std::shared_ptr<HeatData> instance, float frameTime, bool isPlayer = false)
 	{
@@ -37,8 +37,28 @@ namespace Overcharge
 		);
 
 		for (const auto& node : instance->fx.targetBlocks) {
-			if (node && node.m_pObject) {
-				SetEmissiveColor(node.m_pObject, instance->fx.currCol, instance->fx.matProp);
+			if (!node.second) continue;
+
+			if (node.first & OCXColor) {
+				SetEmissiveColor(node.second.m_pObject, instance->fx.currCol, instance->fx.matProp);
+			}
+			if (node.first & OCXParticle) {
+
+				if (node.first & OCXToggleOnEffect) {
+
+					if (node.second->IsNiType<NiNode>())
+					TraverseNiNode<NiParticleSystem>(static_cast<NiNode*>(node.second.m_pObject), [&instance](NiParticleSystem* psys) {
+						if ((instance->state.uiOCEffect & (1 << 0)) && instance->state.fHeatVal >= 50)
+						{
+							psys->GetControllers()->Start();
+						}
+						else
+						{
+							psys->GetControllers()->Stop();
+						}
+						});
+
+				}
 			}
 		}
 
@@ -139,35 +159,19 @@ namespace Overcharge
 		}
 
 		UInt64 configKey = MakeHashKey(rWeap->uiFormID, equippedAmmo->uiFormID);
-		const auto dataIt = weaponDataMap.find(configKey);
+		auto dataIt = weaponDataMap.find(configKey);
 		if (dataIt == weaponDataMap.end())
 		{
-			ThisStdCall(0x523150, rWeap, rActor);
-			return;
+			configKey = static_cast<UInt64>(rWeap->uiFormID);
+			dataIt = weaponDataMap.find(configKey);
+			if (dataIt == weaponDataMap.end())
+			{
+				ThisStdCall(0x523150, rWeap, rActor);
+				return;
+			}
 		}
 		auto heat = GetOrCreateHeat(rActor->uiFormID, rWeap->uiFormID, sourceNode.m_pObject, dataIt->second);
 		heat->state.HeatOnFire();
-
-		if (sourceNode)
-		{
-			auto smokeNode = sourceNode->GetObjectByName("OCSmoke");
-			auto smokePsys = sourceNode->GetObjectByName("OCSmoke01");
-			if (NiParticleSystemPtr smoke = smokePsys->NiDynamicCast<NiParticleSystem>())
-			{
-				worldSpaceParticles.emplace(smoke.m_pObject);
-			}
-			//auto smokeCtlr = smoke->GetControllers();
-			//if (heat->state.fHeatVal >= 100)
-			//{
-				//smokeCtlr->SetActive(true);
-				//auto pSceneGraph = TESMain::GetWorldRoot();
-				//auto pCullingProcess = pSceneGraph->GetCullingProcess();
-				//auto firstCam = TESMain::Get1stCamNode();
-				//CdeclCall<void>(0xB6BEE0, firstCam, smokeNode, pCullingProcess);
-			//}
-			//else
-				//smokeCtlr->SetActive(false);
-		}
 
 		//Backup Weapon Values - Backup needed since we're editing the baseform.
 		const UInt8 ogAmmoUse = rWeap->ammoUse;
@@ -495,19 +499,22 @@ namespace Overcharge
 
 	static inline void __fastcall TogglePsysWorldUpdate(NiParticleSystem* thisPtr, void* edx, NiUpdateData* apData)
 	{
-		if (!thisPtr || !apData || !thisPtr->m_bWorldSpace || !worldSpaceParticles.contains(thisPtr))
+		if (!thisPtr || !apData || !thisPtr->m_bWorldSpace || !ContainsValue(worldSpaceParticles, thisPtr))
 		UpdatePsysWorldData(thisPtr, edx, apData);
 		else
 		{
 			auto camera1st = PlayerCharacter::GetSingleton()->Get3D();
 			ThisStdCall(0xA68C60, thisPtr, apData);
+			if (!camera1st) return;
 			memcpy(&thisPtr->m_kUnmodifiedWorld, &thisPtr->m_kWorld, sizeof(thisPtr->m_kUnmodifiedWorld));
 			thisPtr->m_kWorld.m_Translate = camera1st->m_kWorld.m_Translate;
 			memcpy(&thisPtr->m_kWorld.m_Rotate, &NiMatrix3::IDENTITY, sizeof(NiMatrix3));
+			thisPtr->m_kWorld.m_fScale = thisPtr->m_pkParent ? thisPtr->m_pkParent->m_kWorld.m_fScale * thisPtr->m_kLocal.m_fScale
+				: thisPtr->m_kLocal.m_fScale;
+			thisPtr->m_uiFlags.Set(NiAVObject::ALWAYS_DRAW);
 		}
 		return;
 	}
-
 
 	void InitHooks()
 	{

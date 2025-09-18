@@ -134,7 +134,7 @@ namespace Overcharge
         targetBlocks() {
     }
 
-    HeatFX::HeatFX(UInt32 col, std::vector<NiAVObjectPtr> names) :
+    HeatFX::HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names) :
         currCol(UInt32toRGB(col)),
         targetBlocks(names) {
     }
@@ -165,15 +165,29 @@ namespace Overcharge
             );
         }
 
-        std::vector<NiAVObjectPtr> blocks;
+        std::vector<std::pair<UInt32, NiAVObjectPtr>> blocks;
         if (sourceNode && data)
         {
-            auto heatedNodes = SplitByDelimiter(data->sHeatedNodes, ',');
-            for (const auto& name : heatedNodes)
+            for (auto& name : SplitByDelimiter((data->sHeatedNodes).c_str(), ','))
             {
-                if (NiAVObjectPtr block = sourceNode->GetObjectByName(name.c_str()))
+                if (name.size() < 3 || name.front() != '[') continue;
+
+                auto pos = name.find(']');
+                if (pos == std::string::npos || pos == 1) continue;
+
+                if (!std::all_of(
+                    name.begin() + 1, 
+                    name.begin() + pos, 
+                    [](unsigned char c) { return std::isxdigit(c); }))
+                    continue;
+
+                UInt32 flags = static_cast<UInt32>(std::stoul(name.substr(1, pos - 1), nullptr, 16));
+                std::string_view cleanName(name.c_str() + pos + 1, name.size() - pos - 1);
+
+                if (NiAVObjectPtr block = sourceNode->GetObjectByName(cleanName.data()))
                 {
-                    blocks.emplace_back(block);
+                    auto pair = std::make_pair(flags, block);
+                    blocks.emplace_back(pair);
                 }
             }
         }

@@ -11,9 +11,12 @@
 
 
 #include "Overcharge.hpp"
+#include <ModelLoader.hpp>
 
 namespace Overcharge
 {
+	extern std::vector<NiParticleSystemPtr> worldSpaceParticles;
+
 	template<typename T>
 	static void TraverseNiNode(NiNode* node, const std::function<void(T*)>& callback)
 	{
@@ -21,7 +24,7 @@ namespace Overcharge
 
 		if (!node) return;
 
-		for (int i = 0; i < node->m_kChildren.m_usSize; i++)
+		for (int i = 0; i < node->m_kChildren.m_usSize; ++i)
 		{
 			NiAVObject* child = node->m_kChildren[i].m_pObject;
 
@@ -108,6 +111,47 @@ namespace Overcharge
 				});
 
 			return node;
+		}
+		else
+		{
+			for (auto& it : OCExtraModels)
+			{
+				if (!filePath || !CaseInsensitiveCmp(filePath, it.targetParent->StdStr()))
+					continue;
+
+				std::string cleanPath = it.extraNode.c_str();
+				int index = -1;
+				if (!cleanPath.empty() && cleanPath.front() == '[') {
+					auto pos = cleanPath.find(']');
+					if (pos != std::string::npos) {
+						index = std::stoi(cleanPath.substr(1, pos - 1));
+						cleanPath = cleanPath.substr(pos + 1);
+					}
+				}
+
+				NiNode* node = model->spNode;
+				NiNodePtr extraModel = ModelLoader::GetSingleton()->LoadFile(cleanPath.c_str(), 0, 1, 0, 0, 0);
+				if (!node || !extraModel) continue;
+
+				NiObjectPtr extraObj = extraModel->Clone();
+				if (!extraObj) continue;
+
+				NiNodePtr extraNode = extraObj->IsNiNode();
+				if (!extraNode) continue;
+
+				if (index >= 0) {
+					std::string newName = std::string(extraNode->m_kName.c_str()) + std::to_string(index);
+					NiFixedString nameString = newName.c_str();
+					extraNode->SetName(nameString);
+				}
+
+				node->AttachChild(extraNode, 0);
+				extraNode->m_kLocal.m_fScale = it.xNodeScale;
+				extraNode->m_kLocal.m_Translate = it.xNodeTranslate;
+				extraNode->m_kLocal.m_Rotate.FromEulerDegrees(
+					it.xNodeRotation.x, it.xNodeRotation.y, it.xNodeRotation.z
+				);
+			}
 		}
 		return model->spNode;
 	}

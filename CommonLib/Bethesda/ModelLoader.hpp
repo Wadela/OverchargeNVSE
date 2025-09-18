@@ -35,6 +35,8 @@ public:
 
 	static ModelLoader* GetSingleton();
 
+	NiNode* LoadFile(const char* apPath, uint32_t aeLODFadeMult, bool abAssignShaders, int unused, bool abKeepUV, bool abNoUseCountIncrease);
+
 	static KFModel* LoadKFModel(const char* path)
 	{
 		const auto* pThis = GetSingleton();

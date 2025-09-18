@@ -31,9 +31,6 @@
     <ClCompile Include="OverchargeConfig.cpp">
       <Filter>Wadelz</Filter>
     </ClCompile>
-    <ClCompile Include="CommandsOvercharge.cpp">
-      <Filter>Wadelz</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />

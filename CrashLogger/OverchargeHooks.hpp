@@ -21,6 +21,7 @@
 #include <MuzzleFlash.hpp>
 #include <EffectSetting.hpp>
 #include <MagicItemForm.hpp>
+#include "ModelLoader.hpp"
 
 //#include <tracy/Tracy.hpp>
 
@@ -47,9 +48,20 @@ namespace Overcharge
 			it->second = std::move(heat);
 		}
 		it->second->data = &config;
+
+		for (auto& blocks : it->second->fx.targetBlocks)
+		{
+			if (blocks.first & OCXParticle && blocks.second->IsNiType<NiNode>())
+			{
+				TraverseNiNode<NiParticleSystem>(static_cast<NiNode*>(blocks.second.m_pObject), [&](NiParticleSystemPtr psys) {
+					if (!ContainsValue(worldSpaceParticles, psys))
+					worldSpaceParticles.emplace_back(psys);
+					});
+			}
+		}
+
 		return it->second;
 	}
 
 	void WeaponCooldown();
-	void WeaponLockOut(Actor* rActor, TESObjectWEAP* rWeap);
 }

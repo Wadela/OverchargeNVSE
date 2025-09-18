@@ -219,6 +219,16 @@ const float NI_INFINITY = FLT_MAX;
 const float NI_PI = 3.1415927410125732f;
 const float NI_HALF_PI = 0.5f * NI_PI;
 const float NI_TWO_PI = 2.0f * NI_PI;
+const float DEG_TO_RAD = NI_PI / 180.0f;
+
+void NiMatrix3::FromEulerDegrees(float rollDeg, float pitchDeg, float yawDeg)
+{
+	float rollRad = rollDeg * DEG_TO_RAD;
+	float pitchRad = pitchDeg * DEG_TO_RAD;
+	float yawRad = yawDeg * DEG_TO_RAD;
+
+	FromEulerAnglesXYZ(rollRad, pitchRad, yawRad);
+}
 
 bool NiMatrix3::ToEulerAnglesXYZ(float& arfXAngle, float& arfYAngle, float& arfZAngle) const {
 	arfYAngle = -asin(m_pEntry[0][2]);
