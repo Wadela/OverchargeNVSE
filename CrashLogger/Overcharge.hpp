@@ -6,28 +6,30 @@
 
 namespace Overcharge
 {
-
-
     //Overheating Code
     struct HeatState
     {
         HeatState();
         HeatState(
-        UInt8 OCEffect, UInt8 ammo, UInt8 numProj, 
-        UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH, 
-        UInt16 dmg, UInt16 critDmg, UInt32 enchID,
-        float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown);
+            UInt8 OCEffect, UInt8 ammo, UInt8 numProj,
+            UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
+            UInt16 dmg, UInt16 critDmg, UInt32 enchID,
+            float accuracy, float rof, float projSpd, float projSize, 
+            float perShot, float cooldown);
+        HeatState(const HeatConfiguration* config);
 
-        UInt8   uiTicksPassed;
-        UInt8   uiOCEffect;
         UInt8   uiAmmoUsed;
         UInt8   uiProjectiles;
         UInt8   uiAmmoThreshold;
         UInt8   uiProjThreshold;
         UInt8   uiEnchThreshold;
         UInt8   uiOCEffectThreshold;
+
         UInt16  uiDamage;
         UInt16  uiCritDamage;
+
+        UInt16   uiTicksPassed;
+        UInt16   uiOCEffect;
 
         UInt32  uiObjectEffectID;
 
@@ -53,7 +55,6 @@ namespace Overcharge
         HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names);
 
         NiColor                    currCol;
-
         NiMaterialPropertyPtr      matProp;
 
         std::vector<std::pair<UInt32, NiAVObjectPtr>> targetBlocks;
@@ -61,12 +62,13 @@ namespace Overcharge
 
     struct HeatData
     {
+        HeatData(const HeatConfiguration* cfg);
         HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* config);
 
         HeatFX    fx;
         HeatState state;
 
-        const HeatConfiguration* data;
+        const HeatConfiguration* config;
     };
 
     UInt32  RGBtoUInt32(const NiColor& color);
@@ -79,10 +81,4 @@ namespace Overcharge
     NiColorA DesaturateRGBA(NiColorA rgba, float factor);
 
     NiColor SmoothColorShift(float currentHeat, UInt32 startCol, UInt32 targetCol);
-
-    HeatData MakeHeatFromConfig(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode);
-
-
-
-
 }

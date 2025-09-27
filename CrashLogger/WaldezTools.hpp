@@ -39,9 +39,12 @@ inline UInt8* GetParentBasePtr(void* addressOfReturnAddress, const bool lambda =
 
 inline bool CaseInsensitiveCmp(std::string_view a, std::string_view b)
 {
-	return a.size() == b.size() &&
-		std::equal(a.begin(), a.end(), b.begin(),
-			[](char c1, char c2) { return std::tolower(c1) == std::tolower(c2); });
+	if (a.size() != b.size()) return false;
+	return std::equal(a.begin(), a.end(), b.begin(),
+		[](char c1, char c2) {
+			return std::tolower(static_cast<unsigned char>(c1)) ==
+				std::tolower(static_cast<unsigned char>(c2));
+		});
 }
 
 inline UInt64 MakeHashKey(UInt32 formID1, UInt32 formID2)
@@ -87,19 +90,38 @@ T ScaleByPercentRange(T baseVal, T min, T max, float ratio)
 	return static_cast<T>(baseVal * totalPercent);
 }
 
-inline std::vector<std::string> SplitByDelimiter(const std::string& str, char delimiter)
+inline float ParseDelimitedData(std::string_view sv, char openDelimiter = '\0', char closeDelimiter = '\0')
 {
-	std::vector<std::string> result;
-	std::stringstream ss(str);
-	std::string item;
+	if (!sv.empty() && openDelimiter != '\0' && sv.front() == openDelimiter)
+		sv.remove_prefix(1);
 
-	while (std::getline(ss, item, delimiter)) 
+	if (!sv.empty() && closeDelimiter != '\0' && sv.back() == closeDelimiter)
+		sv.remove_suffix(1);
+
+	float value = 0.0f;
+	std::from_chars(sv.data(), sv.data() + sv.size(), value);
+	return value;
+}
+
+inline std::vector<std::string_view> SplitByDelimiter(std::string_view str, char delimiter)
+{
+	std::vector<std::string_view> result;
+	size_t start = 0;
+
+	while (start < str.size())
 	{
-		size_t start = item.find_first_not_of(" \t");
-		size_t end = item.find_last_not_of(" \t");
-		if (start != std::string::npos && end != std::string::npos)
-		result.push_back(item.substr(start, end - start + 1));
+		size_t end = str.find(delimiter, start);
+		if (end == std::string_view::npos) end = str.size();
+
+		size_t tokenStart = str.find_first_not_of(" \t", start);
+		size_t tokenEnd = str.find_last_not_of(" \t", end - 1);
+
+		if (tokenStart != std::string_view::npos && tokenEnd != std::string_view::npos)
+			result.push_back(str.substr(tokenStart, tokenEnd - tokenStart + 1));
+
+		start = end + 1;
 	}
+
 	return result;
 }
 
@@ -109,54 +131,74 @@ inline std::string FlagsToString(T flags, const std::array<std::pair<T, std::str
 	if (flags == T(0)) return "None";
 	if (flags == ~T(0)) return "All";
 
-	std::ostringstream oss;
-	bool first = true;
+	std::string result;
 
+	size_t maxSize = 0;
+	for (const auto& [flag, name] : flagNames)
+	{
+		maxSize += name.size() + 3; 
+	}
+	result.reserve(maxSize);
+
+	bool first = true;
 	for (const auto& [flag, name] : flagNames)
 	{
 		if (flags & flag)
 		{
-			if (!first) oss << " | ";
-			oss << name;
+			if (!first) result.append(" , ");
+			result.append(name);
 			first = false;
-		}
-	}
-	return oss.str();
-}
-
-template<typename T, size_t N>
-inline T StringToFlags(const std::string& str, char delimiter, const std::array<std::pair<T, std::string_view>, N>& flagNames)
-{
-	T result = 0;
-	auto strings = SplitByDelimiter(str, delimiter);
-	for (auto s : strings)
-	{
-		s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char c) { return !std::isspace(c); }));
-		s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char c) { return !std::isspace(c); }).base(), s.end());
-
-		if (s.empty()) continue;
-
-		std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return std::tolower(c); });
-		for (const auto& [flag, name] : flagNames)
-		{
-			std::string nameLower(name);
-			std::transform(nameLower.begin(), nameLower.end(), nameLower.begin(), [](unsigned char c) { return std::tolower(c); });
-			if (s == nameLower)
-			{
-				result |= flag;
-				break;
-			}
 		}
 	}
 	return result;
 }
 
+inline std::string_view Trim(std::string_view sv) 
+{
+	auto is_space = [](unsigned char c) { return std::isspace(c); };
+	while (!sv.empty() && is_space(sv.front())) {
+		sv.remove_prefix(1);
+	}
+	while (!sv.empty() && is_space(sv.back())) {
+		sv.remove_suffix(1);
+	}
+	return sv;
+}
+
+template<typename T, size_t N>
+inline T StringToFlags(std::string_view str, char delimiter, const std::array<std::pair<T, std::string_view>, N>& flagNames)
+{
+	T result = 0;
+	size_t start = 0;
+	while (start < str.size()) {
+		size_t end = str.find(delimiter, start);
+		if (end == std::string_view::npos) end = str.size();
+		std::string_view token = Trim(str.substr(start, end - start));
+		if (!token.empty()) {
+			for (const auto& [flag, name] : flagNames) {
+				if (std::equal(token.begin(), token.end(),
+					name.begin(), name.end(),
+					[](unsigned char a, unsigned char b) 
+					{
+						return std::tolower(a) == std::tolower(b);
+					}))
+				{
+					result |= flag;
+					break;
+				}
+			}
+		}
+		start = end + 1;
+	}
+	return result;
+}
+
 template <typename T, size_t N>
-std::string EnumToString(T value, const std::array<std::pair<T, std::string_view>, N>& table)
+std::string_view EnumToString(T value, const std::array<std::pair<T, std::string_view>, N>& table)
 {
 	for (const auto& [num, str] : table) {
 		if (value == num) {
-			return std::string(str);
+			return str;
 		}
 	}
 	return "Unk";

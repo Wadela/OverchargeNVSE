@@ -49,14 +49,22 @@ namespace Overcharge
 
 		auto& matProp = geom->m_kProperties.m_spMaterialProperty;
 		if (newMatProp)
+		{
+			newMatProp->m_fAlpha = matProp->m_fAlpha;
+			newMatProp->m_fEmitMult = matProp->m_fEmitMult;
+			newMatProp->m_fShine = matProp->m_fShine;
+
 			matProp = newMatProp;
+			geom->RemoveProperty(NiProperty::MATERIAL);
+			geom->AddProperty(newMatProp);
+		}
 
 		if (matProp)
-			matProp->m_emit = color;
+		matProp->m_emit = color;
 	}
 
 	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
-	static void PrepColorMod(NiParticleSystem* childParticle)
+	static void PrepColorMod(NiParticleSystemPtr& childParticle)
 	{
 		if (!childParticle) return;
 
@@ -83,7 +91,7 @@ namespace Overcharge
 	}
 
 	//Edit Vertex Colors - Primarily for preparing meshes to have emissive colors to pop out more 
-	static void PrepVertexColor(const NiGeometry* geom)
+	static void PrepVertexColor(NiGeometryPtr& geom)
 	{
 		if (const NiGeometryDataPtr modelData = geom->m_spModelData; modelData && modelData->m_pkColor) 
 		{
@@ -102,11 +110,11 @@ namespace Overcharge
 		{
 			NiNode* node = model->spNode;
 
-			TraverseNiNode<NiParticleSystem>(node, [](NiParticleSystem* psys) {
+			TraverseNiNode<NiParticleSystem>(node, [](NiParticleSystemPtr psys) {
 				PrepColorMod(psys);
 				});
 
-			TraverseNiNode<NiGeometry>(node, [](NiGeometry* geom) {
+			TraverseNiNode<NiGeometry>(node, [](NiGeometryPtr geom) {
 				PrepVertexColor(geom);
 				});
 
@@ -116,22 +124,30 @@ namespace Overcharge
 		{
 			for (auto& it : OCExtraModels)
 			{
-				if (!filePath || !CaseInsensitiveCmp(filePath, it.targetParent->StdStr()))
+				if (!filePath || !CaseInsensitiveCmp(filePath, it.targetParent.c_str()))
 					continue;
 
-				std::string cleanPath = it.extraNode.c_str();
-				int index = -1;
-				if (!cleanPath.empty() && cleanPath.front() == '[') {
-					auto pos = cleanPath.find(']');
-					if (pos != std::string::npos) {
-						index = std::stoi(cleanPath.substr(1, pos - 1));
-						cleanPath = cleanPath.substr(pos + 1);
+				NiNode* node = model->spNode;
+				if (!node) continue;
+
+				if (it.extraNode.index == 0xFFFF)
+				{
+					auto& name = it.extraNode.nodeName;
+					NiAVObjectPtr hNode = node->GetObjectByName(name);
+					if (hNode && (it.extraNode.flags & OCXColor) && hNode->IsNiType<NiGeometry>())
+					{
+						NiGeometryPtr geom = static_cast<NiGeometry*>(hNode.m_pObject);
+						PrepVertexColor(geom);
 					}
+					if (hNode && hNode->IsNiType<NiNode>())
+					{
+						NiNodePtr hNiNode = static_cast<NiNode*>(hNode.m_pObject);
+					}
+					continue;
 				}
 
-				NiNode* node = model->spNode;
-				NiNodePtr extraModel = ModelLoader::GetSingleton()->LoadFile(cleanPath.c_str(), 0, 1, 0, 0, 0);
-				if (!node || !extraModel) continue;
+				NiNodePtr extraModel = ModelLoader::GetSingleton()->LoadFile(it.extraNode.nodeName, 0, 1, 0, 0, 0);
+				if (!extraModel) continue;
 
 				NiObjectPtr extraObj = extraModel->Clone();
 				if (!extraObj) continue;
@@ -139,9 +155,13 @@ namespace Overcharge
 				NiNodePtr extraNode = extraObj->IsNiNode();
 				if (!extraNode) continue;
 
-				if (index >= 0) {
-					std::string newName = std::string(extraNode->m_kName.c_str()) + std::to_string(index);
-					NiFixedString nameString = newName.c_str();
+				if (it.extraNode.index >= 0) 
+				{
+					char nameBuffer[256];
+					std::snprintf(nameBuffer, sizeof(nameBuffer), "%s%u",
+						extraNode->m_kName.c_str(),
+						it.extraNode.index);
+					NiFixedString nameString(nameBuffer);
 					extraNode->SetName(nameString);
 				}
 
@@ -151,6 +171,13 @@ namespace Overcharge
 				extraNode->m_kLocal.m_Rotate.FromEulerDegrees(
 					it.xNodeRotation.x, it.xNodeRotation.y, it.xNodeRotation.z
 				);
+
+				if (it.extraNode.flags & OCXParticle)
+				{
+					TraverseNiNode<NiParticleSystem>(extraNode, [&](NiParticleSystemPtr psys) {
+							if (auto ctlr = psys->GetControllers(); ctlr) ctlr->Stop();
+						});
+				}
 			}
 		}
 		return model->spNode;

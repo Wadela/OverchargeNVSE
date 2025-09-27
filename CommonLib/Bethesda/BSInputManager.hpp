@@ -157,6 +157,41 @@ public:
 		kMaxDevices = 8,
 	};
 
+	enum ControlCode : __int32
+	{
+		Forward = 0x0,
+		Backward = 0x1,
+		Left = 0x2,
+		Right = 0x3,
+		Attack = 0x4,
+		Activate = 0x5,
+		Aim = 0x6,
+		ReadyItem = 0x7,
+		Crouch = 0x8,
+		Run = 0x9,
+		AlwaysRun = 0xA,
+		AutoMove = 0xB,
+		Jump = 0xC,
+		TogglePOV = 0xD,
+		MenuMode = 0xE,
+		Rest = 0xF,
+		VATS_ = 0x10,
+		Hotkey1 = 0x11,
+		AmmoSwap = 0x12,
+		Hotkey3 = 0x13,
+		Hotkey4 = 0x14,
+		Hotkey5 = 0x15,
+		Hotkey6 = 0x16,
+		Hotkey7 = 0x17,
+		Hotkey8 = 0x18,
+		QuickSave = 0x19,
+		QuickLoad = 0x1A,
+		Grab = 0x1B,
+		Escape = 0x1C,
+		Console = 0x1D,
+		Screenshot = 0x1E,
+	};
+
 	struct JoystickObjectsInfo {
 		enum {
 			kHasXAxis = 1 << 0,
@@ -217,41 +252,38 @@ public:
 	UInt8 byte0003;
 	Bitfield32 uiFlags;
 	LPDIRECTINPUT8A pDirectInput;
-	LPDIRECTINPUTDEVICE8A unk000C[8];
+	LPDIRECTINPUTDEVICE8A pDevices[8];
 	LPDIRECTINPUTDEVICE8A pKeyboard;
 	LPDIRECTINPUTDEVICE8A pMouse;
-	UInt32 unk0034[8][40];
-	UInt32 unk534[1264];
-	UInt32 unk18F4;
-	UInt8 currKeyStates[256];
-	UInt8 lastKeyStates[256];
+	DIJOYSTATE kJoyStickState[8][2];
+	DIDEVICEINSTANCEA kJoyStickInstances[8];
+	DIDEVCAPS kJoyStickCaps[8];
+	UInt32 uiJoyStickFlags[8][2];
+	UInt32 uiJoyStickCount;
+	UInt8 ucKeyboardState[2][256];
 	DIDEVCAPS mouseCaps;
-	MouseData kCurrentMouseData;
-	MouseData kLastMouseData;
+	DIMOUSESTATE2 kMouseState[2];
 	BOOL bSwapLeftRightMouseButtons;
 	UInt8 cMouseSensitivity;
 	UInt8 byte1B51;
 	UInt8 byte1B52;
 	UInt8 byte1B53;
 	UInt32 uiDoubleClickTime;
-	UInt8 buttonStates1B58[8];
-	UInt32 unk1B60[8];
+	bool bDoubleClicked[8];
+	UInt32 uiLastClickedTime[8];
 	ControllerVibration* pControllerVibration;
 	VibrationStates* pVibrationProperties;
 	UInt8 isControllerEnabled;
 	UInt8 byte1B89;
 	UInt8 byte1B8A;
 	UInt8 byte1B8B;
-	UInt32 unk1B8C;
-	UInt8 byte1B90;
-	UInt8 byte1B91;
+	UInt32 eActionToSet;
+	bool bSettingAControl;
+	bool bUpdated;
 	UInt16 usOverrideFlags;
-	UInt8 ucKeyBinds[28];
-	UInt8 ucMouseBinds[28];
-	UInt8 ucJoystickBinds[28];
-	UInt8 ucControllerBinds[28];
+	UInt8 ucKeyBinds[4][28];
 
-	static BSInputManager* GetSingleton();
+	__forceinline static BSInputManager* GetSingleton() { return *reinterpret_cast<BSInputManager**>(0x011F35CC); };
 
 	static LPDIRECTINPUT8A GetDirectInput();
 	static LPDIRECTINPUTDEVICE8A GetKeyboard();
@@ -262,6 +294,12 @@ public:
 	void ChangeMouseCooperativeLevel(bool abBackground);
 	bool GetButtonState(UInt32 uiInputDevice, UInt8 aucKey, UInt32 auiState);
 	SInt32 GetControlState(UInt8 aucKey, UInt32 auiState);
+
+	void   SetControlHeld(ControlCode aeAction);
+	void   ResetControlState(ControlCode aeAction);
+
+	SInt32 GetUserAction(ControlCode aeAction, KeyState state);
+	void   SetUserAction(ControlCode aeAction, KeyState state);
 };
 
 ASSERT_SIZE(BSInputManager, 0x1C04);

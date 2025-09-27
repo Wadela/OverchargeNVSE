@@ -112,9 +112,6 @@
     <ClCompile Include="BSSemaphore.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="BSInputManager.cpp">
-      <Filter>Type Methods</Filter>
-    </ClCompile>
     <ClCompile Include="Actor.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
@@ -125,6 +122,8 @@
       <Filter>Type Methods</Filter>
     </ClCompile>
     <ClCompile Include="Bethesda\BSShaderAccumulator.cpp" />
+    <ClCompile Include="Bethesda\PlayerCharacter.cpp" />
+    <ClCompile Include="Bethesda\BSInputManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp">

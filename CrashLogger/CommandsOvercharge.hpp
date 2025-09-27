@@ -151,10 +151,9 @@ bool Cmd_SetHeatState_Execute(COMMAND_ARGS)
 
 	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceWeap, &type, &value) && type > 0 && type <= 19)
 	{
-		const NiNodePtr sourceNode = sourceRef->Get3D();
 		const TESAmmo* equippedAmmo = sourceWeap->GetEquippedAmmo(sourceRef);
 
-		if (!sourceNode || !equippedAmmo || !equippedAmmo->uiFormID) return true;
+		if (!equippedAmmo || !equippedAmmo->uiFormID) return true;
 
 		UInt64 configKey = MakeHashKey(sourceWeap->uiFormID, equippedAmmo->uiFormID);
 		const auto dataIt = Overcharge::weaponDataMap.find(configKey);
@@ -163,9 +162,7 @@ bool Cmd_SetHeatState_Execute(COMMAND_ARGS)
 
 		std::shared_ptr<Overcharge::HeatData> heat =
 			Overcharge::GetOrCreateHeat(
-				sourceRef->uiFormID,
-				sourceWeap->uiFormID,
-				sourceNode.m_pObject,
+				sourceRef,
 				dataIt->second
 			);
 
@@ -280,7 +277,16 @@ bool Cmd_GetHeatConfig_Execute(COMMAND_ARGS)
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
 		case 4:
-			resultString = config.sHeatedNodes.c_str();
+			resultString.clear();
+			resultString.reserve(config.sHeatedNodes.size() * 32);
+			for (size_t i = 0; i < config.sHeatedNodes.size(); ++i)
+			{
+				const auto& [index, flags, node] = config.sHeatedNodes[i];
+				if (i > 0) resultString += ",";
+				char buf[256];
+				std::snprintf(buf, sizeof(buf), "[%X]%s", flags, node.c_str());
+				resultString += buf;
+			}
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
 		case 5:

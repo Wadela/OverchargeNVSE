@@ -270,7 +270,6 @@ public:
 	EquippedItemsList	GetEquippedItems();
 	ExtraContainerDataArray	GetEquippedEntryDataList();
 	ExtraContainerExtendDataArray GetEquippedExtendDataList();
-	TESObjectWEAP* GetEquippedWeapon();
 
 	UInt32 GetCurrentWeaponID() {
 		if (!pkBaseProcess) return 0;
@@ -281,12 +280,11 @@ public:
 		return pCurrentWeapon->pObject->uiFormID;
 	}
 
-	const ItemChange* GetCurrentWeapon()
-	{
-		if (!pkBaseProcess) return nullptr;
-		if (const ItemChange* pCurrentWeapon = pkBaseProcess->GetWeapon())
-		{
-			return pCurrentWeapon;
+	TESObjectWEAP* GetCurrentWeapon() {
+		if (pkBaseProcess) {
+			const ItemChange* pCurrentWeapon = pkBaseProcess->GetWeapon();
+			if (pCurrentWeapon)
+				return reinterpret_cast<TESObjectWEAP*>(pCurrentWeapon->pObject);
 		}
 		return nullptr;
 	}

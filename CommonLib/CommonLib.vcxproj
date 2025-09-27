@@ -179,14 +179,15 @@
     <ClCompile Include="Actor.cpp" />
     <ClCompile Include="Bethesda\bhkUtilFunctions.cpp" />
     <ClCompile Include="Bethesda\BSFaceGenManager.cpp" />
+    <ClCompile Include="Bethesda\BSInputManager.cpp" />
     <ClCompile Include="Bethesda\BSMemory.cpp" />
     <ClCompile Include="Bethesda\BSShaderAccumulator.cpp" />
     <ClCompile Include="Bethesda\MagicItem.cpp" />
     <ClCompile Include="Bethesda\MemoryManager.cpp" />
     <ClCompile Include="Bethesda\ModelLoader.cpp" />
+    <ClCompile Include="Bethesda\PlayerCharacter.cpp" />
     <ClCompile Include="Bethesda\TESForm.cpp" />
     <ClCompile Include="Bethesda\TLSData.cpp" />
-    <ClCompile Include="BSInputManager.cpp" />
     <ClCompile Include="BSRenderedTexture.cpp" />
     <ClCompile Include="BSSemaphore.cpp" />
     <ClCompile Include="BSSpinLock.cpp" />

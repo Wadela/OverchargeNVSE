@@ -20,7 +20,9 @@ namespace Overcharge
 		OCXRotateX		  = 1 << 3,
 		OCXRotateY		  = 1 << 4,
 		OCXRotateZ		  = 1 << 5,
-		OCXScale		  = 1 << 6,
+		OCXSpinX		  = 1 << 6,
+		OCXSpinY		  = 1 << 7,
+		OCXSpinZ		  = 1 << 8,
 	};
 
 	enum OCFlags : UInt16
@@ -44,14 +46,14 @@ namespace Overcharge
 		OCFlags_All			  = 0xFFFF
 	};
 
-	enum OCEffect : UInt8
+	enum OCEffect : UInt16
 	{
 		OCEffects_None			 = 0,
 
 		OCEffects_Overheat		 = 1 << 0,
 		OCEffects_Overcharge	 = 1 << 1,
 		OCEffects_ChargeDelay	 = 1 << 2,
-		OCEffects_WeapTypeEffect = 1 << 3,
+		OCEffects_AltProjectile  = 1 << 3,
 
 
 		OCEffects_All			 = 0xFF
@@ -67,7 +69,7 @@ namespace Overcharge
 		OCWeap_Thrown
 	};
 
-	constexpr std::array<std::pair<UInt32, std::string_view>, 7> OCXAddonNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 9> OCXAddonNames
 	{ {
 		{ OCXColor,				"color"	     },
 		{ OCXParticle,			"particle"   },
@@ -75,7 +77,9 @@ namespace Overcharge
 		{ OCXRotateX,			"rotateX"	 },
 		{ OCXRotateY,			"rotatey"    },
 		{ OCXRotateZ,			"rotatez"    },
-		{ OCXScale	,			"scale"	     }
+		{ OCXSpinX	,			"spinx"	     },
+		{ OCXSpinY	,			"spiny"		 },
+		{ OCXSpinZ	,			"spinz"		 }
 	} };
 
 	constexpr std::array<std::pair<UInt16, std::string_view>, 14> OCFlagNames
@@ -95,12 +99,12 @@ namespace Overcharge
 		{ OCFlags_Perks,         "Perks"		 }
 	} };
 
-	constexpr std::array<std::pair<UInt8, std::string_view>, 6> OCEffectNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 6> OCEffectNames
 	{ {
 		{ OCEffects_Overheat,		"Overheat"	 },
 		{ OCEffects_Overcharge,		"Overcharge" },
 		{ OCEffects_ChargeDelay,	"Delay"		 },
-		{ OCEffects_WeapTypeEffect, "Special"	 }
+		{ OCEffects_AltProjectile,  "Special"	 }
 	} };
 
 	constexpr std::array<std::pair<UInt8, std::string_view>, 15> OCWeapTypeNames
@@ -137,17 +141,20 @@ namespace Overcharge
 		float  fHUDOffsetY = 0.0f;
 	};
 
+	struct HeatedNode
+	{
+		UInt16			index;
+		UInt16			flags;
+		NiFixedString	nodeName;
+	};
+
 	struct OCXNode
 	{
-		std::unique_ptr<BSString> targetParent;
-
-		UInt32 flags;
-
-		float    xNodeScale;
-		NiPoint3 xNodeTranslate;
-		NiPoint3 xNodeRotation;
-
-		std::string extraNode;
+		NiFixedString	targetParent;
+		HeatedNode		extraNode;
+		float			xNodeScale;
+		NiPoint3		xNodeTranslate;
+		NiPoint3		xNodeRotation;
 	};
 
 	struct HeatConfiguration
@@ -157,12 +164,12 @@ namespace Overcharge
 		UInt8 iMaxProjectiles = 0xFF;
 		UInt8 iMinAmmoUsed = 0xFF;
 		UInt8 iMaxAmmoUsed = 0xFF;
-		UInt8 iOverchargeEffect = OCEffects_None;
 		UInt8 iOverchargeEffectThreshold = 0; 
 		UInt8 iAddAmmoThreshold = 0;
 		UInt8 iAddProjectileThreshold = 0;
 		UInt8 iObjectEffectThreshold = 0;
 
+		UInt16 iOverchargeEffect = OCEffects_None;
 		UInt16 iOverchargeFlags = OCFlags_None;
 
 		UInt16 iMinDamage = 0xFFFF;
@@ -174,7 +181,7 @@ namespace Overcharge
 		UInt16 iMinProjectileSizePercent = 0xFFFF;
 		UInt16 iMaxProjectileSizePercent = 0xFFFF;
 
-		UInt32 iObjectEffectID = 0;
+		UInt32 iObjectEffectID = 0xFFFFFF;
 		UInt32 iMinColor = 0xFFFFFF;
 		UInt32 iMaxColor = 0xFFFFFF;
 
@@ -185,8 +192,8 @@ namespace Overcharge
 		float fMinAccuracy = -1;
 		float fMaxAccuracy = -1;
 
-		std::string sAnimFile;
-		std::string sHeatedNodes;
+		NiFixedString sAnimFile;
+		std::vector<HeatedNode> sHeatedNodes;
 	};
 
 	extern std::unordered_map<UInt64, const HeatConfiguration> weaponDataMap;

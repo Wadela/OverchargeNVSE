@@ -5,7 +5,7 @@ namespace Overcharge
     HeatState::HeatState() :
         uiTicksPassed(0), uiOCEffect(0), uiAmmoUsed(0), uiProjectiles(0),
         uiAmmoThreshold(0), uiProjThreshold(0), uiEnchThreshold(0), uiOCEffectThreshold(0),
-        uiDamage(0), uiCritDamage(0), uiObjectEffectID(0),
+        uiDamage(0), uiCritDamage(0), uiObjectEffectID(0), 
         fAccuracy(0.0f), fFireRate(0.0f), fProjectileSpeed(0.0f), fProjectileSize(0.0f),
         fHeatVal(0.0f), fHeatPerShot(0.0f), fCooldownRate(0.0f) {
     }
@@ -14,13 +14,38 @@ namespace Overcharge
         UInt8 OCEffect, UInt8 ammo, UInt8 numProj,
         UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
         UInt16 dmg, UInt16 critDmg, UInt32 enchID,
-        float projSpd, float projSize, float rof, float accuracy, float perShot, float cooldown) :
+        float accuracy, float rof, float projSpd, float projSize,
+        float perShot, float cooldown) :
 
         uiTicksPassed(0), uiOCEffect(OCEffect), uiAmmoUsed(ammo), uiProjectiles(numProj),
         uiAmmoThreshold(ammoTH), uiProjThreshold(projTH), uiEnchThreshold(enchTH), uiOCEffectThreshold(effectTH),
-        uiDamage(dmg), uiCritDamage(critDmg), uiObjectEffectID(enchID),
-        fProjectileSpeed(projSpd), fProjectileSize(projSize), fFireRate(rof), fAccuracy(accuracy),
+        uiDamage(dmg), uiCritDamage(critDmg), uiObjectEffectID(enchID), 
+        fAccuracy(accuracy), fFireRate(rof), fProjectileSpeed(projSpd), fProjectileSize(projSize),
         fHeatVal(0.0f), fHeatPerShot(perShot), fCooldownRate(cooldown) {
+    }
+
+    HeatState::HeatState(const HeatConfiguration* config)
+    {
+        if (config) {
+            *this = HeatState(
+                0,
+                config->iMinAmmoUsed,
+                config->iMinProjectiles,
+                config->iAddAmmoThreshold,
+                config->iAddProjectileThreshold,
+                config->iObjectEffectThreshold,
+                config->iOverchargeEffectThreshold,
+                config->iMinDamage,
+                config->iMinCritDamage,
+                config->iObjectEffectID,
+                config->fMinAccuracy,
+                config->fMinFireRate,
+                config->iMinProjectileSpeedPercent,
+                config->iMinProjectileSizePercent,
+                config->fHeatPerShot,
+                config->fCooldownPerSecond
+            );
+        }
     }
 
     UInt32 RGBtoUInt32(const NiColor& color)
@@ -59,7 +84,7 @@ namespace Overcharge
         return out;
     }
 
-    NiColor HSVtoRGB(const NiColor& hsv)//Hue, Saturation, Value -> RGB
+    NiColor HSVtoRGB(const NiColor& hsv) //Hue, Saturation, Value -> RGB
     {
         float C = hsv.b * hsv.g;
         float X = C * (1 - fabs(fmod(hsv.r / 60.0f, 2) - 1));
@@ -131,70 +156,22 @@ namespace Overcharge
 
     HeatFX::HeatFX() :
         currCol(0, 0, 0),
+        matProp(NiMaterialProperty::CreateObject()),
         targetBlocks() {
     }
 
     HeatFX::HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names) :
         currCol(UInt32toRGB(col)),
+        matProp(NiMaterialProperty::CreateObject()),
         targetBlocks(names) {
     }
 
-    HeatData::HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* config) : state(heat), fx(visuals), data(config) {}
+    HeatData::HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* cfg) : state(heat), fx(visuals), config(cfg) {}
 
-    HeatData MakeHeatFromConfig(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode)
-    {
-        HeatState state;
-        if (data) {
-            state = HeatState(
-                0,
-                data->iMinAmmoUsed,
-                data->iMinProjectiles,
-                data->iAddAmmoThreshold,
-                data->iAddProjectileThreshold,
-                data->iObjectEffectThreshold,
-                data->iOverchargeEffectThreshold,
-                data->iMinDamage,
-                data->iMinCritDamage,
-                data->iObjectEffectID,
-                data->iMinProjectileSpeedPercent,
-                data->iMinProjectileSizePercent,
-                data->fMinFireRate,
-                data->fMinAccuracy,
-                data->fHeatPerShot,
-                data->fCooldownPerSecond
-            );
-        }
-
-        std::vector<std::pair<UInt32, NiAVObjectPtr>> blocks;
-        if (sourceNode && data)
-        {
-            for (auto& name : SplitByDelimiter((data->sHeatedNodes).c_str(), ','))
-            {
-                if (name.size() < 3 || name.front() != '[') continue;
-
-                auto pos = name.find(']');
-                if (pos == std::string::npos || pos == 1) continue;
-
-                if (!std::all_of(
-                    name.begin() + 1, 
-                    name.begin() + pos, 
-                    [](unsigned char c) { return std::isxdigit(c); }))
-                    continue;
-
-                UInt32 flags = static_cast<UInt32>(std::stoul(name.substr(1, pos - 1), nullptr, 16));
-                std::string_view cleanName(name.c_str() + pos + 1, name.size() - pos - 1);
-
-                if (NiAVObjectPtr block = sourceNode->GetObjectByName(cleanName.data()))
-                {
-                    auto pair = std::make_pair(flags, block);
-                    blocks.emplace_back(pair);
-                }
-            }
-        }
-
-        HeatFX visuals(data ? data->iMinColor : 0, blocks);
-        return HeatData(state, visuals, data);
+    HeatData::HeatData(const HeatConfiguration* cfg) : 
+        state(cfg),
+        fx(cfg ? cfg->iMinColor : 0, {}),
+        config(cfg) {
     }
-
 }
 

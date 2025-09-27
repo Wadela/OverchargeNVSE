@@ -39,7 +39,7 @@ namespace Overcharge
 		g_OCSettings.bEnableScriptedEffects = ini.GetBoolValue("Experimental", "bEnableScriptedEffects", true);
 
 		//Load all ash pile entries
-		if (g_OCSettings.iEnableVisualEffects == true)
+		if (g_OCSettings.iEnableVisualEffects >= 1)
 		{
 			for (int i = 0;; ++i)
 			{
@@ -79,151 +79,240 @@ namespace Overcharge
 		}
 	}
 
-	inline std::string MakeFlaggedPrefix(UInt32 flags, const std::string& name, bool stripExtension = false)
+	template <typename TMinMax>
+	inline void ParseRange(std::string_view sv, TMinMax& minVal, TMinMax& maxVal, UInt8* threshold = nullptr)
 	{
-		if (flags == 0)
-			return {};
+		auto parts = SplitByDelimiter(sv, ' ');
 
-		std::string baseName = name;
-		if (stripExtension)
+		if (!parts.empty())
+			std::from_chars(parts[0].data(), parts[0].data() + parts[0].size(), minVal);
+
+		if (parts.size() >= 2)
+			std::from_chars(parts[1].data(), parts[1].data() + parts[1].size(), maxVal);
+
+		if (threshold && parts.size() >= 3)
+			*threshold = static_cast<UInt8>(ParseDelimitedData(parts[2], '(', ')'));
+	}
+
+	template <typename TMinMax>
+	inline void ParseRangeFromINI(
+		CSimpleIniA& ini, const char* sec, const char* key,
+		const TMinMax& defaultMin, const TMinMax& defaultMax,
+		TMinMax& minVal, TMinMax& maxVal,
+		const UInt8* defaultThreshold = nullptr, UInt8* threshold = nullptr)
+	{
+		if (std::string_view val = ini.GetValue(sec, key, ""); !val.empty())
+			ParseRange(val, minVal, maxVal, threshold);
+		else
 		{
-			size_t dot = baseName.find_last_of('.');
-			if (dot != std::string::npos)
-				baseName = baseName.substr(0, dot);
+			minVal = defaultMin;
+			maxVal = defaultMax;
+			if (threshold && defaultThreshold) 
+				*threshold = *defaultThreshold;
 		}
+	}
 
-		return "[" + std::to_string(flags) + "]" + baseName;
+	inline std::array<float, 3> ParseNiTransform(std::string_view str, char component)
+	{
+		std::array<float, 3> values = { 0.f, 0.f, 0.f };
+		auto start = str.find(component);
+		if (start == std::string_view::npos) return values;
+
+		auto open = str.find('(', start);
+		auto close = str.find(')', open);
+		if (open == std::string_view::npos || close == std::string_view::npos || close <= open) return values;
+
+		std::string_view sub = str.substr(open + 1, close - open - 1);
+		auto parts = SplitByDelimiter(sub, ',');
+		for (size_t i = 0; i < parts.size() && i < 3; ++i)
+			std::from_chars(parts[i].data(), parts[i].data() + parts[i].size(), values[i]);
+
+		return values;
 	}
 
 	void LoadConfigSection(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, TESObjectWEAP* rWeap, const HeatConfiguration* baseConfig = nullptr)
 	{
 		const HeatConfiguration& defaults = baseConfig ? *baseConfig : HeatConfiguration{};
 
-		config.iMinProjectiles = ini.GetLongValue(secItem, "iMinProjectiles", defaults.iMinProjectiles);
-		config.iMaxProjectiles = ini.GetLongValue(secItem, "iMaxProjectiles", defaults.iMaxProjectiles);
-		config.iMinAmmoUsed = ini.GetLongValue(secItem, "iMinAmmoUsed", defaults.iMinAmmoUsed);
-		config.iMaxAmmoUsed = ini.GetLongValue(secItem, "iMaxAmmoUsed", defaults.iMaxAmmoUsed);
-
-		std::string OCEffectString = ini.GetValue(secItem, "sOverchargeEffects", "");
-		config.iOverchargeEffect = !OCEffectString.empty()
-			? StringToFlags(OCEffectString, ',', OCEffectNames)
-			: defaults.iOverchargeEffect;
-
-		config.iOverchargeEffectThreshold = ini.GetLongValue(secItem, "iOverchargeEffectThreshold", defaults.iOverchargeEffectThreshold);
-		config.iAddAmmoThreshold = ini.GetLongValue(secItem, "iAddAmmoThreshold", defaults.iAddAmmoThreshold);
-		config.iAddProjectileThreshold = ini.GetLongValue(secItem, "iAddProjectileThreshold", defaults.iAddProjectileThreshold);
-		config.iObjectEffectThreshold = ini.GetLongValue(secItem, "iObjectEffectThreshold", defaults.iObjectEffectThreshold);
-
-		config.iMinDamage = ini.GetLongValue(secItem, "iMinDamage", defaults.iMinDamage);
-		config.iMaxDamage = ini.GetLongValue(secItem, "iMaxDamage", defaults.iMaxDamage);
-		config.iMinCritDamage = ini.GetLongValue(secItem, "iMinCriticalDamage", defaults.iMinCritDamage);
-		config.iMaxCritDamage = ini.GetLongValue(secItem, "iMaxCriticalDamage", defaults.iMaxCritDamage);
-
-		config.iMinProjectileSpeedPercent = ini.GetLongValue(secItem, "iMinProjectileSpeedPercent", defaults.iMinProjectileSpeedPercent);
-		config.iMaxProjectileSpeedPercent = ini.GetLongValue(secItem, "iMaxProjectileSpeedPercent", defaults.iMaxProjectileSpeedPercent);
-		config.iMinProjectileSizePercent = ini.GetLongValue(secItem, "iMinProjectileSizePercent", defaults.iMinProjectileSizePercent);
-		config.iMaxProjectileSizePercent = ini.GetLongValue(secItem, "iMaxProjectileSizePercent", defaults.iMaxProjectileSizePercent);
-
-		std::string objEffect = ini.GetValue(secItem, "sObjectEffectID", "");
-		config.iObjectEffectID = objEffect.empty() ? defaults.iObjectEffectID
-			: TESForm::GetFormIDByEdID(objEffect.c_str());
-
-		std::string minColor = ini.GetValue(secItem, "iMinColor", "");
-		config.iMinColor = !minColor.empty() ? static_cast<UInt32>(std::stoul(minColor, nullptr, 16))
-			: defaults.iMinColor;
-
-		std::string maxColor = ini.GetValue(secItem, "iMaxColor", "");
-		config.iMaxColor = !maxColor.empty() ? static_cast<UInt32>(std::stoul(maxColor, nullptr, 16))
-			: defaults.iMaxColor;
-
 		config.fHeatPerShot = ini.GetDoubleValue(secItem, "fHeatPerShot", defaults.fHeatPerShot);
 		config.fCooldownPerSecond = ini.GetDoubleValue(secItem, "fCooldownPerSecond", defaults.fCooldownPerSecond);
-		config.fMinFireRate = ini.GetDoubleValue(secItem, "fMinFireRate", defaults.fMinFireRate);
-		config.fMaxFireRate = ini.GetDoubleValue(secItem, "fMaxFireRate", defaults.fMaxFireRate);
-		config.fMinAccuracy = ini.GetDoubleValue(secItem, "fMinAccuracy", defaults.fMinAccuracy);
-		config.fMaxAccuracy = ini.GetDoubleValue(secItem, "fMaxAccuracy", defaults.fMaxAccuracy);
+
+		if (std::string_view OCEffectString = ini.GetValue(secItem, "sOverchargeEffects", ""); !OCEffectString.empty())
+		{
+			auto parts = SplitByDelimiter(OCEffectString, '(');
+			if (!parts.empty())
+			{
+				auto flags = StringToFlags(parts[0], ' ', OCEffectNames);
+				config.iOverchargeEffect = flags;
+			}
+			if (parts.size() >= 2)
+				config.iOverchargeEffectThreshold = static_cast<UInt8>(ParseDelimitedData(parts[1], '\0', ')'));
+		}
+
+		if (std::string_view objEffect = ini.GetValue(secItem, "sObjectEffect", ""); !objEffect.empty())
+		{
+			auto parts = SplitByDelimiter(objEffect, '(');
+			if (!parts.empty())
+			{
+				config.iObjectEffectID = parts[0].empty()
+					? defaults.iObjectEffectID
+					: TESForm::GetFormIDByEdID(parts[0].data());
+			}
+			if (parts.size() >= 2)
+				config.iObjectEffectThreshold = static_cast<UInt8>(ParseDelimitedData(parts[1], '\0', ')'));
+		}
+
+		ParseRangeFromINI(ini, secItem, "iAmmoConsumption", 
+			defaults.iMinAmmoUsed, defaults.iMaxAmmoUsed, 
+			config.iMinAmmoUsed, config.iMaxAmmoUsed, 
+			&defaults.iAddAmmoThreshold, &config.iAddAmmoThreshold);
+
+		ParseRangeFromINI(ini, secItem, "iProjectileCount", 
+			defaults.iMinProjectiles, defaults.iMaxProjectiles,
+			config.iMinProjectiles, config.iMaxProjectiles,
+			&defaults.iAddProjectileThreshold, &config.iAddProjectileThreshold);
+
+		ParseRangeFromINI(ini, secItem, "iDamage",
+			defaults.iMinDamage, defaults.iMaxDamage,
+			config.iMinDamage, config.iMaxDamage);
+
+		ParseRangeFromINI(ini, secItem, "iCriticalDamage",
+			defaults.iMinCritDamage, defaults.iMaxCritDamage,
+			config.iMinCritDamage, config.iMaxCritDamage);
+
+		ParseRangeFromINI(ini, secItem, "iProjectileSpeed",
+			defaults.iMinProjectileSpeedPercent, defaults.iMaxProjectileSpeedPercent,
+			config.iMinProjectileSpeedPercent, config.iMaxProjectileSpeedPercent);
+
+		ParseRangeFromINI(ini, secItem, "iProjectileSize",
+			defaults.iMinProjectileSizePercent, defaults.iMaxProjectileSizePercent,
+			config.iMinProjectileSizePercent, config.iMaxProjectileSizePercent);
+
+		ParseRangeFromINI(ini, secItem, "fFireRate",
+			defaults.fMinFireRate, defaults.fMaxFireRate,
+			config.fMinFireRate, config.fMaxFireRate);
+
+		ParseRangeFromINI(ini, secItem, "fAccuracy",
+			defaults.fMinAccuracy, defaults.fMaxAccuracy,
+			config.fMinAccuracy, config.fMaxAccuracy);
+
+		std::string_view colorVal = ini.GetValue(secItem, "iColor", "");
+		if (!colorVal.empty()) {
+			auto parts = SplitByDelimiter(colorVal, ' ');
+
+			if (parts.size() >= 1)
+			std::from_chars(parts[0].data(), parts[0].data() + parts[0].size(), config.iMinColor, 16);
+
+			else config.iMinColor = defaults.iMinColor;
+
+			if (parts.size() >= 2)
+			std::from_chars(parts[1].data(), parts[1].data() + parts[1].size(), config.iMaxColor, 16);
+			else config.iMaxColor = defaults.iMaxColor;
+		}
+		else 
+		{
+			config.iMinColor = defaults.iMinColor;
+			config.iMaxColor = defaults.iMaxColor;
+		}
 
 		if (!baseConfig)
 		{
 			config.iWeaponType = ini.GetLongValue(secItem, "iWeaponType", defaults.iWeaponType);
 
-			std::string OCString = ini.GetValue(secItem, "sOverchargeFlags", "");
+			std::string_view OCString{ ini.GetValue(secItem, "sOverchargeFlags", "") };
 			config.iOverchargeFlags = !OCString.empty()
-				? StringToFlags(OCString, ',', OCFlagNames)
+				? StringToFlags(OCString, ' ', OCFlagNames)
 				: defaults.iOverchargeFlags;
 
-			config.sAnimFile = "OCAnims\\";
-			std::string animFile = ini.GetValue(secItem, "sAnimationFile", "");
-			if (animFile.empty())
-				config.sAnimFile += "Overheat" + EnumToString(rWeap->eWeaponType, OCWeapTypeNames) + ".kf";
-			else
-				config.sAnimFile += animFile;
+			char animFileBuffer[128];
+			std::string_view animFile = ini.GetValue(secItem, "sAnimationFile", "");
+			std::string_view weapType = EnumToString(rWeap->eWeaponType, OCWeapTypeNames);
+			if (animFile.empty()) {
+				std::snprintf(animFileBuffer, sizeof(animFileBuffer), "OCAnims\\Overheat%.*s.kf",
+					(int)weapType.size(), weapType.data());
+			}
+			else {
+				std::snprintf(animFileBuffer, sizeof(animFileBuffer), "OCAnims\\%.*s",
+					(int)animFile.size(), animFile.data());
+			}
+			config.sAnimFile = animFileBuffer;
 
-			for (int i = 0;; ++i) {
-				std::string blockKey = "sHeatedBlock" + std::to_string(i);
-				std::string blockName = ini.GetValue(secItem, blockKey.c_str(), "");
-				if (blockName.empty()) break;
+			char blockKey[32];
+			char xNodeKey[32];
+			char xNodePath[128];
+			char xTransKey[128];
+			char tempName[64];
 
-				std::string flagsKey = "hNodeFlags" + std::to_string(i);
-				std::string flagsVal = ini.GetValue(secItem, flagsKey.c_str(), "");
-				UInt32 flags = StringToFlags(flagsVal, ',', OCXAddonNames);
+			for (int i = 0;; ++i)
+			{
+				std::snprintf(blockKey, sizeof(blockKey), "sHeatedBlock%d", i);
+				std::string_view blockVal = ini.GetValue(secItem, blockKey, "");
+				if (blockVal.empty()) break;
 
-				std::string blockFinal = MakeFlaggedPrefix(flags, blockName);
-				if (!blockFinal.empty()) {
-					if (!config.sHeatedNodes.empty())
-						config.sHeatedNodes.append(", ");
-					config.sHeatedNodes.append(blockFinal);
+				auto parts = SplitByDelimiter(blockVal, '(');
+				std::string_view nodeName = Trim(parts[0]);
+				std::snprintf(tempName, sizeof(tempName), "%.*s", nodeName.size(), nodeName.data());
+
+				UInt16 flags = 0;
+				if (parts.size() >= 2)
+				{
+					std::string_view flagsStr = parts[1];
+
+					if (!flagsStr.empty() && flagsStr.back() == ')')
+						flagsStr.remove_suffix(1);
+
+					flags = StringToFlags(flagsStr, ' ', OCXAddonNames);
 				}
+
+				NiFixedString fixed(rWeap->kModel.c_str());
+				HeatedNode hNode({ 0xFFFF, flags, NiFixedString(tempName) });
+				OCExtraModels.push_back({ fixed, hNode, 0.0f, (0, 0, 0), (0,0,0) });
+
+				config.sHeatedNodes.push_back({ static_cast<UInt16>(i), flags, tempName});
 			}
 
-			for (int i = 0;; ++i) {
-				std::string nodeKey = "sExtraNode" + std::to_string(i);
-				std::string nodeName = ini.GetValue(secItem, nodeKey.c_str(), "");
-				if (nodeName.empty()) break;
+			for (int i = 0;; ++i)
+			{
+				std::snprintf(xNodeKey, sizeof(xNodeKey), "sExtraNode%d", i);
+				std::string_view nodeVal = ini.GetValue(secItem, xNodeKey, "");
+				if (nodeVal.empty()) break;
 
-				std::string flagsKey = "xNodeFlags" + std::to_string(i);
-				std::string flagsVal = ini.GetValue(secItem, flagsKey.c_str(), "");
-				UInt32 flags = StringToFlags(flagsVal, ',', OCXAddonNames);
+				auto parts = SplitByDelimiter(nodeVal, '(');
+				std::string_view nodeName = Trim(parts[0]);
 
-				std::string transKey = "xNodeTranslate" + std::to_string(i);
-				std::string transVal = ini.GetValue(secItem, transKey.c_str(), "0,0,0");
-				auto transParts = SplitByDelimiter(transVal, ',');
-				NiPoint3 translate{ 0.0f, 0.0f, 0.0f };
-				if (transParts.size() >= 3) {
-					translate.x = std::stof(transParts[0]);
-					translate.y = std::stof(transParts[1]);
-					translate.z = std::stof(transParts[2]);
+				UInt16 flags = 0;
+				if (parts.size() >= 2)
+				{
+					std::string_view flagsStr = parts[1];
+					if (!flagsStr.empty() && flagsStr.back() == ')')
+						flagsStr.remove_suffix(1);
+
+					flags = StringToFlags(flagsStr, ' ', OCXAddonNames);
 				}
 
-				std::string rotKey = "xNodeRotate" + std::to_string(i);
-				std::string rotVal = ini.GetValue(secItem, rotKey.c_str(), "0,0,0");
-				auto rotParts = SplitByDelimiter(rotVal, ',');
-				NiPoint3 rotation{ 0.0f, 0.0f, 0.0f };
-				if (rotParts.size() >= 3) {
-					rotation.x = std::stof(rotParts[0]);
-					rotation.y = std::stof(rotParts[1]);
-					rotation.z = std::stof(rotParts[2]);
-				}
+				std::snprintf(xTransKey, sizeof(xTransKey), "xNodeTransform%d", i);
+				std::string_view transVal = ini.GetValue(secItem, xTransKey, "");
 
-				std::string scaleKey = "xNodeScale" + std::to_string(i);
-				float scaleVal = ini.GetDoubleValue(secItem, scaleKey.c_str(), 1.0f);
+				std::array<float, 3> translateVals = ParseNiTransform(transVal, 'T');
+				NiPoint3 translate{ translateVals[0], translateVals[1], translateVals[2] };
 
-				OCXNode nodeConfig;
-				nodeConfig.extraNode = "[" + std::to_string(i) + "]" + "OCExtraMeshes\\" + nodeName;
-				nodeConfig.targetParent = std::make_unique<BSString>(rWeap->kModel);
-				nodeConfig.xNodeTranslate = translate;
-				nodeConfig.xNodeRotation = rotation;
-				nodeConfig.xNodeScale = scaleVal;
-				nodeConfig.flags = flags;
+				std::array<float, 3> rotateVals = ParseNiTransform(transVal, 'R');
+				NiPoint3 rotate{ rotateVals[0], rotateVals[1], rotateVals[2] };
 
-				OCExtraModels.push_back(std::move(nodeConfig));
+				std::array<float, 3> scaleVals = ParseNiTransform(transVal, 'S');
+				float scale = scaleVals[0] != 0.f ? scaleVals[0] : 1.0f;
 
-				std::string flaggedName = MakeFlaggedPrefix(flags, nodeName, true);
-				if (!flaggedName.empty()) {
-					if (!config.sHeatedNodes.empty())
-						config.sHeatedNodes.append(", ");
-					config.sHeatedNodes.append(flaggedName + std::to_string(i));
-				}
+				std::snprintf(xNodePath, sizeof(xNodePath), "OCExtraMeshes\\%.*s", nodeName.size(), nodeName.data());
+
+				HeatedNode hNode({ static_cast<UInt16>(i), flags, NiFixedString(xNodePath) });
+				NiFixedString fixed(rWeap->kModel.c_str());
+
+				OCExtraModels.push_back({ fixed, hNode, scale, translate, rotate });
+
+				const char* dot = std::strrchr(nodeName.data(), '.');
+				size_t len = dot ? static_cast<size_t>(dot - nodeName.data()) : nodeName.size();
+				std::snprintf(tempName, sizeof(tempName), "%.*s%d", (int)len, nodeName.data(), i);
+				config.sHeatedNodes.push_back({ static_cast<UInt16>(i), flags, tempName });
 			}
 		}
 		else
@@ -242,7 +331,6 @@ namespace Overcharge
 			if (entry.path().extension() == ".ini")
 			{
 				std::string weapEID = entry.path().stem().string();
-
 				TESForm* weapForm = TESForm::GetByID(weapEID.c_str());
 
 				if (!weapForm || weapForm->eTypeID != TESForm::kType_TESObjectWEAP)
@@ -285,13 +373,13 @@ namespace Overcharge
 				ini.GetAllSections(allSections);
 				for (const auto& section : allSections)
 				{
-					std::string secName = section.pItem;
-					if (_stricmp(secName.c_str(), "Default") == 0) continue;
+					const char* secName = section.pItem;
+					if (_stricmp(secName, "Default") == 0) continue;
 
 					HeatConfiguration config = hasBaseConfig ? baseConfig : HeatConfiguration{};
-					LoadConfigSection(ini, secName.c_str(), config, rWeap);
+					LoadConfigSection(ini, secName, config, rWeap);
 
-					UInt32 ammoFID = TESForm::GetFormIDByEdID(secName.c_str());
+					UInt32 ammoFID = TESForm::GetFormIDByEdID(secName);
 					if (!ammoFID)
 					{
 						Log() << "Unable to locate Ammo Editor ID: " << secName;

@@ -378,6 +378,7 @@ public:
 	CompassTarget* GetCompassTargetForActor(Actor* apActor) const;
 	void AddCompassTarget(Actor* apActor, bool abIsHostile, bool abIsUndetected);
 	void RemoveCompassTarget(Actor* apActor);
+
 };
 
 ASSERT_OFFSET(PlayerCharacter, kFlycamPos, 0x7E0);
