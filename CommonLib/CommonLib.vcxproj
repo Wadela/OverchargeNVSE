@@ -5,6 +5,10 @@
       <Configuration>Debug</Configuration>
       <Platform>Win32</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Release - Tracy|Win32">
+      <Configuration>Release - Tracy</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release|Win32">
       <Configuration>Release</Configuration>
       <Platform>Win32</Platform>
@@ -24,6 +28,12 @@
     <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - Tracy|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <PlatformToolset>v143</PlatformToolset>
@@ -33,6 +43,9 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release - Tracy|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
@@ -49,6 +62,12 @@
     <TargetName>CommonLib</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>..\$(Configuration)\</OutDir>
+    <IntDir>..\$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>CommonLib</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - Tracy|Win32'">
     <OutDir>..\$(Configuration)\</OutDir>
     <IntDir>..\$(Configuration)\$(ProjectName)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
@@ -122,16 +141,53 @@
       </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release - Tracy|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)\CommonLib\Havok;$(SolutionDir)\CommonLib\Gamebryo;$(SolutionDir)\CommonLib\Obsidian;$(SolutionDir)\CommonLib\Bethesda;$(SolutionDir)\CommonLib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;CommonLib_EXPORTS;RUNTIME_VERSION=0x040020D0;RUNTIME;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ForcedIncludeFiles>CommonLib/CommonPrefix.hpp;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <BuildStlModules>false</BuildStlModules>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <ModuleDefinitionFile>
+      </ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <DataExecutionPrevention>
+      </DataExecutionPrevention>
+      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);dbghelp.lib</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent />
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Actor.cpp" />
     <ClCompile Include="Bethesda\bhkUtilFunctions.cpp" />
     <ClCompile Include="Bethesda\BSFaceGenManager.cpp" />
+    <ClCompile Include="Bethesda\BSInputManager.cpp" />
     <ClCompile Include="Bethesda\BSMemory.cpp" />
+    <ClCompile Include="Bethesda\BSShaderAccumulator.cpp" />
+    <ClCompile Include="Bethesda\MagicItem.cpp" />
     <ClCompile Include="Bethesda\MemoryManager.cpp" />
     <ClCompile Include="Bethesda\ModelLoader.cpp" />
+    <ClCompile Include="Bethesda\PlayerCharacter.cpp" />
     <ClCompile Include="Bethesda\TESForm.cpp" />
     <ClCompile Include="Bethesda\TLSData.cpp" />
-    <ClCompile Include="BSInputManager.cpp" />
     <ClCompile Include="BSRenderedTexture.cpp" />
     <ClCompile Include="BSSemaphore.cpp" />
     <ClCompile Include="BSSpinLock.cpp" />
@@ -140,7 +196,7 @@
     <ClCompile Include="Gamebryo\NiMemory.cpp" />
     <ClCompile Include="Bethesda\BSWin32TaskletManager.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="NiAvObject.cpp" />
+    <ClCompile Include="NiAVObject.cpp" />
     <ClCompile Include="NiBillboardNode.cpp" />
     <ClCompile Include="NiBinaryStream.cpp" />
     <ClCompile Include="NiBound.cpp" />
@@ -162,6 +218,7 @@
     <ClCompile Include="NiTimeController.cpp" />
     <ClCompile Include="NiTransform.cpp" />
     <ClCompile Include="PlayerCharacter.cpp" />
+    <ClCompile Include="TESObjectREFR.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp" />
@@ -174,7 +231,6 @@
     <ClInclude Include="Bethesda\ActorPathHandler.hpp" />
     <ClInclude Include="Bethesda\ActorPathingMessage.hpp" />
     <ClInclude Include="Bethesda\ActorPathingMessageQueue.hpp" />
-    <ClInclude Include="Bethesda\ActorProcessManager.hpp" />
     <ClInclude Include="Bethesda\ActorsScriptTaskData.hpp" />
     <ClInclude Include="Bethesda\ActorUpdateTaskData.hpp" />
     <ClInclude Include="Bethesda\ActorValue.hpp" />
@@ -359,7 +415,6 @@
     <ClInclude Include="Bethesda\BSExtraData.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenAnimationData.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenBaseMorphExtraData.hpp" />
-    <ClInclude Include="Bethesda\BSFaceGenBinaryFile.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenImage.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenKeyframe.hpp" />
     <ClInclude Include="Bethesda\BSFaceGenKeyframeMultiple.hpp" />
@@ -1041,7 +1096,9 @@
     <ClInclude Include="Bethesda\XGameSetting.hpp" />
     <ClInclude Include="Bethesda\ZeroOverheadHeap.hpp" />
     <ClInclude Include="Bitwise.hpp" />
+    <ClInclude Include="BSAnimGroupSequence.cpp" />
     <ClInclude Include="BSParticleSystemManager.h" />
+    <ClInclude Include="CombatWorldStateList.hpp" />
     <ClInclude Include="FastModifierCollection.hpp" />
     <ClInclude Include="Gamebryo\Ni2DBuffer.hpp" />
     <ClInclude Include="Gamebryo\NiAccumulator.hpp" />
@@ -1403,6 +1460,9 @@
     <ClInclude Include="MiscUtils.hpp" />
     <ClInclude Include="Modifier.hpp" />
     <ClInclude Include="ModifierList.hpp" />
+    <ClInclude Include="NiTextKey.hpp" />
+    <ClInclude Include="NiTextKeyExtraData.hpp" />
+    <ClInclude Include="NiTransformController.hpp" />
     <ClInclude Include="Obsidian\BGSDehydrationStage.hpp" />
     <ClInclude Include="Obsidian\BGSHungerStage.hpp" />
     <ClInclude Include="Obsidian\BGSSleepDeprevationStage.hpp" />

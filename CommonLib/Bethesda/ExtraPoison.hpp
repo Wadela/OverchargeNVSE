@@ -1,6 +1,8 @@
 #pragma once
 #include "BSExtraData.hpp"
 
+class AlchemyItem;
+
 class ExtraPoison : public BSExtraData
 {
 public:

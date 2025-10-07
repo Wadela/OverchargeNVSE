@@ -1,6 +1,9 @@
 #pragma once
 #include "Menu.hpp"
 
+class Actor;
+class TESObjectBOOK;
+
 class BookMenu : public Menu
 {
 public:

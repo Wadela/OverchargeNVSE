@@ -11,6 +11,7 @@
 #include "BGSRepairItemList.hpp"
 #include "BGSBipedModelList.hpp"
 #include "BGSPickupPutdownSounds.hpp"
+#include "TESFullName.hpp"
 
 class TESObjectARMO : 
 	public TESBoundObject,

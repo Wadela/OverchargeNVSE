@@ -13,7 +13,7 @@ class NiNode;
 class NiAVObject;
 class NiGeometry;
 
-struct AnimData;
+class Animation;
 struct BipedAnim;
 struct ScriptEventList;
 
@@ -92,7 +92,7 @@ public:
 	virtual NiPoint3*				GetMinBounds(NiPoint3* apMin);
 	virtual NiPoint3*				GetMaxBounds(NiPoint3* apMax);
 	virtual void					UpdateAnimation();
-	virtual AnimData*				GetAnimData();						// 0079
+	virtual Animation*				GetAnimData();						// 0079
 	virtual BipedAnim*				GetValidBip01Names();				// 007A	Character only
 	virtual BipedAnim*				CallGetValidBip01Names();
 	virtual void					SetValidBip01Names(BipedAnim validBip01Names);

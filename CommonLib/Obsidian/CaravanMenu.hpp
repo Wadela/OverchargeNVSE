@@ -1,6 +1,9 @@
 #pragma once
 #include "Menu.hpp"
 
+class TESObjectREFR;
+class TESCaravanCard;
+
 class CaravanMenu : Menu
 {
 	CaravanMenu();

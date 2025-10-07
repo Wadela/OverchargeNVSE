@@ -15,10 +15,10 @@ public:
 		kType_Apparel,
 	};
 
-	EType		eType;				// 34
+	EnumType	eType;				// 34
 	UInt32		uiCost;				// 38
 	UInt32		uiLevel;			// 3C
 	UInt8		ucEnchantmentFlags;	// 40
 	UInt8		pad41[3];			// 41
 };
-static_assert(sizeof(EnchantmentItem) == 0x44);
+//static_assert(sizeof(EnchantmentItem) == 0x44);

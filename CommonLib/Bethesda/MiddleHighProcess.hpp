@@ -14,6 +14,8 @@ class BSFaceGenNiNode;
 class NiTriShape;
 class ItemChange;
 
+class NiRefObject;
+
 class MiddleHighProcess : public MiddleLowProcess
 {
 public:

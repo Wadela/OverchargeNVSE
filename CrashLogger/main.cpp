@@ -4,7 +4,11 @@
 #include "InitHooks.hpp"
 #include "NifOverride.hpp"
 #include <BGSSaveLoadGame.hpp>
-#include "Overcharge.hpp"
+#include "OverchargeConfig.hpp"
+#include <OverchargeHooks.hpp>
+#include "CommandsOvercharge.hpp"
+//#include <tracy/Tracy.hpp>
+
 
 bool IsGamePaused()
 {
@@ -41,6 +45,7 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 
 		for (const auto& i : deferredInit) i(); // call all deferred init functions
 
+		Overcharge::LoadWeaponConfigs("Data\\NVSE\\Plugins\\OCWeapons");
 		Overcharge::PostLoad();
 	}
 	else if (msg->type == NVSEMessagingInterface::kMessage_MainGameLoop)
@@ -53,7 +58,7 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 
 		if (!IsGamePaused() && !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
 		{
-			Overcharge::WeaponCooldown();										//Cooldown system runs in gameloop 
+			Overcharge::WeaponCooldown();										//Cooldown system runs in gameloop
 		}
 	}
 }
@@ -100,6 +105,7 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 	if (nvse->isEditor)	return true;
 
 	Overcharge::InitHooks();
+	Overcharge::LoadConfigMain("Data\\NVSE\\Plugins\\Overcharge.ini");
 	g_pluginHandle = nvse->GetPluginHandle();
 	g_seInterface = const_cast<NVSEInterface*>(nvse);
 
@@ -138,6 +144,10 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 	g_loggingInterface = static_cast<NVSELoggingInterface*>(nvse->QueryInterface(NVSEInterface::kInterface_LoggingInterface));
 
 	for (const auto& i : pluginLoad) i(); // call all plugin load functions
+
+	g_seInterface->RegisterCommand(&kCommandInfo_GetHeatState);
+	g_seInterface->RegisterCommand(&kCommandInfo_SetHeatState);
+	g_seInterface->RegisterCommand(&kCommandInfo_GetHeatConfig);
 
 	return true;
 }

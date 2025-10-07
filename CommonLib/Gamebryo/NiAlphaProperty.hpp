@@ -98,6 +98,17 @@ public:
 	void SetTestMode(TestFunction aeTestFunc) {
 		m_usFlags.SetField(aeTestFunc, TEST_FUNC_MASK, TEST_FUNC_POS);
 	}
+
+	bool IsSrcBlendMode(AlphaFunction mode) const {
+		return static_cast<AlphaFunction>(
+			m_usFlags.GetField(SRC_BLEND_MASK, SRC_BLEND_POS)) == mode;
+	}
+
+	bool IsDstBlendMode(AlphaFunction mode) const {
+		return static_cast<AlphaFunction>(
+			m_usFlags.GetField(DEST_BLEND_MASK, DEST_BLEND_POS)) == mode;
+	}
+
 };
 
 ASSERT_SIZE(NiAlphaProperty, 0x01C);

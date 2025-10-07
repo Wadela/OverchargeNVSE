@@ -16,7 +16,7 @@
       <Filter>nvse</Filter>
     </ClCompile>
     <ClCompile Include="definitions.cpp" />
-    <ClCompile Include="Source.cpp">
+    <ClCompile Include="OverchargeHooks.cpp">
       <Filter>Wadelz</Filter>
     </ClCompile>
     <ClCompile Include="Overcharge.cpp">
@@ -24,6 +24,12 @@
     </ClCompile>
     <ClCompile Include="..\nvse\utility.cpp">
       <Filter>nvse</Filter>
+    </ClCompile>
+    <ClCompile Include="tracy\public\TracyClient.cpp">
+      <Filter>tracy</Filter>
+    </ClCompile>
+    <ClCompile Include="OverchargeConfig.cpp">
+      <Filter>Wadelz</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -77,7 +83,16 @@
     <ClInclude Include="Defines.h">
       <Filter>nvse</Filter>
     </ClInclude>
-    <ClInclude Include="Logging.h">
+    <ClInclude Include="OverchargeConfig.hpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="WaldezTools.hpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="OverchargeHooks.hpp">
+      <Filter>Wadelz\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandsOvercharge.hpp">
       <Filter>Wadelz\Headers</Filter>
     </ClInclude>
   </ItemGroup>
@@ -96,6 +111,9 @@
     </Filter>
     <Filter Include="Wadelz\Headers">
       <UniqueIdentifier>{5b8de170-6773-47a7-b4fb-f93d5d434a2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tracy">
+      <UniqueIdentifier>{86baacfa-576d-41e4-8be4-517425806a57}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

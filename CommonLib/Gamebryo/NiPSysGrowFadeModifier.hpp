@@ -15,7 +15,8 @@ public:
 	UInt16	m_usFadeGeneration;
 	float	m_fBaseScale;
 
-	CREATE_OBJECT(NiPSysGrowFadeModifier, 0xC2A2B0)
+	CREATE_OBJECT(NiPSysGrowFadeModifier, 0xC2A2B0);
+	NIRTTI_ADDRESS(0x12026f8);
 };
 
 ASSERT_SIZE(NiPSysGrowFadeModifier, 0x2C);

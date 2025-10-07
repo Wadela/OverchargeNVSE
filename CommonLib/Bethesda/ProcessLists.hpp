@@ -34,11 +34,20 @@ struct ProcessLists {
 		bool										byte10180;
 	};
 
+	enum PROCESS_TYPE {
+		PROCESS_TYPE_INVALID = -1,
+		PROCESS_TYPE_HIGH = 0,
+		PROCESS_TYPE_MIDDLE_HIGH = 1,
+		PROCESS_TYPE_MIDDLE_LOW = 2,
+		PROCESS_TYPE_LOW = 3,
+		PROCESS_TYPE_COUNT = 4
+	};
+
 	struct ProcessArrays {
 		NiTPrimitiveArray<MobileObject*>	kMobileObjects;
-		UInt32								uiBeginOffsets[BaseProcess::ProcessLevel::COUNT];
-		UInt32								uiEndOffsets[BaseProcess::ProcessLevel::COUNT];
-		UInt32								unk034[BaseProcess::ProcessLevel::COUNT];
+		UInt32								uiBeginOffsets[PROCESS_TYPE::PROCESS_TYPE_COUNT];
+		UInt32								uiEndOffsets[PROCESS_TYPE::PROCESS_TYPE_COUNT];
+		UInt32								unk034[PROCESS_TYPE::PROCESS_TYPE_COUNT];
 
 		MobileObject* GetAt(UInt32 auiIndex) const {
 			return kMobileObjects[auiIndex];

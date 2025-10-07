@@ -1,23 +1,16 @@
-#pragma once
+#pragma once 
 
 #include "NiObject.hpp"
 #include "NiFixedString.hpp"
 #include "NiParticles.hpp"
 #include "NiParticlesData.hpp"
+#include "NiPSysData.hpp"
 
 class NiParticleInfo;
 class NiParticleSystem;
 class NiParticlesData;
 
 NiSmartPointer(NiPSysModifier);
-
-struct NiPSysData : NiParticlesData
-{
-	NiParticleInfo*		m_pkParticleInfo;
-	float*				m_pfRotationSpeeds;
-	unsigned __int16	m_usNumAddedParticles;
-	unsigned __int16	m_usAddedParticlesBase;
-};
 
 class NiPSysModifier : public NiObject {
 public:
@@ -35,6 +28,8 @@ public:
 	UInt32				m_uiOrder;
 	NiParticleSystem*	m_pkTarget;
 	bool				m_bActive;
+
+	NIRTTI_ADDRESS(0x11f4418);
 };
 
 ASSERT_SIZE(NiPSysModifier, 0x18)

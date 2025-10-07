@@ -1,5 +1,9 @@
 #pragma once
 #include "TESForm.hpp"
+#include "TESFullName.hpp"
+
+class MediaSet;
+class TESFaction;
 
 // 0xB8
 class MediaLocationController :

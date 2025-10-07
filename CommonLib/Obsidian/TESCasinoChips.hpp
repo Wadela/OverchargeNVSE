@@ -5,6 +5,7 @@
 #include "TESValueForm.hpp"
 #include "BGSDestructibleObjectForm.hpp"
 #include "BGSPickupPutdownSounds.hpp"
+#include "TESFullname.hpp"
 
 // 0x9C
 class TESCasinoChips :
@@ -17,6 +18,6 @@ class TESCasinoChips :
 	public BGSDestructibleObjectForm,
 	public BGSPickupPutdownSounds
 {
-	BSStringT	unk94;
+	BSString	unk94;
 };
 static_assert(sizeof(TESCasinoChips) == 0x9C);

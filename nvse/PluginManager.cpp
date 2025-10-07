@@ -1,21 +1,9 @@
 #include "PluginManager.h"
-#include "CommandTable.h"
+#include "CommandTable.hpp"
 //#include "common/IDirectoryIterator.h"
-#include "ParamInfos.h"
-#include "GameAPI.h"
 #include "Utilities.hpp"
 
 #ifdef RUNTIME
-#include "Core_Serialization.h"
-#include "Serialization.h"
-#include "StringVar.h"
-#include "ArrayVar.h"
-#include "Hooks_DirectInput8Create.h"
-#include "FunctionScripts.h"
-#include "GameForms.h"
-#include "GameScript.h"
-#include "EventManager.h"
-#include "InventoryReference.h"
 #else
 #include "Hooks_Script.h"
 #endif

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "NiRefObject.hpp"
-#include "NiString.hpp"
+#include "BSString.hpp"
 
 class BSFaceGenMorphDataHair;
 NiSmartPointer(BSFaceGenMorphData);
@@ -10,14 +10,14 @@ NiSmartPointer(BSFaceGenModel);
 
 class BSFaceGenModel : public NiRefObject {
 public:
-	class String : public BSStringT {
+	class String : public BSString {
 	public:
 		DWORD dword8;
 	};
 
 	class MeshData {
 	public:
-		BSStringT				strEGMPath;
+		BSString				strEGMPath;
 		UInt32					unk008;
 		NiRefObjectPtr			spObject0C;
 		NiGeometryPtr			spGeometry10;

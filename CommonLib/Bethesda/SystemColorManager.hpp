@@ -27,7 +27,7 @@ public:
 		virtual bool IsHard();
 		virtual bool IsSoft();
 
-		BSStringT sTraitName;
+		BSString sTraitName;
 
 		void GetColor(NiColorA& akColor);
 		void SetColor(NiColorA& akColor);

@@ -1,5 +1,6 @@
 #pragma once
 #include "TESForm.hpp"
+#include "TESFullname.hpp"
 
 // 0x2C
 class TESCaravanDeck :

@@ -7,6 +7,7 @@
 
 struct BGSTerrainNode;
 class BGSTerrainChunkLoadTask;
+class TESObjectREFR;
 
 struct BGSTerrainChunk {
 	BGSTerrainChunk(BGSTerrainNode* apNode, UInt32 auiLODLevel, SInt16 x, SInt16 y);

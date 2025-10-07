@@ -9,6 +9,6 @@ public:
 	TESFullName();
 	~TESFullName();
 
-	BSStringT<char>	kFullName;
+	BSString	kFullName;
 };
 static_assert(sizeof(TESFullName) == 0xC);

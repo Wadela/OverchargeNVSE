@@ -3,9 +3,10 @@
 #include "TESScriptableForm.hpp"
 #include "TESIcon.hpp"
 #include "TESCondition.hpp"
+#include "TESFullName.hpp"
 
 class BGSQuestObjective;
-
+class ScriptEventList;
 struct VariableInfo;
 
 // 0x6C

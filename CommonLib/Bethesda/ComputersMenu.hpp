@@ -10,8 +10,8 @@ class BGSTerminal;
 
 struct TERMINAL_MENU_ITEM
 {
-	BSStringT entryText;
-	BSStringT resultText;
+	BSString entryText;
+	BSString resultText;
 	Script *resScript;
 	UInt8 restOfScript[78];
 	TESCondition conditions;
@@ -20,7 +20,7 @@ struct TERMINAL_MENU_ITEM
 	UInt8 entryFlags;
 	UInt8 pad75[3];
 };
-static_assert(sizeof(TERMINAL_MENU_ITEM) == 0x78);
+ASSERT_SIZE(TERMINAL_MENU_ITEM, 0x78);
 
 struct __declspec(align(4)) HackingText
 {
@@ -30,7 +30,7 @@ struct __declspec(align(4)) HackingText
 		kBlinks = 0x2,
 	};
 
-	BSStringT str;
+	BSString str;
 	Tile *tileText;
 	Tile::Value *tileValueVisibility;
 	UInt32 displayRate;
@@ -43,7 +43,7 @@ struct __declspec(align(4)) HackingText
 	UInt8 isTextRemaining;
 	UInt8 gap2A[2];
 };
-static_assert(sizeof(HackingText) == 0x2C);
+ASSERT_SIZE(HackingText, 0x2C);
 
 // 0FC
 class ComputersMenu : public Menu
@@ -96,7 +96,7 @@ public:
 	BGSTerminal* targetRefBaseForm;
 	TESObjectREFR* targetRef;
 	UInt32 stage;
-	String noteTextStr;
+	BSString noteTextStr;
 	const char* remainingNoteText; // pointer into the current note text, moves as you change page 
 	UInt8 byte0C0;
 	UInt8 isRenderingSubmenu;
@@ -104,7 +104,7 @@ public:
 	BSSoundHandle UIHackingFanHumLP;
 	BSSoundHandle UIHackingCharScroll;
 	BSSoundHandle UIHackingCharEnter;
-	DList<HackingText>* hackingTexts;
+	BSSimpleList<HackingText>* hackingTexts;
 	UInt32 playNoteAudioCallback;
 	UInt32 showNoteTextCallback;
 	UInt32 showNoteImageCallback;
@@ -115,4 +115,4 @@ public:
 
 	static ComputersMenu* GetSingleton() { return *reinterpret_cast<ComputersMenu**>(0x11D9334); };
 };
-static_assert(sizeof(ComputersMenu) == 0xFC);
+ASSERT_SIZE(ComputersMenu, 0xFC);

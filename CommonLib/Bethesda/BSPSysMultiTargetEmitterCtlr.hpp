@@ -2,6 +2,8 @@
 
 #include "NiPSysEmitterCtlr.hpp"
 
+class BSMasterParticleSystem;
+
 NiSmartPointer(BSPSysMultiTargetEmitterCtlr);
 
 class BSPSysMultiTargetEmitterCtlr : public NiPSysEmitterCtlr {

@@ -25,12 +25,12 @@ public:
 
 	struct Data
 	{
-		ELockLevel	lockLevel;	// 00
-		TESKey*		key;		// 04
-		ELockFlags	flags;		// 08
-		UInt8		pad[3];
-		UInt32		unk0C;		// 0C introduced since form version 0x10
-		UInt32		unk10;		// 10
+		EnumLockLevel	lockLevel;	// 00
+		TESKey*			key;		// 04
+		EnumLockFlags	flags;		// 08
+		UInt8			pad[3];
+		UInt32			unk0C;		// 0C introduced since form version 0x10
+		UInt32			unk10;		// 10
 	};
 
 	Data* data;		// 00C

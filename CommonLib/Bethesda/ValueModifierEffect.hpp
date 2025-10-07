@@ -1,14 +1,21 @@
 #pragma once
+
 #include "ActiveEffect.hpp"
 #include "ActorValue.hpp"
 
-// 0x4C
-class ValueModifierEffect : public ActiveEffect
-{
+class Actor;
+class TESObjectREFR;
+
+class ValueModifierEffect : public ActiveEffect {
 public:
 	ValueModifierEffect();
 	~ValueModifierEffect();
 
-	EnumActorValueCode actorVal;	// 48
+	virtual void				SetActorValue(ActorValue::Index aeIndex);
+	virtual ActorValue::Index	GetActorValue() const;
+	virtual void				ModifyActorValue(Actor* apActor, float afValue, ActorValue::Index aeIndex);
+
+	ActorValue::Index eActorValue;
 };
-static_assert(sizeof(ValueModifierEffect) == 0x04C);
+
+ASSERT_SIZE(ValueModifierEffect, 0x4C);

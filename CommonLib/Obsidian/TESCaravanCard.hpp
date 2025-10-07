@@ -5,6 +5,7 @@
 #include "TESValueForm.hpp"
 #include "TESScriptableForm.hpp"
 #include "BGSPickupPutdownSounds.hpp"
+#include "TESFullname.hpp"
 
 // 0xBC
 class TESCaravanCard :

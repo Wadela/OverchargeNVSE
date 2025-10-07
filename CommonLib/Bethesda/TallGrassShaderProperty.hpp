@@ -18,7 +18,7 @@ public:
 	GrassInstance*			pGrassInstance;
 	NiObjectPtr				spObject80;
 	NiPointer<NiTexture>	spTexture;
-	BSStringT				strTexturePath;
+	BSString				strTexturePath;
 	int						unk90;
 	int						unk98;
 

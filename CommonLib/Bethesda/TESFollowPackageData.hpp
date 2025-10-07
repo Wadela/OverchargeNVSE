@@ -1,10 +1,11 @@
 #pragma once
 #include "TESPackage.hpp"
+#include "TESPackageData.hpp"
 
 class TESFollowPackageData : public TESPackageData {
 public:
 	TESFollowPackageData();
 	~TESFollowPackageData();
-	TESPackage::LocationData* endLocation;
+	TESPackage::PackageLocation* endLocation;
 	Float32	flt008;
 };

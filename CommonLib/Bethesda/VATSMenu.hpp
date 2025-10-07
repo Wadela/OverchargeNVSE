@@ -3,6 +3,8 @@
 #include "ListBox.hpp"
 #include "NiPoint2.hpp"
 
+class ActorHitData;
+
 struct VATSTargetInfo
 {
 	enum ActionTypes

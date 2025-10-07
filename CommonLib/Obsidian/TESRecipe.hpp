@@ -2,6 +2,7 @@
 #include "TESForm.hpp"
 #include "TESCondition.hpp"
 #include "TESRecipeCategory.hpp"
+#include "TESFullName.hpp"
 
 struct ComponentEntry {
 	UInt32		uiQuantity;

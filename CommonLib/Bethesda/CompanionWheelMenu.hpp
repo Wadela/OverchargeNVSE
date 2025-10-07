@@ -1,5 +1,8 @@
 #pragma once
 #include "Menu.hpp"
+#include "BSSoundHandle.hpp"
+
+class Actor;
 
 // 88
 class CompanionWheelMenu : Menu
@@ -29,17 +32,17 @@ public:
 		CWM_Callout_Navigate = 0xF,
 	};
 
-	Tile*	tiles[16];
-	Actor*	companionRef;
-	UInt8	isIsFollowingLong;
-	UInt8	isFollowerSwitchAggressive;
-	UInt8	isCombatStyleRanged;
-	UInt8	isWaiting;
-	UInt32	lastSelectedTileID;
-	UInt8	talkToActorWhenClosingMenu;
-	UInt8	gap75[3];
-	UInt32	time78;
-	Sound	sound7C;
+	Tile*			tiles[16];
+	Actor*			companionRef;
+	UInt8			isIsFollowingLong;
+	UInt8			isFollowerSwitchAggressive;
+	UInt8			isCombatStyleRanged;
+	UInt8			isWaiting;
+	UInt32			lastSelectedTileID;
+	UInt8			talkToActorWhenClosingMenu;
+	UInt8			gap75[3];
+	UInt32			time78;
+	BSSoundHandle	kResponse;
 	static CompanionWheelMenu* GetSingleton() { return *reinterpret_cast<CompanionWheelMenu**>(0x11D92B8); };
 };
 static_assert(sizeof(CompanionWheelMenu) == 0x88);

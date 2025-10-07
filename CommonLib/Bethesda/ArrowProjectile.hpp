@@ -1,6 +1,9 @@
 #pragma once
 #include "MobileObject.hpp"
 
+class EnchantmentItem;
+class AlchemyItem;
+
 // 0xC8
 class ArrowProjectile : public MobileObject
 {

@@ -46,7 +46,7 @@ public:
 	};
 
 	UInt32					uiObjectiveId;	// 004 Objective Index in the GECK
-	BSStringT				kDisplayText;	// 008
+	BSString				kDisplayText;	// 008
 	TESQuest*				pkQuest;		// 010
 	BSSimpleList<Target*> 	kTargets;		// 014
 	UInt32					unk01C;			// 01C

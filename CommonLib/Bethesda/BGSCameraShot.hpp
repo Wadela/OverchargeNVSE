@@ -6,6 +6,7 @@
 
 class TESImageSpaceModifier;
 class NiRefObject;
+class TESObjectREFR;
 
 // 0x78
 class BGSCameraShot :
@@ -58,4 +59,4 @@ class BGSCameraShot :
 	UInt8			byte076;
 	UInt8			gap077;
 };
-static_assert(sizeof(BGSCameraShot) == 0x78);
+ASSERT_SIZE(BGSCameraShot, 0x78);

@@ -3,7 +3,7 @@
 #include "BSMemObject.hpp"
 #include "NiPoint3.hpp"
 
-class BSAudioListener : public BSMemObject {
+class BSAudioListener {
 public:
 	BSAudioListener();
 	virtual				~BSAudioListener();

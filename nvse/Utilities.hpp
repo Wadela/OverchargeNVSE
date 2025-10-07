@@ -1,10 +1,10 @@
 #pragma once
 #include <intrin.h>
-#include <Logging.hpp>
+#include "Logging.hpp"
 
 const std::filesystem::path& GetFalloutDirectory();
-std::string GetNVSEConfigOption(const char * section, const char * key);
-bool GetNVSEConfigOption_UInt32(const char * section, const char * key, UInt32 * dataOut);
+std::string GetNVSEConfigOption(const char* section, const char* key);
+bool GetNVSEConfigOption_UInt32(const char* section, const char* key, UInt32* dataOut);
 
 // this has been tested to work for non-varargs functions
 // varargs functions end up with 'this' passed as the last parameter (ie. probably broken)
@@ -66,8 +66,8 @@ private:
 	std::string m_data;
 };
 
-const char GetSeparatorChar(Script * script);
-std::string GetSeparatorChars(Script * script);
+const char GetSeparatorChar(Script* script);
+std::string GetSeparatorChars(Script* script);
 
 bool ci_equal(char ch1, char ch2);
 bool ci_less(const char* lh, const char* rh);
@@ -83,8 +83,8 @@ char* CopyCString(const char* src);
 // provides a common way to output errors and warnings
 class ErrOutput
 {
-	typedef void (* _ShowError)(const char* msg);
-	typedef bool (* _ShowWarning)(const char* msg);		// returns true if user requests to disable warning
+	typedef void (*_ShowError)(const char* msg);
+	typedef bool (*_ShowWarning)(const char* msg);		// returns true if user requests to disable warning
 
 	_ShowError		ShowError;
 	_ShowWarning	ShowWarning;
@@ -93,7 +93,7 @@ public:
 
 	struct Message
 	{
-		const char*		fmt;
+		const char* fmt;
 		bool			bCanDisable;
 		bool			bDisabled;
 	};
@@ -298,7 +298,8 @@ public:
 	char buffer[Size];
 
 	explicit bumping_memory_resource()
-		: _ptr(&buffer[0]) {}
+		: _ptr(&buffer[0]) {
+	}
 
 	void* allocate(std::size_t size) noexcept {
 		auto ret = _ptr;
@@ -319,12 +320,14 @@ public:
 	bumping_allocator() {}
 
 	explicit bumping_allocator(Resource& res)
-		: _res(&res) {}
+		: _res(&res) {
+	}
 
 	bumping_allocator(const bumping_allocator&) = default;
 	template <typename U>
 	bumping_allocator(const bumping_allocator<U, Resource>& other)
-		: bumping_allocator(other.resource()) {}
+		: bumping_allocator(other.resource()) {
+	}
 
 	Resource& resource() const { return *_res; }
 

@@ -2,6 +2,8 @@
 #include "Menu.hpp"
 #include "ListBox.hpp"
 
+class BGSPerk;
+
 // 0x8C
 class TraitMenu : public Menu
 {

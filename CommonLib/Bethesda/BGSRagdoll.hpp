@@ -5,6 +5,7 @@
 #include "BSSimpleArray.hpp"
 
 class BGSBodyPartData;
+class TESObjectREFR; 
 
 struct FootIK_DATA {
 	struct FootIK_Leg_DATA {
@@ -110,7 +111,7 @@ public:
 		};
 
 		bool				bEnabled;
-		BSStringT			strDeathPose;
+		BSString			strDeathPose;
 		PoseMatchingData	kData;
 	};
 

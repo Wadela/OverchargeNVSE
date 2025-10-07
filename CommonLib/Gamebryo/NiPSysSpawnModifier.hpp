@@ -18,7 +18,8 @@ public:
 	float		m_fLifeSpan;
 	float		m_fLifeSpanVar;
 
-	CREATE_OBJECT(NiPSysSpawnModifier, 0xC23B20)
+	CREATE_OBJECT(NiPSysSpawnModifier, 0xC23B20);
+	NIRTTI_ADDRESS(0x1202550);
 };
 
 ASSERT_SIZE(NiPSysSpawnModifier, 0x34);

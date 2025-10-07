@@ -20,7 +20,6 @@ public:
 	virtual bool			IsGhost();				// 20000000
 	virtual bool			CheckInvulnerable();	// 80000000
 	virtual bool			CheckCanBeAllRaces();	// 00400000
-	virtual bool			CheckCanBeAllRaces();	// 00400000
 	virtual bool			CheckFlagsBit23();		// 00800000
 	virtual bool			Fn_0D();
 	virtual bool			Fn_0E();

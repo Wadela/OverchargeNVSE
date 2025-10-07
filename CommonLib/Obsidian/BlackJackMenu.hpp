@@ -1,6 +1,9 @@
 #pragma once
 #include "Menu.hpp"
 
+class TESModelTextureSwap;
+class NiControllerSequence;
+
 // 0xE70
 class BlackJackMenu : public Menu
 {

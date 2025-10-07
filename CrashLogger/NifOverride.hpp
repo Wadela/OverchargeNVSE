@@ -1,250 +1,206 @@
 #pragma once
 
 #include "MainHeader.hpp"
-#include "Logging.h"
-#include "Defines.h"
 
 //Bethesda
-#include "BSStream.hpp"
-#include "BGSAddonNode.hpp"
-#include "BSValueNode.hpp"
-#include "BSParticleSystemManager.h"
-#include "BSMasterParticleSystem.hpp"
-#include "BSPSysMultiTargetEmitterCtlr.hpp"
-#include "TESDataHandler.hpp"
+#include <BSValueNode.hpp>
+#include <BSPSysSimpleColorModifier.hpp>
 
 //Gamebryo
-#include "NiObject.hpp"
-#include "NiAVObject.hpp"
-#include "NiNode.hpp"
-#include "NiGeometry.hpp"
-#include "NiGeometryData.hpp"
-#include "NiFixedString.hpp"
-#include "NiStream.hpp"
-#include "NiParticleSystem.hpp"
-#include "NiTimeController.hpp"
-#include "NiPointLight.hpp"
-#include <BSPSysSimpleColorModifier.hpp>
-#include <MuzzleFlash.hpp>
+#include <NiParticleSystem.hpp>
+
+
+#include "Overcharge.hpp"
+#include <ModelLoader.hpp>
 
 namespace Overcharge
 {
-	static void ShowSceneGraph(NiAVObject* obj)
+	extern std::vector<NiParticleSystemPtr> worldSpaceParticles;
+
+	template<typename T>
+	static void TraverseNiNode(NiNode* node, const std::function<void(T*)>& callback)
 	{
-		const void* tree = new uint8_t[0x30];
-		TESMain* tesMain = TESMain::GetSingleton();
-		const char* const name = obj->GetName() ? obj->GetName() : "<null>";
+		static_assert(std::is_base_of<NiAVObject, T>::value);
 
-		ThisStdCall(0x4D61B0, tree, tesMain->hInstance, tesMain->hWnd, obj, name, 0x80000000, 0x80000000, 800, 600);
-	}
+		if (!node) return;
 
-	//Vertex colored nodes to change
-	const case_insensitive_set vertexColors = {
-		"##PLRGlassTube:0",
-		"CoreWispyEnergy02:0",
-		"CoreWispyEnergy01:1",
-		"CoreHot01:1",
-		"Glow:0",
-		"HorizontalFlash06",
-		"Plane01:0",
-		"lasergeometry:0",
-		"lasergeometry:1",
-		"planeburst:0",
-		"planeburst:1",
-		"BigGlow:0"
-	};
-
-	//NiMaterialProperties to change
-	const case_insensitive_set matProps = {
-		"##PLRGlassTube:0",
-		"Plane02:0",
-		"CoreWispyEnergy02:0",
-		"CoreWispyEnergy03",
-		"HorizontalFlash06",
-		"Plane01:0",
-		"Glow:0",
-		"CoreHot01:1",
-		"pWisps01",
-		"pShockTrail",
-		"pEnergyHit",
-		"pRingImpact",
-		"lasergeometry:0",
-		"lasergeometry:1",
-		"planeburst:0",
-		"planeburst:1",
-		"BigGlow:0"
-	};
-
-	static case_insensitive_set editorIds = {
-		"WeapPlasmaRifle",
-		"WeapNVPlasmaRifleUnique",
-		"PlasmaProjectile",
-		"PlasmaProjectile02",
-		"PlasmaProjectileQ35",
-		"PlasmaCasterProjectile"
-	};
-
-	static case_insensitive_set extraModels = {
-		"Effects\\MuzzleFlashes\\PlasmaRifleMuzzleFlash.NIF",
-		"mps\\mpsplasmaprojectile.nif",
-		"effects\\impactenergygreen01.nif",
-		"effects\\impactenergybase01.nif",
-		"mps\\mpsenergyimpactgreen.nif",
-		"projectiles\\plasmaprojectile01.nif",
-		"projectiles\\testlaserbeamsteady.nif",
-		"mps\\mpsenergyimpactred.nif",
-		"Effects\\MuzzleFlashes\\laserriflemuzzleflash.NIF",
-		"weapons\\2handrifle\\plasmarifle.nif"
-	};
-
-	//Auto populated based on editorIds above
-	static case_insensitive_set definedModels{};
-
-	//Edit Vertex Colors - Primarily for preparing meshes to have emissive colors to pop out more 
-	static void PrepVertexColor(const NiGeometry* geom)
-	{
-		if (const NiGeometryDataPtr modelData = geom->m_spModelData; modelData && modelData->m_pkColor) 
+		for (int i = 0; i < node->m_kChildren.m_usSize; ++i)
 		{
-			for (int i = 0; i < modelData->m_usVertices; i++)
-			{
-				NiColorA col = modelData->m_pkColor[i].Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
-				col.a = modelData->m_pkColor[i].a;
+			NiAVObject* child = node->m_kChildren[i].m_pObject;
 
-				modelData->m_pkColor[i] = col;
+			if (!child) continue;
+
+			if (child->IsNiType<T>())
+			{
+				callback(static_cast<T*>(child));
 			}
-				
-			NiDX9Renderer::GetSingleton()->LockPrecacheCriticalSection();
-			NiDX9Renderer::GetSingleton()->PurgeGeometryData(modelData); 
-			NiDX9Renderer::GetSingleton()->UnlockPrecacheCriticalSection();
+			else if (child->IsNiType<NiNode>())
+			{
+				TraverseNiNode<T>(static_cast<NiNode*>(child), callback);
+			}
 		}
 	}
 
-	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
-	static void UpdateColorMod(NiParticleSystem* childParticle)
+	static void SetEmissiveColor(NiAVObjectPtr obj, const NiColor& color, NiMaterialPropertyPtr newMatProp = nullptr)
 	{
-		if (!childParticle->m_kProperties.m_spMaterialProperty) return;
+		if (!obj) return;
+		auto geom = obj->NiDynamicCast<NiGeometry>();
+		if (!geom) return;
 
-		childParticle->m_kProperties.m_spMaterialProperty->m_emit = NiColor(0.8f, 0.8f, 0.8f);
+		auto& matProp = geom->m_kProperties.m_spMaterialProperty;
+		if (newMatProp)
+		{
+			newMatProp->m_fAlpha = matProp->m_fAlpha;
+			newMatProp->m_fEmitMult = matProp->m_fEmitMult;
+			newMatProp->m_fShine = matProp->m_fShine;
+
+			matProp = newMatProp;
+			geom->RemoveProperty(NiProperty::MATERIAL);
+			geom->AddProperty(newMatProp);
+		}
+
+		if (matProp)
+		matProp->m_emit = color;
+	}
+
+	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
+	static void PrepColorMod(NiParticleSystemPtr& childParticle)
+	{
+		if (!childParticle) return;
+
+		NiAlphaPropertyPtr alpha = childParticle->GetAlphaProperty();
+		if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::AlphaFunction::ALPHA_ONE)) return;
 
 		for (NiPSysModifier* it : childParticle->m_kModifierList)
 		{
 			if (BSPSysSimpleColorModifier* colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
 			{
-				NiColorA col = colorMod->kColor2.Shifted(NiColor(0.8f, 0.8f, 0.8f), 1);
+				NiColorA OGCol = colorMod->kColor2;
+				NiColorA grayScale = DesaturateRGBA(OGCol, 1.0f);
 
-				col.a = colorMod->kColor1.a;
-				colorMod->kColor1 = col;
+				grayScale.a = colorMod->kColor1.a;
+				colorMod->kColor1 = grayScale;
 
-				col.a = colorMod->kColor2.a;
-				colorMod->kColor2 = col;
+				grayScale.a = colorMod->kColor2.a;
+				colorMod->kColor2 = grayScale;
 
-				col.a = colorMod->kColor3.a;
-				colorMod->kColor3 = col; 
-			} 
-		}
-	}
-
-	//Update Child Particles to all be prepared for emissive color control
-	static void PrepParticleColor(const NiNode* node)
-	{
-		if (BSValueNode* const valueNode = node->NiDynamicCast<BSValueNode>())
-		{
-			BGSAddonNode* const addonNode = TESDataHandler::GetSingleton()->GetAddonNode(valueNode->iValue);
-			if (addonNode && addonNode->kData.ucFlags.GetBit(1))
-			{
-				BSParticleSystemManager* const manager = BSParticleSystemManager::GetInstance();
-				const UInt32 particleSystemIndex = addonNode->particleSystemID;
-				if (BSMasterParticleSystem* const mps = manager->GetMasterParticleSystem(particleSystemIndex)->NiDynamicCast<BSMasterParticleSystem>())
-				{
-					if (NiNode* const mpsNode = mps->GetAt(0)->NiDynamicCast<NiNode>())
-					{
-						for (int i = 0; i < mpsNode->m_kChildren.m_usSize; ++i)
-						{
-							if (NiParticleSystem* const childParticle = mpsNode->m_kChildren.m_pBase[i]->NiDynamicCast<NiParticleSystem>())
-							{
-								UpdateColorMod(childParticle);
-							}
-						}
-					}
-				}
+				grayScale.a = colorMod->kColor3.a;
+				colorMod->kColor3 = grayScale;
 			}
 		}
 	}
 
-	//Iterates through node children to guide children appropriately
-	static void ProcessNiNode(const NiNode* obj)
+	//Edit Vertex Colors - Primarily for preparing meshes to have emissive colors to pop out more 
+	static void PrepVertexColor(NiGeometryPtr& geom)
 	{
-		for (int i = 0; i < obj->m_kChildren.m_usSize; i++)
+		if (const NiGeometryDataPtr modelData = geom->m_spModelData; modelData && modelData->m_pkColor) 
 		{
-			NiAVObject* const child = obj->m_kChildren[i].m_pObject;
-
-			if (child) 
+			for (int i = 0; i < modelData->m_usVertices; i++)
 			{
-				//Checks if RTTI comparison is valid before static casting to avoid dynamic casting every single time
-				if (child->IsNiType<NiParticleSystem>())
-				{
-					NiParticleSystem* childPsys = static_cast<NiParticleSystem*>(child);
-					UpdateColorMod(childPsys);
-				}
-				else if (child->IsNiType<BSValueNode>())
-				{
-					BSValueNode* childValNode = static_cast<BSValueNode*>(child);
-					PrepParticleColor(childValNode); 
-				}
-				else if (child->IsNiType<NiNode>())
-				{
-					NiNode* childNode = static_cast<NiNode*>(child);
-					ProcessNiNode(childNode);
-				}
-				else if (child->IsNiType<NiGeometry>())
-				{
-					NiGeometry* childGeom = static_cast<NiGeometry*>(child);
-					PrepVertexColor(childGeom);
-				}
+				NiColorA OGCol = modelData->m_pkColor[i];
+				NiColorA grayScale = DesaturateRGBA(OGCol, 1.0f);
+				modelData->m_pkColor[i] = grayScale;
 			}
 		}
 	}
 
-	static NiNode* __fastcall ModelLoaderLoadFile(const uint8_t* model, const char* filePath)
+	static NiNode* __fastcall ModelLoaderLoadFile(const Model* model, const char* filePath) 
 	{
-		if (filePath && (definedModels.contains(filePath) || strstr(filePath, "Flash")))
+		if (filePath && (definedModels.contains(filePath)))
 		{
-			NiNode* node = ThisStdCall<NiNode*>(0x43B230, model); 
-			ProcessNiNode(node);
+			NiNode* node = model->spNode;
+
+			TraverseNiNode<NiParticleSystem>(node, [](NiParticleSystemPtr psys) {
+				PrepColorMod(psys);
+				});
+
+			TraverseNiNode<NiGeometry>(node, [](NiGeometryPtr geom) {
+				PrepVertexColor(geom);
+				});
+
 			return node;
 		}
-		return ThisStdCall<NiNode*>(0x43B230, model);
+		else
+		{
+			for (auto& it : OCExtraModels)
+			{
+				if (!filePath || !CaseInsensitiveCmp(filePath, it.targetParent.c_str()))
+					continue;
+
+				NiNode* node = model->spNode;
+				if (!node) continue;
+
+				if (it.extraNode.index == 0xFFFF)
+				{
+					auto& name = it.extraNode.nodeName;
+					NiAVObjectPtr hNode = node->GetObjectByName(name);
+					if (hNode && (it.extraNode.flags & OCXColor) && hNode->IsNiType<NiGeometry>())
+					{
+						NiGeometryPtr geom = static_cast<NiGeometry*>(hNode.m_pObject);
+						PrepVertexColor(geom);
+					}
+					if (hNode && hNode->IsNiType<NiNode>())
+					{
+						NiNodePtr hNiNode = static_cast<NiNode*>(hNode.m_pObject);
+					}
+					continue;
+				}
+
+				NiNodePtr extraModel = ModelLoader::GetSingleton()->LoadFile(it.extraNode.nodeName, 0, 1, 0, 0, 0);
+				if (!extraModel) continue;
+
+				NiObjectPtr extraObj = extraModel->Clone();
+				if (!extraObj) continue;
+
+				NiNodePtr extraNode = extraObj->IsNiNode();
+				if (!extraNode) continue;
+
+				if (it.extraNode.index >= 0) 
+				{
+					char nameBuffer[256];
+					std::snprintf(nameBuffer, sizeof(nameBuffer), "%s%u",
+						extraNode->m_kName.c_str(),
+						it.extraNode.index);
+					NiFixedString nameString(nameBuffer);
+					extraNode->SetName(nameString);
+				}
+
+				node->AttachChild(extraNode, 0);
+				extraNode->m_kLocal.m_fScale = it.xNodeScale;
+				extraNode->m_kLocal.m_Translate = it.xNodeTranslate;
+				extraNode->m_kLocal.m_Rotate.FromEulerDegrees(
+					it.xNodeRotation.x, it.xNodeRotation.y, it.xNodeRotation.z
+				);
+
+				if (it.extraNode.flags & OCXParticle)
+				{
+					TraverseNiNode<NiParticleSystem>(extraNode, [&](NiParticleSystemPtr psys) {
+							if (auto ctlr = psys->GetControllers(); ctlr) ctlr->Stop();
+						});
+				}
+			}
+		}
+		return model->spNode;
 	}
 
-	static void __fastcall ModelModel(const uint8_t* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV)
+	static void __fastcall ModelModel(const Model* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV) 
 	{
 		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, abAssignShaders, abKeepUV);
-		ModelLoaderLoadFile(thisPtr, modelPath);
-	}
 
-	inline void __fastcall MuzzleFlashEnable(uint8_t* flash)
-	{
-		// MuzzleFlash::spLight
-		(*reinterpret_cast<NiPointLight**>(flash + 0x10))->SetDiffuseColor(NiColor(0, 0, 1));
-
-		MuzzleFlash* muzzleFlash = reinterpret_cast<MuzzleFlash*>(flash); 
-
-		muzzleFlash->pProjectile;
-		// MuzzleFlash::Enable
-		ThisStdCall(0x9BB690, flash); 
+		if (thisPtr && g_OCSettings.iEnableVisualEffects > 0)
+		ModelLoaderLoadFile(thisPtr, modelPath); 
 	}
 
 	inline void Hook()
 	{
 		WriteRelCall(0x43AB4C, &ModelModel);
-		WriteRelCall(0x9BB7CD, &MuzzleFlashEnable);
 	}
 
 	inline void PostLoad() {
 		// Add any extra models
 		for (const std::string elem : extraModels)
 		{
-			definedModels.insert(elem);
+			definedModels.insert(elem); 
 		}
 	}
-}
+} 

@@ -2,6 +2,9 @@
 #include "BSString.hpp"
 #include "NiColor.hpp"
 #include "BSSimpleArray.hpp"
+#include "NiTList.hpp"
+
+class NiNode;
 
 class DebugText
 {
@@ -25,7 +28,7 @@ public:
 		float		   offsetY;	// 04
 		UInt32		  alignment;  // 08
 		NiNode*			node;	   // 0C
-		BSStringT	   text;	   // 10
+		BSString	   text;	   // 10
 		float		   flt18;	  // 18	Always -1.0
 		NiColorA		color;	  // 1C
 	};
@@ -40,19 +43,6 @@ public:
 		UInt32 fontNumber;
 	};
 
-	struct TextNode
-	{
-		TextNode* next;		// 00
-		TextNode* prev;		// 04
-		String text;		// 08
-	};
-
-	struct TextList
-	{
-		TextNode* first;	// 00
-		TextNode* last;		// 04
-		unsigned int count;	// 08
-	};
 
 	enum TextAlign
 	{
@@ -61,7 +51,7 @@ public:
 	};
 
 	DebugLine lines[200];				// 0004
-	TextList textList;					// 2264
+	NiTList<DebugLine*>		kFloatingText;			// 2264
 	BSSimpleArray<sPrintData*> lines2;	// 2270
 	unsigned int unk2280;				// 2280
 	unsigned int unk2284[3];			// 2284
@@ -79,7 +69,7 @@ public:
 		do
 		{
 			linesPtr++;
-			if (!linesPtr->text.m_data) break;
+			if (!linesPtr->text.pString) break;
 			if (maxY < linesPtr->offsetY)
 			{
 				maxY = linesPtr->offsetY;
@@ -89,7 +79,7 @@ public:
 		return result;
 	}
 
-	String* GetDebugInput()
+	BSString* GetDebugInput()
 	{
 		return &(GetDebugInputLine()->text);
 	}

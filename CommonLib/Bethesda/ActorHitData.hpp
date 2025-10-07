@@ -29,29 +29,28 @@ public:
 
 	Actor*				pkSource;		// 00
 	Actor*				pkTarget;		// 04
-	union								// 08
+	union
 	{
-		Projectile*		pkProjectile;
-		Explosion*		pkExplosion;
-		Actor*			pkActor;			// TODO:: test again
+		Projectile*		pProjectile;
+		Explosion*		pExplosion;
 	};
 	ActorValue::Index	eWeaponActorValue;	// 0C
-	SInt32				hitLocation;		// 10
-	Float32				fHealthDamage;		// 14
-	Float32				fBaseWeaponDamage;	// 18	Skill and weapon condition modifiers included
-	Float32				fFatigueDamage;		// 1C
-	Float32				fLimbDamage;		// 20
-	Float32				fBlockDTMod;		// 24
-	Float32				fArmorDamage;		// 28
-	Float32				fWeaponDamage;		// 2C
-	TESObjectWEAP*		pkWeapon;			// 30
-	Float32				fHealthPercent;		// 34
-	NiPoint3			kImpactPos;			// 38
-	NiPoint3			kIimpactAngle;		// 44
-	UInt32				unk50;				// 50
-	UInt32				unk54;				// 54
-	EnumHitFlags		eFlags;				// 58
-	Float32				fDamageMult;		// 5C
-	UInt32				unk60;				// 60	Unused; rigged by CopyHitDataHook to store hitLocation
+	UInt32				eDamageLimb;
+	float				fHealthDamage;
+	float				fBaseWeaponDamage;
+	float				fFatigueDamage;
+	float				fLimbDamage;
+	float				fBlockDTMod;
+	float				fArmorDamage;
+	float				fDamageToWeapon;
+	TESObjectWEAP*		pWeapon;
+	float				fHealthPercent;
+	NiPoint3			kImpactPos;
+	NiPoint3			kImpactAngle;
+	SpellItem*			pCriticalEffect;
+	UInt32				pVATSAction;
+	Bitfield32			uiFlags;
+	float				fDamageMult;
+	UInt32				uiRefCount;
 };
 static_assert(sizeof(ActorHitData) == 0x64);

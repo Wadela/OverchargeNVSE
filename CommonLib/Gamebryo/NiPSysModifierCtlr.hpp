@@ -15,6 +15,7 @@ public:
 	NiFixedString	m_kModifierName;
 	NiPSysModifier* m_pkModifier;
 
+	NIRTTI_ADDRESS(0x12027c8);
 	CREATE_OBJECT(NiPSysModifierCtlr, 0xC5C9E0);
 };
 

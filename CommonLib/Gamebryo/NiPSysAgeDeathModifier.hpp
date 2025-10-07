@@ -13,7 +13,8 @@ public:
 	bool					m_bSpawnOnDeath;
 	NiPSysSpawnModifier*	m_pkSpawnModifier;
 
-	CREATE_OBJECT(NiPSysAgeDeathModifier, 0xC2EF20)
+	CREATE_OBJECT(NiPSysAgeDeathModifier, 0xC2EF20);
+	NIRTTI_ADDRESS(0x1202798);
 };
 
 ASSERT_SIZE(NiPSysAgeDeathModifier, 0x20);

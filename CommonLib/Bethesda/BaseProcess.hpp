@@ -121,8 +121,8 @@ public:
 	virtual void					GetUnk0B4();
 	virtual void					FindSpecialIdletoPlay();
 	virtual void					Unk_12();
-	virtual void					Unk_13();
-	virtual void					Unk_14();
+	virtual MagicItem*				GetCurrentPackageSpell() const;
+	virtual void					SetCurrentPackageSpell(MagicItem* apSpell);
 	virtual void					Unk_15();
 	virtual void					Unk_16();
 	virtual void					Unk_17();
@@ -212,7 +212,7 @@ public:
 	virtual bool					IsUsingOneHandMine();
 	virtual bool					IsUsingThrownWeapon();
 	virtual bool					IsUsingOneHandThrown();
-	virtual AnimData*				GetAnimData();
+	virtual Animation*				GetAnimData();
 	virtual void					Unk_6F();
 	virtual void					Unk_70();
 	virtual void					Unk_71();
@@ -367,15 +367,15 @@ public:
 	virtual void					PushActorAway(Actor* pushed, Float32 posX, Float32 posY, Float32 posZ, Float32 force);
 	virtual void					UpdateKnockState();
 	virtual void					Unk_108();
-	virtual void					Unk_109();
+	virtual void					SetWeaponSequence(int index, BSAnimGroupSequence* sequence);
 	virtual void					Unk_10A();
 	virtual float					GetAngle1D0();
 	virtual void					Unk_10C();
-	virtual void					ResetAttackLoopTimer();
-	virtual void					DecreaseAttackLoopShootTime();
-	virtual void					SetByte1D8();
-	virtual bool					GetByte1D8();
-	virtual void					Unk_111();
+	virtual void                    SetIsNextAttackLoopQueued(UInt8 bLoopAttacks);		//Needs to be untoggled or else a weapon will fire extremely quickly, [likely] every frame.
+	virtual UInt8					GetIsNextAttackLoopQueued(Actor* apActor);			//Returns if a weapon has a looping attack that is queued. Cleared after firing. Likely a boolean, but needs more testing to decide for sure, especially in VATS.
+	virtual void                    SetShotsToFire(UInt8 aucCount);						//This is multiplied by TESObjectWEAP->ucNumProjectiles to get the final number of projectiles fired; This differs in that it works like setting the number of times to fire per trigger pull.
+	virtual UInt8					GetShotsToFire() const;								//Returns the number of times to fire per trigger pull. 
+	virtual float                   GetAttackLoopTime();								//Needs more Testing but is generally used to check whether an Attack Loop is completing. ```
 	virtual void					Unk_112();
 	virtual bool					WantsWeaponOut();
 	virtual void					SetWantsWeaponOut(bool);
@@ -383,7 +383,7 @@ public:
 	virtual void					SetWeaponOut(Actor* actor, bool weaponOut);
 	virtual void					Unk_117();
 	virtual void					Unk_118();
-	virtual void					Unk_119(Actor* actor);
+	virtual void					Update3DModel(Actor* actor);
 	virtual void					Set3DUpdateFlag(UInt32 unk);
 	virtual void					Unk_11B();
 	virtual void					Unk_11C();

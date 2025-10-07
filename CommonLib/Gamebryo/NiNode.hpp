@@ -65,12 +65,6 @@ public:
 			});
 	}
 
-	// Added By Wadel - Full Credit to JIP LN NVSE
-
-	NiAVObject* __fastcall GetBlockByName(const char* nameStr);	//	str of NiString
-	NiAVObject* __fastcall GetBlock(const char* blockName);
-	NiNode* __fastcall GetNode(const char* nodeName);
-
 };
 
 ASSERT_SIZE(NiNode, 0xAC);

@@ -1,90 +1,177 @@
-#include "OverCharge.hpp"
-
-int g_isOverheated = 0;
+#include "Overcharge.hpp"
 
 namespace Overcharge
 {
-    //Color Shift System
-    const ColorGroup* ColorGroup::GetColorSet(const char* colorName)
-    {
-        auto it = ColorGroup::colorMap.find(colorName);
-        if (it != ColorGroup::colorMap.end())
-        {
-            return &it->second;
-        }
-        else
-            return &plasmaColors;
+    HeatState::HeatState() :
+        uiTicksPassed(0), uiOCEffect(0), uiAmmoUsed(0), uiProjectiles(0),
+        uiAmmoThreshold(0), uiProjThreshold(0), uiEnchThreshold(0), uiOCEffectThreshold(0),
+        uiDamage(0), uiCritDamage(0), uiObjectEffectID(0), 
+        fAccuracy(0.0f), fFireRate(0.0f), fProjectileSpeed(0.0f), fProjectileSize(0.0f),
+        fHeatVal(0.0f), fHeatPerShot(0.0f), fCooldownRate(0.0f) {
     }
 
-    const NiColor plasmaColorSet[] =
+    HeatState::HeatState(
+        UInt8 OCEffect, UInt8 ammo, UInt8 numProj,
+        UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
+        UInt16 dmg, UInt16 critDmg, UInt32 enchID,
+        float accuracy, float rof, float projSpd, float projSize,
+        float perShot, float cooldown) :
+
+        uiTicksPassed(0), uiOCEffect(OCEffect), uiAmmoUsed(ammo), uiProjectiles(numProj),
+        uiAmmoThreshold(ammoTH), uiProjThreshold(projTH), uiEnchThreshold(enchTH), uiOCEffectThreshold(effectTH),
+        uiDamage(dmg), uiCritDamage(critDmg), uiObjectEffectID(enchID), 
+        fAccuracy(accuracy), fFireRate(rof), fProjectileSpeed(projSpd), fProjectileSize(projSize),
+        fHeatVal(0.0f), fHeatPerShot(perShot), fCooldownRate(cooldown) {
+    }
+
+    HeatState::HeatState(const HeatConfiguration* config)
     {
-        NiColor(1.000f, 0.486f, 0.655f),         //plasmaRed: #ff7ca7
-        NiColor(1.000f, 0.698f, 0.486f),         //plasmaOrange: #ffb27c
-        NiColor(1.000f, 1.000f, 0.486f),         //plasmaYellow: #ffff7c
-        NiColor(0.655f, 1.000f, 0.486f),         //plasmaGreen: #a7ff7c
-        NiColor(0.486f, 0.780f, 1.000f),         //plasmaBlue: #7cc7ff
-        NiColor(0.655f, 0.486f, 1.000f),         //plasmaViolet: #a77cff
-        NiColor(0.878f, 0.969f, 1.000f)          //plasmaWhite: #e0f7ff
-    };
-
-    const NiColor laserColorSet[] =
-    {
-        NiColor(1.000f, 0.235f, 0.235f),         //laserRed: #ff3c3c
-        NiColor(1.000f, 0.620f, 0.235f),         //laserOrange: #ff9e3c
-        NiColor(1.000f, 1.000f, 0.235f),         //laserYellow: #ffff3c
-        NiColor(0.192f, 0.965f, 0.325f),         //laserGreen: #31f752
-        NiColor(0.227f, 0.667f, 0.965f),         //laserBlue: #3aaaf7
-        NiColor(0.624f, 0.235f, 1.000f),         //laserViolet: #9f3cff
-        NiColor(0.878f, 0.969f, 1.000f)          //laserWhite: #e0f7ff
-    };
-
-    const NiColor flameColorSet[] =
-    {
-        NiColor(1.000f, 0.341f, 0.133f),         //flameRed: #ff5722
-        NiColor(1.000f, 0.549f, 0.000f),         //flameOrange: #ff8c00 
-        NiColor(1.000f, 0.925f, 0.235f),         //flameYellow: #ffeb3b
-        NiColor(0.000f, 1.000f, 0.498f),         //flameGreen: #00ff7f
-        NiColor(0.000f, 0.749f, 1.000f),         //flameBlue: #00bfff
-        NiColor(0.608f, 0.000f, 1.000f),         //flameViolet: #9b00ff
-        NiColor(0.961f, 0.961f, 0.961f)          //flameWhite: #f5f5f5
-    };
-
-    const NiColor zapColorSet[] =
-    {
-        NiColor(1.000f, 0.235f, 0.235f),         //zapRed: #ff3c3c
-        NiColor(1.000f, 0.620f, 0.235f),         //zapOrange: #ff9e3c
-        NiColor(1.000f, 1.000f, 0.486f),         //zapYellow: #ffff7c
-        NiColor(0.655f, 1.000f, 0.486f),         //zapGreen: #a7ff7c
-        NiColor(0.227f, 0.667f, 0.965f),         //zapBlue: #3aaaf7
-        NiColor(0.655f, 0.486f, 1.000f),         //zapViolet: #a77cff
-        NiColor(0.878f, 0.969f, 1.000f)          //zapWhite: #e0f7ff
-    };
-
-    const ColorGroup ColorGroup::plasmaColors{ plasmaColorSet };
-    const ColorGroup ColorGroup::laserColors{ laserColorSet };
-    const ColorGroup ColorGroup::flameColors{ flameColorSet };
-    const ColorGroup ColorGroup::zapColors{ zapColorSet };
-
-    const std::unordered_map<std::string, ColorGroup> ColorGroup::colorMap =
-    {
-        { "Plasma", ColorGroup::plasmaColors },
-        { "Laser", ColorGroup::laserColors },
-        { "Flame", ColorGroup::flameColors },
-        { "Zap", ColorGroup::zapColors }
-    };
-
-    //Overheating System
-    void WeaponHeat::HeatOnFire()       //Responsible for heating a weapon up
-    {
-        float maxHeat = 300.0f;
-
-        heatVal += heatPerShot;         //Ticks up heatVal by the weapons defined heatPerShot value
-
-        if (heatVal >= maxHeat)         //If heatVal reaches maximum heat threshold --> Weapon overheats
-        {
-            g_isOverheated = 1;         //When g_isOverheated == 1, Weapon does not fire.
+        if (config) {
+            *this = HeatState(
+                0,
+                config->iMinAmmoUsed,
+                config->iMinProjectiles,
+                config->iAddAmmoThreshold,
+                config->iAddProjectileThreshold,
+                config->iObjectEffectThreshold,
+                config->iOverchargeEffectThreshold,
+                config->iMinDamage,
+                config->iMinCritDamage,
+                config->iObjectEffectID,
+                config->fMinAccuracy,
+                config->fMinFireRate,
+                config->iMinProjectileSpeedPercent,
+                config->iMinProjectileSizePercent,
+                config->fHeatPerShot,
+                config->fCooldownPerSecond
+            );
         }
     }
 
+    UInt32 RGBtoUInt32(const NiColor& color)
+    {
+        UInt8 r = static_cast<UInt8>(color.r * 255.0f + 0.5f);
+        UInt8 g = static_cast<UInt8>(color.g * 255.0f + 0.5f);
+        UInt8 b = static_cast<UInt8>(color.b * 255.0f + 0.5f);
+
+        return (b << 16) | (g << 8) | r;
+    }
+
+    NiColor RGBtoHSV(const NiColor& color) //RGB -> Hue, Saturation, Value
+    {
+        float r = color.r, g = color.g, b = color.b;
+        float max = (std::max)({ r, g, b });
+        float min = (std::min)({ r, g, b });
+        float delta = max - min;
+
+        NiColor out;
+        out.b = max;
+
+        if (delta == 0) {
+            out.r = 0;
+            out.g = 0;
+        }
+        else {
+            out.g = delta / max;
+            if (max == r)
+                out.r = 60 * (fmod(((g - b) / delta), 6.0f));
+            else if (max == g)
+                out.r = 60 * (((b - r) / delta) + 2.0f);
+            else
+                out.r = 60 * (((r - g) / delta) + 4.0f);
+            if (out.r < 0) out.r += 360;
+        }
+        return out;
+    }
+
+    NiColor HSVtoRGB(const NiColor& hsv) //Hue, Saturation, Value -> RGB
+    {
+        float C = hsv.b * hsv.g;
+        float X = C * (1 - fabs(fmod(hsv.r / 60.0f, 2) - 1));
+        float m = hsv.b - C;
+
+        float r, g, b;
+        if (hsv.r < 60) { r = C; g = X; b = 0; }
+        else if (hsv.r < 120) { r = X; g = C; b = 0; }
+        else if (hsv.r < 180) { r = 0; g = C; b = X; }
+        else if (hsv.r < 240) { r = 0; g = X; b = C; }
+        else if (hsv.r < 300) { r = X; g = 0; b = C; }
+        else { r = C; g = 0; b = X; }
+
+        return NiColor(r + m, g + m, b + m);
+    }
+
+    NiColor UInt32toRGB(const UInt32 color)
+    {
+        float r = ((color >> 16) & 0xFF) / 255.0f;
+        float g = ((color >> 8) & 0xFF) / 255.0f;
+        float b = ((color) & 0xFF) / 255.0f;
+
+        return NiColor(r, g, b);
+    }
+
+    NiColor UInt32toHSV(const UInt32 color)
+    {
+        NiColor RGB = UInt32toRGB(color);
+        return RGBtoHSV(RGB);
+    }
+
+    NiColor DesaturateRGB(NiColor rgb, float factor)
+    {
+        NiColor hsv = RGBtoHSV(rgb);
+        hsv.g *= (1.0f - factor);
+        return HSVtoRGB(hsv);
+    }
+
+    NiColorA DesaturateRGBA(NiColorA rgba, float factor)
+    {
+        NiColor hsv = RGBtoHSV(NiColor(rgba.r, rgba.g, rgba.b));
+        hsv.g *= (1.0f - factor);
+        NiColor rgb = HSVtoRGB(hsv);
+        return NiColorA(rgb.r, rgb.g, rgb.b, rgba.a);
+    }
+
+    NiColor SmoothColorShift(float currentHeat, UInt32 startCol, UInt32 targetCol)
+    {
+        float progress = std::clamp(currentHeat / 100.0f, 0.0f, 1.0f);
+
+        NiColor startHSV = UInt32toHSV(startCol);
+        NiColor targetHSV = UInt32toHSV(targetCol);
+
+        float hueDiff = targetHSV.r - startHSV.r;
+        if (fabs(hueDiff) > 180.0f) {
+            if (hueDiff > 0) hueDiff -= 360.0f;
+            else hueDiff += 360.0f;
+        }
+
+        float interpHue = std::fmod(startHSV.r + hueDiff * progress, 360.0f);
+        if (interpHue < 0.0f) interpHue += 360.0f;
+        float interpSat = startHSV.g + (targetHSV.g - startHSV.g) * progress;
+        float interpVal = startHSV.b + (targetHSV.b - startHSV.b) * progress;
+
+        NiColor resultHSV = { interpHue, interpSat, interpVal };
+
+        return HSVtoRGB(resultHSV);
+    }
+
+    HeatFX::HeatFX() :
+        currCol(0, 0, 0),
+        matProp(NiMaterialProperty::CreateObject()),
+        targetBlocks() {
+    }
+
+    HeatFX::HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names) :
+        currCol(UInt32toRGB(col)),
+        matProp(NiMaterialProperty::CreateObject()),
+        targetBlocks(names) {
+    }
+
+    HeatData::HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* cfg) : state(heat), fx(visuals), config(cfg) {}
+
+    HeatData::HeatData(const HeatConfiguration* cfg) : 
+        state(cfg),
+        fx(cfg ? cfg->iMinColor : 0, {}),
+        config(cfg) {
+    }
 }
 

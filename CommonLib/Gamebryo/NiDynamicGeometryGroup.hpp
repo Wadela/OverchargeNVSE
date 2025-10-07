@@ -1,6 +1,7 @@
 #pragma once
 
 #include "NiGeometryGroup.hpp"
+#include "NiTPointerMap.hpp"
 
 class NiVBDynamicSet;
 class NiVBChip;

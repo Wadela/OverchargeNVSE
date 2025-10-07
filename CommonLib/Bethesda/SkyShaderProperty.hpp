@@ -31,7 +31,7 @@ public:
 
 	NiColorA kVertexColor;
 	NiSourceTexture* pBaseTexture;
-	BSStringT sTextureName;
+	BSString sTextureName;
 	NiTexturingProperty::ClampMode eClampMode;
 	NiSourceTexture* pBlendTexture;
 	float fBlendValue;

@@ -8,7 +8,7 @@
 
 class NiCamera;
 
-class NiBound : public BSMemObject {
+class NiBound {
 public:
 	NiBound() : m_kCenter(NiPoint3(0.0f,0.0f,0.0f)) , m_fRadius(0.0f) {};
 	~NiBound() {};

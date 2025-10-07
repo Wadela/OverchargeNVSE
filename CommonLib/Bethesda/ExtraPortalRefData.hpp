@@ -2,6 +2,8 @@
 
 #include "BSExtraData.hpp"
 
+class TESObjectREFR;
+
 struct PortalLinkedRefData {
 	TESObjectREFR* pRef[2];
 };

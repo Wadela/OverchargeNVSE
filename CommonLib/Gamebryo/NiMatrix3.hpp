@@ -41,6 +41,7 @@ public:
 	void MakeRotation(float angle, const NiPoint3& axis);
 
 	void FromEulerAnglesXYZ(float fXAngle, float fYAngle, float fZAngle);
+	void FromEulerDegrees(float rollDeg, float pitchDeg, float yawDeg);
 	bool ToEulerAnglesXYZ(float& arfXAngle, float& arfYAngle, float& arfZAngle) const;
 
 	__forceinline void SetCol(UInt32 uiCol, const NiPoint3& col) {

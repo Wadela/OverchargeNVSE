@@ -1,112 +1,84 @@
 #pragma once
 
 #include "MainHeader.hpp"
+#include "OverchargeConfig.hpp"
+#include "NiParticleSystem.hpp"
 
-extern int g_isOverheated;
 namespace Overcharge
 {
-    //Color Changing Code
-    struct ColorGroup
-    {
-        const NiColor* colorSet;
-
-        ColorGroup(const NiColor* colorSet) : colorSet(colorSet) {}
-
-        static const ColorGroup* GetColorSet(const char* colorName);
-
-        static const std::unordered_map<std::string, ColorGroup> colorMap;
-
-        static const ColorGroup plasmaColors;
-        static const ColorGroup laserColors;
-        static const ColorGroup flameColors;
-        static const ColorGroup zapColors;
-    };
-
-    struct ColorShift
-    {
-        const ColorGroup* colorType;
-        const NiColor startColor;
-        const NiColor targetColor;
-        int startIndex;
-        int targetIndex;
-
-        ColorShift() :
-            colorType(0),
-            startColor(0.0f, 0.0f, 0.0f),
-            targetColor(0.0f, 0.0f, 0.0f),
-            startIndex(0),
-            targetIndex(0) {}
-
-        ColorShift(const ColorGroup* selectedCG, const NiColor& start, const NiColor& end, int setIndex1, int setIndex2) :
-            colorType(selectedCG), startColor(start), targetColor(end), startIndex(setIndex1), targetIndex(setIndex2) {}
-
-        NiColor StepShift(float heatVal, int color1, int color2, const ColorGroup* set)
-        {
-            int stepCount = abs(color2 - color1);
-            float heatRatio = min(heatVal / 300.0f, 1.0f);
-            int currentStep = static_cast<int>(heatRatio * stepCount);
-            currentStep = std::clamp(currentStep, 0, stepCount);
-
-            bool forward = color2 > color1;
-
-            int currentIndex = forward ? color1 + currentStep : color1 - currentStep;
-            int nextIndex = forward ? currentIndex + 1 : currentIndex - 1;
-            nextIndex = std::clamp(nextIndex, 0, 6);
-
-            NiColor currentColor = set->colorSet[currentIndex];
-            NiColor nextColor = set->colorSet[nextIndex];
-
-            float localHeatRatio = (heatRatio * stepCount) - currentStep;
-
-            NiColor blendedColor = currentColor.Shifted(nextColor, localHeatRatio); 
-
-            return blendedColor;
-        }
-
-        NiColor SmoothShift(const float time, const float period, const NiColor& startColor)
-        {
-            // Normalize time to avoid overflow if time grows large
-            const float normalizedTime = fmod(time, period);
-
-            // Use sine wave functions, with the starting color defining phase offsets
-            const float r = (sin((normalizedTime / period) + startColor.r * 2 * std::numbers::pi) + 1) / 2;
-            const float g = (sin((normalizedTime / period) + startColor.g * 2 * std::numbers::pi + 2 * std::numbers::pi / 3) + 1) / 2;
-            const float b = (sin((normalizedTime / period) + startColor.b * 2 * std::numbers::pi + 4 * std::numbers::pi / 3) + 1) / 2;
-
-            // Return the RGB color as a NiColor struct
-            return { r, g, b };
-        }
-
-    };
-
     //Overheating Code
-    struct WeaponHeat
+    struct HeatState
     {
-        float baseHeatVal;
-        float heatVal;
-        float heatPerShot;
-        float cooldownRate;
+        HeatState();
+        HeatState(
+            UInt8 OCEffect, UInt8 ammo, UInt8 numProj,
+            UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
+            UInt16 dmg, UInt16 critDmg, UInt32 enchID,
+            float accuracy, float rof, float projSpd, float projSize, 
+            float perShot, float cooldown);
+        HeatState(const HeatConfiguration* config);
 
-        WeaponHeat(float initialHeatVal, float heatPerShotVal, float cooldownRateVal) :
-            baseHeatVal(initialHeatVal), heatVal(initialHeatVal), heatPerShot(heatPerShotVal), cooldownRate(cooldownRateVal) {}
+        UInt8   uiAmmoUsed;
+        UInt8   uiProjectiles;
+        UInt8   uiAmmoThreshold;
+        UInt8   uiProjThreshold;
+        UInt8   uiEnchThreshold;
+        UInt8   uiOCEffectThreshold;
 
-        void HeatOnFire();
-    };
+        UInt16  uiDamage;
+        UInt16  uiCritDamage;
 
-    struct WeaponData
-    {
-        NiNode* meshData;
-        ColorShift colorData;
-        WeaponHeat heatData;
+        UInt16   uiTicksPassed;
+        UInt16   uiOCEffect;
 
-        WeaponData(NiNode* mesh, ColorShift color, WeaponHeat heat) :
-            meshData(mesh), colorData(color), heatData(heat) {
+        UInt32  uiObjectEffectID;
+
+        float   fAccuracy;
+        float   fFireRate;
+        float   fProjectileSpeed;
+        float   fProjectileSize;
+
+        float   fHeatVal;
+        float   fHeatPerShot;
+        float   fCooldownRate;
+
+        inline void HeatOnFire()
+        {
+            fHeatVal += fHeatPerShot;
+            uiTicksPassed = 0;
         }
-
-        std::vector<const char*> blockNames;
     };
 
-    extern std::unordered_map<UInt32, WeaponData> heatedWeapons;
+    struct HeatFX
+    {
+        HeatFX();
+        HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names);
 
-    void WeaponCooldown();
+        NiColor                    currCol;
+        NiMaterialPropertyPtr      matProp;
+
+        std::vector<std::pair<UInt32, NiAVObjectPtr>> targetBlocks;
+    };
+
+    struct HeatData
+    {
+        HeatData(const HeatConfiguration* cfg);
+        HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* config);
+
+        HeatFX    fx;
+        HeatState state;
+
+        const HeatConfiguration* config;
+    };
+
+    UInt32  RGBtoUInt32(const NiColor& color);
+    NiColor UInt32toRGB(const UInt32 color);
+    NiColor UInt32toHSV(const UInt32 color);
+    NiColor RGBtoHSV(const NiColor& color);                         //RGB -> Hue, Saturation, Value
+    NiColor HSVtoRGB(const NiColor& hsv);                           //Hue, Saturation, Value -> RGB
+
+    NiColor DesaturateRGB(NiColor rgb, float factor);
+    NiColorA DesaturateRGBA(NiColorA rgba, float factor);
+
+    NiColor SmoothColorShift(float currentHeat, UInt32 startCol, UInt32 targetCol);
 }

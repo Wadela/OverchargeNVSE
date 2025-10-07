@@ -1,95 +1,87 @@
 #pragma once
-#include "NiPoint3.hpp"
+
+#include "NiNode.hpp"
 #include "NiTPointerMap.hpp"
 #include "BSSimpleList.hpp"
-#include "NiRefObject.hpp"
+#include "TESAnimGroup.hpp"
 
+class Actor;
 class AnimSequenceBase;
+class BSAnimGroupSequence;
+class TESIdleForm;
 
-// 0x38
-class AnimIdle : public NiRefObject
-{
+NiSmartPointer(AnimIdle);
+NiSmartPointer(NiControllerManager);
+
+class Animation : public BSMemObject {
 public:
-	UInt32 unk008;
-	UInt32 unk00C;
-	UInt32 unk010;
-	UInt32 sequenceID;
-	BSAnimGroupSequence* unk018;
-	NiRefObject* unk01C[2];
-	NiRefObject* unk024[2];
-	TESIdleForm* idleForm;
-	UInt32 unk030;
-	Actor* actor;
-};
-static_assert(sizeof(AnimIdle) == 0x38);
+	enum Bones {
+		PELVIS = 0,
+		BIP01COPY = 1,
+		LFOREARM = 2,
+		HEAD = 3,
+		WEAPON = 4,
+		UNUSED_5 = 5,
+		UNUSED_6 = 6,
+		NECK1 = 7,
+		COUNT
+	};
 
-// 0x13C
-struct Animation
-{
-	struct Unk124
-	{
-		struct Unk18
-		{
-			UInt32					unk00[9];
-			UInt32					unk24;
+	Bitfield32									uiFlags;
+	Actor*										pActor;
+	NiNodePtr									spSceneRoot;
+	NiNode*										pBip01;
+	NiPoint3									kMovementVector;
+	NiPoint3									kBip01Pos;
+
+	union {
+		struct {
+			NiNode* pPelvis;
+			NiNode* pBip01Copy;
+			NiNode* pLForearm;
+			NiNode* pHead;
+			NiNode* pWeapon;
+			NiNode* pUNUSED03C;
+			NiNode* pUNUSED040;
+			NiNode* pNeck1;
 		};
 
-		UInt32						unk00[6];
-		Unk18*						unk18;
+		NiNode* pNodes[Bones::COUNT];
 	};
 
-	struct Unk128
-	{
-		UInt32						unk00[11];
-		TESIdleForm*				idle2C;
-	};
+	float										fUnk048;
+	TESAnimGroup::Type							usGroupIDs[8];
+	UInt32										uiActions[8];
+	UInt32										uiLoopCounts[8];
+	TESAnimGroup::Type							usNextGroups[8];
+	UInt32										uiNextLoops[8];
+	UInt8										cSkipUpdate;
+	UInt8										bFreedIdles;
+	UInt8										byte0CE;
+	UInt8										byte0CF;
+	float										fTimePassed;
+	float										fTimeUnk0D4;
+	NiControllerManagerPtr						spControllerManager;
+	NiTPointerMap<UInt16, AnimSequenceBase*>*	pAnimSequenceBases;
+	BSAnimGroupSequence*						pAnimSequence[8];
+	BSAnimGroupSequence*						pAnimSeq100;
+	BSSimpleList<void*>							kAnimationCloneList;
+	float										fMovementSpeedMult;
+	float										fRateOfFire;
+	float										fTurboSpeedMult;
+	float										fWeaponReloadSpeed;
+	float										fEquipSpeed;
+	UInt8										cSkipNextBlend;
+	UInt8										byte121;
+	UInt16										usQueuedReloadGroup;
+	AnimIdlePtr									spIdleAnim;
+	AnimIdlePtr									spIdleAnimQueued;
+	AnimIdlePtr									spIdleAnims12C[2];
+	BSSimpleList<TESIdleForm*>					kList134;
 
-	UInt32							unk000;				// 000
-	Actor*  						actor;				// 004
-	NiNode*  						nSceneRoot;			// 008
-	NiNode*  						nBip01;				// 00C
-	NiPoint3						pt010;				// 010
-	NiPoint3						pt01C;				// 01C
-	NiNode*  						nPelvis;			// 028
-	NiNode*  						nBip01Copy;			// 02C
-	NiNode*  						nLForearm;			// 030
-	NiNode*							nHead;				// 034
-	NiNode* 						nWeapon;			// 038
-	NiNode*							UNUSED03C;			// 03C
-	NiNode*							UNUSED040;			// 040
-	NiNode*							nNeck1;				// 044
-	float							unk048;				// 048
-	UInt16							groupIDs[8];		// 04C
-	SInt32							sequenceState1[8];	// 05C
-	SInt32							sequenceState2[8];	// 07C
-	UInt16							unk09C[8];			// 09C
-	UInt32							unk0AC[8];			// 0AC
-	UInt8							byte0CC;			// 0CC
-	UInt8							byte0CD;			// 0CD
-	UInt8							byte0CE;			// 0CE
-	UInt8							byte0CF;			// 0CF
-	float							timePassed;			// 0D0
-	UInt32							unk0D4;				// 0D4
-	NiControllerManager*  			controllerManager;			// 0D8
-	NiTPointerMap<AnimSequenceBase>* mapAnimSequenceBase;// 0DC
-	BSAnimGroupSequence*			animSequence[8];	// 0E0
-	BSAnimGroupSequence*			animSeq100;		// 100
-	BSSimpleList<KFModel*>			loadingAnims;
-	float							movementSpeedMult;
-	float							rateOfFire;
-	float 							turboSpeedMult;
-	float 							weaponReloadSpeed;
-	float 							equipSpeed;
-	bool 							noBlend120;
-	UInt8 							byte121;
-	UInt16 							unk122;
-	AnimIdle* 						idleAnim;
-	AnimIdle* 						idleAnimQueued;
-	NiNode* 						node12C;
-	NiNode* 						node130;
-	BSSimpleList<void*>				list134;
+	void Delete(bool abFree);
 
-	TESAnimGroup::AnimGroupID GetNextAttackGroupID() const;
-
+	bool GetDelta(NiPoint3& arVector, const Actor* apActor, bool abNoRotation, bool abNoHeight);
 };
-static_assert(sizeof(Animation) == 0x13C);
+
+ASSERT_SIZE(Animation, 0x13C)

@@ -1,6 +1,8 @@
 #pragma once
 #include "BSExtraData.hpp"
 
+class TESObjectREFR;
+
 // 10
 class ExtraLinkedRef : public BSExtraData
 {

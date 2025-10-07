@@ -1,5 +1,8 @@
 #pragma once
+
 #include "ActiveEffect.hpp"
+
+class TESObject;
 
 // 0x4C
 class AssociatedItemEffect : public ActiveEffect
@@ -10,4 +13,4 @@ public:
 
 	TESObject* pkItem;	// 48 - creature, armor, weapon
 };
-static_assert(sizeof(AssociatedItemEffect) == 0x4C);
+ASSERT_SIZE(AssociatedItemEffect, 0x4C);

@@ -16,7 +16,8 @@ public:
 	bool				m_bLastActive;
 	NiFloatSet			m_kParticleAges;
 
-	CREATE_OBJECT(NiPSysEmitterCtlr, 0xC1C5E0)
+	NIRTTI_ADDRESS(0x1202728);
+	CREATE_OBJECT(NiPSysEmitterCtlr, 0xC1C5E0);
 };
 
 ASSERT_SIZE(NiPSysEmitterCtlr, 0x5C)

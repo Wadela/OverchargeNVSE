@@ -32,7 +32,7 @@ public:
 	NiNodePtr		spShadowNode;
 	NiTriShapePtr	spMoonMesh;
 	NiTriShapePtr	spShadowMesh;
-	BSStringT		strTextures[NUM_PHASES];
+	BSString		strTextures[NUM_PHASES];
 	float			fAngleFadeStart;
 	float			fAngleFadeEnd;
 	float			fAngleShadowEarlyFade;

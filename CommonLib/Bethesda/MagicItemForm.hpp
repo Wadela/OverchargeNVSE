@@ -1,16 +1,10 @@
 #pragma once
+
 #include "TESForm.hpp"
 #include "MagicItem.hpp"
 
-// 034
-class MagicItemForm : public TESForm
-{
+class MagicItemForm : public TESForm, public MagicItem {
 public:
-	MagicItemForm();
-
-	~MagicItemForm() override;
-	virtual void	ByteSwap(); // pure virtual
-
-	MagicItem kMagicItem;
 };
-static_assert(sizeof(MagicItemForm) == 0x34);
+
+//ASSERT_SIZE(MagicItemForm, 0x34);

@@ -4,6 +4,7 @@
 #include "NiNode.hpp"
 
 class TESWorldSpace;
+class TESObjectREFR;
 
 class BGSTerrainManager {
 public:

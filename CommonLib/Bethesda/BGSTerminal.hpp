@@ -3,6 +3,7 @@
 #include "TESCondition.hpp"
 
 class BGSNote;
+class ScriptEventList;
 
 // 0xA8
 class BGSTerminal : public TESObjectACTI {
@@ -43,8 +44,8 @@ public:
 
 	struct MenuEntry
 	{
-		BSStringT			kEntryText;
-		BSStringT			kResultText;
+		BSString			kEntryText;
+		BSString			kResultText;
 		UInt8				ucEntryFlags;
 		BGSNote*			pkDisplayNote;
 		BGSTerminal*		pkSubMenu;
@@ -52,7 +53,7 @@ public:
 		TESCondition		kConditions;
 	};
 
-	BSStringT					kDescription;		// 090	DESC
+	BSString					kDescription;		// 090	DESC
 	BSSimpleList<MenuEntry*>	kMenuEntryList;		// 098
 	BGSNote*					kPassword;			// 0A0	PNAM
 	TermData					kData;				// 0A4	DNAM
