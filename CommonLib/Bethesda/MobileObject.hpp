@@ -32,10 +32,10 @@ public:
 	virtual TESWorldSpace*	GetStartingWorldspace();
 	virtual TESObjectCELL*	GetStartingCell();
 	virtual NiPoint3*		GetStartingPos(NiPoint3&);
-	virtual void			Unk_A8();
-	virtual void			Unk_A9(NiPoint3&);
+	virtual bool			DetachCharController();
+	virtual bool			RemoveCharController();
 	virtual void			SetPosition(NiPoint3& arPosition);
-	virtual void			Unk_AB();
+	virtual void			GetVelocity(NiPoint3& arVelocity) const;
 	virtual void			HandleRunDetection();
 	virtual void			GetDetectionTimer();
 	virtual void			Unk_AE();
@@ -76,6 +76,11 @@ public:
 	
 	bool IsTalkingThroughActivator() const { return bTalkingThroughActivator; };
 	TESObjectREFR* GetActivatorRef() const { return pkActivatorRef; };
+	bhkCharacterController* GetCharController() const {
+		if (pkBaseProcess)
+			return pkBaseProcess->GetCharacterController();
+		return nullptr;
+	}
 
 	void RemoveStaleSayOncePerDayTopics();
 };

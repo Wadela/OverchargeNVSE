@@ -55,6 +55,7 @@ public:
 
 	static bool SetMotion(NiAVObject* apObject, UInt32 aeType, bool abRecurse, bool abForce, bool abAllowActivate);
 	static bool Activate(NiAVObject* apObject, bool abActivate, bool abRecurse, bool abForce);
+	static bool EnableCollision(NiAVObject* apObject, bool abEnable, bool abRecurse, bool abForce);
 };
 
 ASSERT_SIZE(bhkWorld, 0xA0);

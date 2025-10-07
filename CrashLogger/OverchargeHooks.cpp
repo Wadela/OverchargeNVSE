@@ -1,140 +1,62 @@
 #include "OverchargeHooks.hpp"
 #include <BSShaderUtil.hpp>
 #include "MTRenderingSystem.hpp"
-#include "BSInputManager.hpp"
+#include <MissileProjectile.hpp>
+#include "bhkNiCollisionObject.hpp"
+#include "bhkWorldObject.hpp"
+#include "bhkWorld.hpp"
 
 namespace Overcharge
 {
-	std::unordered_map<UInt64, std::shared_ptr<HeatData>>		activeWeapons;
+	std::vector<std::shared_ptr<HeatData>> playerOCWeapons;
+	std::vector<std::shared_ptr<HeatData>> activeOCWeapons;
+
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
 	std::unordered_set<BSPSysSimpleColorModifier*>				colorModifiers; 
 	std::vector<NiParticleSystemPtr>							worldSpaceParticles;
 
-	constexpr float HOT_THRESHOLD = 100.0f;
-	constexpr float COOL_THRESHOLD = 20.0f;
-	constexpr float ERASE_DELAY = 1.0f;
-	constexpr float COOLDOWN_DELAY = 0.5f;
-	constexpr float CHARGE_THRESHOLD = 1.2f;
+	PlayerCharacter* g_Player = PlayerCharacter::GetSingleton();
 
-	constexpr float NI_PI = 3.1415927410125732f;
-	constexpr float NI_HALF_PI = 0.5f * NI_PI;
-	constexpr float NI_TWO_PI = 2.0f * NI_PI;
-	constexpr float DEG_TO_RAD = NI_PI / 180.0f;
-
-
-	static void UpdateOverchargeShot(HeatState& st, float frameTime, float timePassed, const HeatConfiguration* config)
+	bool UpdateActiveWeapons(std::shared_ptr<HeatData> instance, float frameTime, bool isPlayer = false)
 	{
-		SInt32 attackHeld = 0;
-		SInt32 attackDepressed = 0;
-		auto inputManager = BSInputManager::GetSingleton();
-		if (inputManager)
-		{
-			attackHeld = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Held);
-			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
-		}
-
-		if (config->iOverchargeEffect & OCEffects_Overcharge && attackHeld)
-		{
-			if (!(st.uiOCEffect & OCEffects_Overheat))
-			st.uiOCEffect |= OCEffects_Overcharge;
-		}
-		else if (attackDepressed && st.uiOCEffect & OCEffects_Overcharge)
-		{
-			st.uiOCEffect &= ~OCEffects_Overcharge;
-			inputManager->SetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
-		}
-
-		if ((st.uiOCEffect & OCEffects_Overcharge) 
-			&& !(st.uiOCEffect & OCEffects_Overheat) 
-			&& st.fHeatVal <= HOT_THRESHOLD)
-		{
-			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
-		}
-
-		if ((st.uiOCEffect & OCEffects_Overcharge) &&
-			timePassed >= CHARGE_THRESHOLD &&
-			st.fHeatVal >= st.uiOCEffectThreshold)
-		{
-			st.uiOCEffect |= OCEffects_AltProjectile;
-		}
-		else if (st.uiOCEffect & OCEffects_AltProjectile) {
-			st.uiOCEffect &= ~OCEffects_AltProjectile;
-		}
-	}
-
-	static void UpdateChargeDelay(HeatState& st, float frameTime, float timePassed, const HeatConfiguration* config)
-	{
-		SInt32 attackHeld = 0;
-		SInt32 attackDepressed = 0;
-		auto inputManager = BSInputManager::GetSingleton();
-		if (inputManager)
-		{
-			attackHeld = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Held);
-			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
-		}
-
-		if (config->iOverchargeEffect & OCEffects_ChargeDelay && attackHeld)
-		{
-			if (!(st.uiOCEffect & OCEffects_Overheat))
-			{
-				if (st.fHeatVal < st.uiOCEffectThreshold)
-				st.uiOCEffect |= OCEffects_ChargeDelay;
-				else st.uiOCEffect &= ~OCEffects_ChargeDelay;
-			}
-		}
-		else if (attackDepressed && st.uiOCEffect & OCEffects_ChargeDelay)
-		{
-			st.uiOCEffect &= ~OCEffects_ChargeDelay;
-		}
-
-		if ((st.uiOCEffect & OCEffects_ChargeDelay)
-			&& !(st.uiOCEffect & OCEffects_Overheat)
-			&& st.fHeatVal <= HOT_THRESHOLD)
-		{
-			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
-			st.uiTicksPassed = 0;
-		}
-	}
-
-	bool UpdateWeaponInstance(std::shared_ptr<HeatData> instance, float frameTime, bool isPlayer = false)
-	{
-		if (!instance) return false;
+		if (!instance || !instance->rActor || !instance->rWeap) return false;
 
 		auto& st = instance->state;
 		auto& fx = instance->fx;
-
-		bool wasOverheating = (st.uiOCEffect & OCEffects_Overheat) != 0;
-		bool isHot = (st.fHeatVal >= HOT_THRESHOLD);
-		bool isCool = (st.fHeatVal <= COOL_THRESHOLD);
 
 		if (st.uiTicksPassed < 0xFFFF)
 			++st.uiTicksPassed;
 
 		float timePassed = st.uiTicksPassed * frameTime;
+		float heatPercent = st.fHeatVal / 100.0f;
 
-		if (!wasOverheating && isHot) {
-			st.uiOCEffect |= OCEffects_Overheat;
+		st.UpdateOverheat();
+
+		if (isPlayer) 
+		{
+			UpdateOverchargeShot(st, frameTime, timePassed, instance->config);
+			UpdateChargeDelay(st, frameTime, timePassed, instance->config);
 		}
-		else if (wasOverheating && isCool) {
-			st.uiOCEffect &= ~OCEffects_Overheat;
-		}
 
-		bool isOverheating = (st.uiOCEffect & OCEffects_Overheat) != 0;
+		if (instance->rActor->GetCurrentWeapon() != instance->rWeap
+			|| instance->rActor->IsDying()) st.bIsActive = false;
 
-		UpdateOverchargeShot(st, frameTime, timePassed, instance->config);
-		UpdateChargeDelay(st, frameTime, timePassed, instance->config);
+		if (timePassed >= COOLDOWN_DELAY && !(st.uiOCEffect & ~(OCEffects_Overheat)) && st.fHeatVal > 0.0f)
+			st.fHeatVal = (std::max)(0.0f, st.fHeatVal - frameTime * st.fCooldownRate);
+
+		if (!st.bIsActive && st.fHeatVal <= 0.0f && timePassed >= ERASE_DELAY) return false;
 
 		fx.currCol = SmoothColorShift(
-			st.fHeatVal,
-			instance->config->iMinColor,
-			instance->config->iMaxColor
-		);
+			st.fHeatVal, 
+			instance->config->iMinColor, 
+			instance->config->iMaxColor);
 
-		for (const auto& node : fx.targetBlocks) {
+		for (const auto& node : fx.targetBlocks) 
+		{
 			if (!node.second) continue;
 
 			if (node.first & OCXColor)
-				SetEmissiveColor(node.second.m_pObject, fx.currCol, fx.matProp);
+			SetEmissiveColor(node.second.m_pObject, fx.currCol, fx.matProp);
 
 			if ((node.first & OCXToggleOnEffect) && (node.first & OCXParticle)) {
 				if (node.second->IsNiType<NiNode>()) {
@@ -142,106 +64,61 @@ namespace Overcharge
 						static_cast<NiNode*>(node.second.m_pObject),
 						[&](NiParticleSystem* psys) {
 							if (auto ctlr = psys->GetControllers()) {
-								if (st.uiOCEffect & OCEffects_Overheat)
+								if (st.uiOCEffect)
 									ctlr->Start();
 								else
 									ctlr->Stop();
 							}
-							if (node.first & OCXColor)
-								SetEmissiveColor(psys, fx.currCol, fx.matProp);
 						});
 				}
 			}
-
 			if (node.first & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
-				if (node.second->IsNiType<NiNode>()) {
-					NiNode* niNode = static_cast<NiNode*>(node.second.m_pObject);
-
-					float heatPercent = st.fHeatVal / 100.0f;
-					float angle = NI_PI * heatPercent;
-
-					float x = (node.first & OCXRotateX) ? angle : 0.0f;
-					float y = (node.first & OCXRotateY) ? angle : 0.0f;
-					float z = (node.first & OCXRotateZ) ? angle : 0.0f;
-
-					TraverseNiNode<NiGeometry>(niNode, [&](NiGeometry* geom) {
-						geom->m_kLocal.m_Rotate.FromEulerAnglesXYZ(x, y, z);
-						});
-				}
+				ApplyFixedRotation(node.second, heatPercent,
+					node.first & OCXRotateX,
+					node.first & OCXRotateY,
+					node.first & OCXRotateZ);
 			}
-
 			if (node.first & (OCXSpinX | OCXSpinY | OCXSpinZ)) {
-				if (node.second->IsNiType<NiNode>()) {
-					NiNode* niNode = static_cast<NiNode*>(node.second.m_pObject);
-
-					float heatPercent = st.fHeatVal / 100.0f;
-					float spinsPerSecond = 1.0f;
-					float angle = NI_TWO_PI * heatPercent * frameTime * spinsPerSecond;
-
-					float x = (node.first & OCXSpinX) ? angle : 0.0f;
-					float y = (node.first & OCXSpinY) ? angle : 0.0f;
-					float z = (node.first & OCXSpinZ) ? angle : 0.0f;
-
-					TraverseNiNode<NiGeometry>(niNode, [&](NiGeometry* geom) {
-						NiMatrix3 rotDelta;
-						rotDelta.FromEulerAnglesXYZ(x, y, z);
-						geom->m_kLocal.m_Rotate = rotDelta * geom->m_kLocal.m_Rotate;
-						});
-				}
+				ApplyFixedSpin(node.second, heatPercent, frameTime,
+					node.first & OCXSpinX,
+					node.first & OCXSpinY,
+					node.first & OCXSpinZ);
 			}
 		}
 
-		if (timePassed >= COOLDOWN_DELAY && !(st.uiOCEffect & ~(OCEffects_Overheat)) && st.fHeatVal > 0.0) {
-			st.fHeatVal -= frameTime * st.fCooldownRate;
-			if (st.fHeatVal <= 0.0f)
-			{
-				st.fHeatVal = 0.0f;
-				st.uiTicksPassed = 0;
-			}
-		}
-		if (instance->state.fHeatVal <= 0.0f && timePassed >= ERASE_DELAY) {
-			return false;
-		}
 		return true;
 	}
 
-	void WeaponCooldown()
+	void UpdateActiveOCWeapons()
 	{
 		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
-		const UInt32 playerID = PlayerCharacter::GetSingleton()->uiFormID;
 
-		for (auto it = activeWeapons.begin(); it != activeWeapons.end(); )
-		{
-			auto& instance = it->second;
-			if (!instance) { ++it; continue; }
+		activeOCWeapons.erase(
+			std::remove_if(activeOCWeapons.begin(), activeOCWeapons.end(), 
+				[&](std::shared_ptr<HeatData>& inst) 
+				{ 
+					if (inst->rActor == g_Player 
+					&& inst->state.fHeatVal <= 0.0f)
+					{
+						return (!inst->state.bIsActive);
+					}
+					return !UpdateActiveWeapons(inst, frameTime);
+				}),
+			activeOCWeapons.end()
+		);
+	}
+	void UpdatePlayerOCWeapons()
+	{
+		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
 
-			UInt32 actorID = static_cast<UInt32>(it->first >> 32);
-			if (actorID == playerID)
-			{
-				if (!UpdateWeaponInstance(instance, frameTime, true))
+		playerOCWeapons.erase(
+			std::remove_if(playerOCWeapons.begin(), playerOCWeapons.end(),
+				[&](std::shared_ptr<HeatData>& inst)
 				{
-					it = activeWeapons.erase(it);
-					continue;
-				}
-			}
-			++it;
-		}
-
-		for (auto it = activeWeapons.begin(); it != activeWeapons.end(); )
-		{
-			auto& instance = it->second;
-			if (!instance) { ++it; continue; }
-
-			UInt32 actorID = static_cast<UInt32>(it->first >> 32);
-			if (actorID == playerID) { ++it; continue; } 
-
-			if (!UpdateWeaponInstance(instance, frameTime, false))
-			{
-				it = activeWeapons.erase(it); 
-				continue;
-			}
-			++it;
-		}
+					return !UpdateActiveWeapons(inst, frameTime, true);
+				}),
+			playerOCWeapons.end()
+		);
 	}
 
 	bool __fastcall PlayFireAnimation(Actor* rActor, void* edx, UInt8 groupID)
@@ -275,27 +152,18 @@ namespace Overcharge
 
 	static inline void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, Actor* rActor)
 	{
-		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
-		if (!equippedAmmo)
+		auto heat = GetOrCreateHeat(rActor);
+		if (!heat)
 		{
 			ThisStdCall(0x523150, rWeap, rActor);
 			return;
 		}
-
-		UInt64 configKey = MakeHashKey(rWeap->uiFormID, equippedAmmo->uiFormID);
-		auto dataIt = weaponDataMap.find(configKey);
-		if (dataIt == weaponDataMap.end())
-		{
-			configKey = static_cast<UInt64>(rWeap->uiFormID);
-			dataIt = weaponDataMap.find(configKey);
-			if (dataIt == weaponDataMap.end())
-			{
-				ThisStdCall(0x523150, rWeap, rActor);
-				return;
-			}
-		}
-		auto heat = GetOrCreateHeat(rActor, dataIt->second);
 		heat->state.HeatOnFire();
+
+		rWeap->projectile->fGravity = 1;
+		rWeap->projectile->fBouncyMult = 1;
+
+		auto target = PlayerCharacter::GetSingleton()->pCompassTargets;
 
 		//Backup Weapon Values - Backup needed since we're editing the baseform.
 		const UInt8 ogAmmoUse = rWeap->ammoUse;
@@ -346,11 +214,35 @@ namespace Overcharge
 		ThisStdCall(0x9BB690, flash);
 	}
 
+	static inline void ReverseDirectionImmediate(MissileProjectile* proj)
+	{
+		if (!proj)
+			return;
+
+		NiAVObject* apObject = proj->Get3D();
+		if (!apObject)
+			return;
+
+		bhkCharacterController* chrCtrl = proj->GetCharController();
+		if (!chrCtrl)
+			return;
+
+		proj->kVector = -proj->kVector;
+		chrCtrl->kDirection.setY(-chrCtrl->kDirection.y());
+		chrCtrl->kUpVec.setY(-chrCtrl->kUpVec.y());
+		chrCtrl->kForwardVec.setY(-chrCtrl->kForwardVec.y());
+		chrCtrl->kPushDelta.setY(-chrCtrl->kPushDelta.y());
+		chrCtrl->kOutVelocity.setY(-chrCtrl->kOutVelocity.y());
+
+	}
+
 	static inline void __fastcall ProjectileWrapper(NiAVObject* a1, void* edx, Projectile* proj)
 	{
 		const NiNodePtr projNode = proj->Get3D();
 		UInt32 sourceID = proj->pSourceRef->uiFormID;
 		UInt32 weapID = proj->pSourceWeapon->uiFormID;
+
+		MissileProjectile* mProj = reinterpret_cast<MissileProjectile*>(proj);
 
 		if (auto heat = GetActiveHeat(sourceID, weapID))
 		{
@@ -392,6 +284,14 @@ namespace Overcharge
 		ThisStdCall(0x9A52F0, a1, proj);
 	}
 
+	static inline void __fastcall ProcessMissileImpacts(MissileProjectile* proj)
+	{
+		proj->eImpactResult = MissileProjectile::IR_BOUNCE;
+
+		proj->ProcessBounceNoCollision();
+		proj->kImpacts.RemoveAll();
+	}
+
 	static BSTempEffectParticle* __cdecl ImpactWrapper(TESObjectCELL* cell, float lifetime, const char* fileName, NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
@@ -399,6 +299,9 @@ namespace Overcharge
 		BSTempEffectParticlePtr impact = CdeclCall<BSTempEffectParticle*>(0x6890B0, cell, lifetime, fileName, a4, impactPos, a6, a7, parent);
 
 		if (!impact || !impact->spParticleObject || !pProjectile) return impact;
+
+		MissileProjectile* mProj = reinterpret_cast<MissileProjectile*>(pProjectile);
+
 
 		const NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
 		if (!impactNode) return impact;
@@ -429,6 +332,12 @@ namespace Overcharge
 
 		const NiNodePtr impactNode = impact->spParticleObject->IsNiNode();
 		if (!impactNode) return impact;
+
+		MissileProjectile* mProj = reinterpret_cast<MissileProjectile*>(pProjectile);
+
+		mProj->eImpactResult = MissileProjectile::IR_STICK;
+
+		mProj->ProcessBounceNoCollision();
 
 		UInt32 sourceID = pProjectile->pSourceRef->uiFormID;
 		UInt32 weapID = pProjectile->pSourceWeapon->uiFormID;
@@ -625,8 +534,7 @@ namespace Overcharge
 	{
 		if (!thisPtr || !apData || !thisPtr->m_bWorldSpace || !ContainsValue(worldSpaceParticles, thisPtr))
 		UpdatePsysWorldData(thisPtr, edx, apData);
-		else
-		{
+		else {
 			auto camera1st = PlayerCharacter::GetSingleton()->GetNode(1);
 			ThisStdCall(0xA68C60, thisPtr, apData);
 			if (!camera1st) return;
@@ -640,25 +548,13 @@ namespace Overcharge
 	UInt32 __fastcall EquipItemWrapper(Actor* rActor)
 	{
 		UInt32 weapon = ThisStdCall<UInt32>(0x8A1710, rActor);
-
 		if (!rActor) return weapon;
-
-		TESObjectWEAP* rWeap = rActor->GetCurrentWeapon();
-		if (!rWeap) return weapon;
-		TESAmmo* equippedAmmo = rWeap->GetEquippedAmmo(rActor);
-		if (!equippedAmmo) return weapon;
-
-		UInt64 configKey = MakeHashKey(rWeap->uiFormID, equippedAmmo->uiFormID);
-		auto dataIt = weaponDataMap.find(configKey);
-		if (dataIt == weaponDataMap.end())
-		{
-			configKey = static_cast<UInt64>(rWeap->uiFormID);
-			dataIt = weaponDataMap.find(configKey);
-			if (dataIt == weaponDataMap.end()) return weapon;
-		}
-		auto heat = GetOrCreateHeat(rActor, dataIt->second);
+		auto heat = GetOrCreateHeat(rActor);
 		return weapon;
 	}
+
+
+
 
 	void InitHooks()
 	{
@@ -717,6 +613,8 @@ namespace Overcharge
 		//Testing
 		WriteRelJump(0xC1ADD0, &TogglePsysWorldUpdate);
 
-		//WriteRelCall(readyWeapAddr, &EquipItemWrapper);
+		WriteRelCall(readyWeapAddr, &EquipItemWrapper);
+
+		WriteRelCall(0x9B8BD8, &ProcessMissileImpacts);
 	}
 }

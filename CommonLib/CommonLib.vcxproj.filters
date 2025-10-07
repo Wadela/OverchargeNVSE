@@ -124,6 +124,12 @@
     <ClCompile Include="Bethesda\BSShaderAccumulator.cpp" />
     <ClCompile Include="Bethesda\PlayerCharacter.cpp" />
     <ClCompile Include="Bethesda\BSInputManager.cpp" />
+    <ClCompile Include="Bethesda\bhkWorld.cpp" />
+    <ClCompile Include="Bethesda\MissileProjectile.cpp" />
+    <ClCompile Include="Bethesda\bhkCharacterController.cpp" />
+    <ClCompile Include="Havok\hkVector4.cpp" />
+    <ClCompile Include="Bethesda\BGSProjectile.cpp" />
+    <ClCompile Include="Bethesda\Projectile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp">
@@ -3939,6 +3945,7 @@
     <ClInclude Include="BSAnimGroupSequence.cpp">
       <Filter>Type Methods</Filter>
     </ClInclude>
+    <ClInclude Include="Bethesda\MissileProjectile.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Types">

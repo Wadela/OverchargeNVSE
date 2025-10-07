@@ -37,8 +37,12 @@ public:
 		DISMEMBER_LIMB  = 1 << 11, // 0x800
 	};
 
-	Bitfield16				  usFlags;
+	Bitfield16					usFlags;
 	NiPointer<bhkWorldObject>   spWorldObject;
+
+	bhkNiCollisionObject* Create() {
+		return StdCall<bhkNiCollisionObject*>(0xC65830);
+	}
 };
 
 ASSERT_SIZE(bhkNiCollisionObject, 0x14);

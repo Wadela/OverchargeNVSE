@@ -162,8 +162,7 @@ bool Cmd_SetHeatState_Execute(COMMAND_ARGS)
 
 		std::shared_ptr<Overcharge::HeatData> heat =
 			Overcharge::GetOrCreateHeat(
-				sourceRef,
-				dataIt->second
+				sourceRef
 			);
 
 		switch (type)

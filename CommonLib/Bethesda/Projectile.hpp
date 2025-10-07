@@ -5,15 +5,40 @@
 
 class NiLight;
 class ActorCause;
-class ItemChange;
+class BGSProjectile;
+class hkpRigidBody;
+class hkpCollidable;
+class ProjectileTarget;
 
 class Projectile : public MobileObject
 {
 public:
-	Projectile();
-	~Projectile() override;
+	virtual UInt32		GetProjectileType() const;
+	virtual void		Handle3DLoaded();
+	virtual void		Process3D();
+	virtual void		UpdateProjectile(float afTimeDelta);
+	virtual bool		ProcessImpacts();
+	virtual bool 		IsMine() const;
+	virtual void		ReportHavokDeactivation();
+	virtual bool		TurnOff(Actor* apActor, bool abSilent);
+	virtual bool		IsPermanent() const;
+	virtual void		RunTargetPick();
+	virtual bool		AddImpact(Actor* apActor, NiPoint3* arContactPoint, NiPoint3* arContactNormal, hkpCollidable* apCollidable, UInt32 auiCollisionShapeKey, UInt32 aeHitMaterial);
 
-	BSSimpleList<BGSImpactData*>		kImpacts;				// 0x088
+	struct ImpactData {
+		TESObjectREFR*	pTargetRef;
+		NiPoint3		kLocation;
+		NiPoint3		kNormal;
+		hkpRigidBody*	pColObj;
+		UInt32			eMaterialType;
+		int				eHitLocation;
+		bool			bUnk28;
+		bool			bUnk29;
+		UInt16			usUnk2A;
+		UInt16			usUnk2C;
+	};
+
+	BSSimpleList<ImpactData*>		kImpacts;				// 0x088
 	bool								bHasImpacted;			// 0x08C
 	UInt8								pad091[3];
 	NiTransform							kFollowOffset;			// 0x094
@@ -47,5 +72,8 @@ public:
 	UInt8								bHasPlayedPassPlayerSound;// 0x148
 	UInt8								pad149[3];			// 0x149
 	Float32								fRange2;
+
+	Projectile* CloneProjectile();
 };
-static_assert(sizeof(Projectile) == 0x150);
+ASSERT_SIZE(Projectile, 0x150);
+ASSERT_SIZE(Projectile::ImpactData, 0x30);

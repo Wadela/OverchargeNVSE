@@ -47,8 +47,17 @@ public:
 		UNK_200000		= 0x200000,
 	};
 
+	struct MoveData {
+		float		fDeltaTime;
+		NiPoint3	kRotation;
+		NiPoint3	kVelocity;
+		Bitfield32	uiMoveFlags;
+		float		fMovementSpeed;
+		bool		bShouldUpdate;
+	};
+
 	virtual void InitWithParams(bhkCharacterControllerCinfo* apInfo);
-	virtual void Move();
+	virtual void Move(MoveData& arParams);
 	virtual void Unk_51();
 	virtual void SetDebugDisplay(void* apUnk = nullptr);
 
@@ -57,7 +66,7 @@ public:
 	hkVector4					kForwardVec;
 	hkStepInfo					kStepInfo;
 	hkVector4					kOutVelocity;
-	hkVector4					kVelocityMod;
+	NiPoint4					kVelocityMod;
 	hkVector4					kDirection;
 	CharacterState				eWantState;
 	float						fVelocityTime;
@@ -128,6 +137,8 @@ public:
 
 	NiNode* GetCollisionDebugNode();
 	void RemoveCollisionDebug();
+
+	void SetPosition(const hkVector4& arPosition);
 };
 
 ASSERT_SIZE(bhkCharacterController, 0x660);

@@ -23,7 +23,7 @@ class TESPackage;
 class TESPackageData;
 
 class ItemChange;
-
+class MagicItem;
 class NiTriShape;
 
 // 0x30

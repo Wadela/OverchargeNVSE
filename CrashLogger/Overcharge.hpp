@@ -6,46 +6,71 @@
 
 namespace Overcharge
 {
+    constexpr float HOT_THRESHOLD = 100.0f;
+    constexpr float COOL_THRESHOLD = 20.0f;
+    constexpr float ERASE_DELAY = 5.0f;
+    constexpr float COOLDOWN_DELAY = 0.5f;
+    constexpr float CHARGE_THRESHOLD = 1.2f;
+
     //Overheating Code
     struct HeatState
     {
-        HeatState();
+        bool    bIsActive = true;
+
+        UInt8   uiAmmoUsed          = 0xFF;
+        UInt8   uiProjectiles       = 0xFF;
+        UInt8   uiAmmoThreshold     = 0xFF;
+        UInt8   uiProjThreshold     = 0xFF;
+        UInt8   uiEnchThreshold     = 0xFF;
+        UInt8   uiOCEffectThreshold = 0xFF;
+
+        UInt16  uiDamage            = 0xFFFF;
+        UInt16  uiCritDamage        = 0xFFFF;
+
+        UInt16  uiTicksPassed       = 0xFFFF;
+        UInt16  uiOCEffect          = 0xFFFF;
+
+        UInt32  uiObjectEffectID    = 0xFFFFFF;
+
+        float   fAccuracy           = -1;
+        float   fFireRate           = -1;
+        float   fProjectileSpeed    = -1;
+        float   fProjectileSize     = -1;
+
+        float   fHeatVal            = 0.0f;
+        float   fHeatPerShot        = -1;
+        float   fCooldownRate       = -1;
+
+        HeatState() = default;
+
         HeatState(
-            UInt8 OCEffect, UInt8 ammo, UInt8 numProj,
+            UInt8 ammo, UInt8 numProj,
             UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
-            UInt16 dmg, UInt16 critDmg, UInt32 enchID,
-            float accuracy, float rof, float projSpd, float projSize, 
+            UInt16 dmg, UInt16 critDmg, UInt16 OCEffect, UInt32 enchID,
+            float accuracy, float rof, float projSpd, float projSize,
             float perShot, float cooldown);
-        HeatState(const HeatConfiguration* config);
 
-        UInt8   uiAmmoUsed;
-        UInt8   uiProjectiles;
-        UInt8   uiAmmoThreshold;
-        UInt8   uiProjThreshold;
-        UInt8   uiEnchThreshold;
-        UInt8   uiOCEffectThreshold;
+        HeatState(const HeatConfiguration& config);
 
-        UInt16  uiDamage;
-        UInt16  uiCritDamage;
-
-        UInt16   uiTicksPassed;
-        UInt16   uiOCEffect;
-
-        UInt32  uiObjectEffectID;
-
-        float   fAccuracy;
-        float   fFireRate;
-        float   fProjectileSpeed;
-        float   fProjectileSize;
-
-        float   fHeatVal;
-        float   fHeatPerShot;
-        float   fCooldownRate;
 
         inline void HeatOnFire()
         {
             fHeatVal += fHeatPerShot;
             uiTicksPassed = 0;
+        }
+
+        inline bool IsHot() const { return fHeatVal >= HOT_THRESHOLD; }
+        inline bool IsCool() const { return fHeatVal <= COOL_THRESHOLD; }
+        inline bool IsOverheating() const { return (uiOCEffect & OCEffects_Overheat) != 0; }
+
+        inline void UpdateOverheat()
+        {
+            const bool overheating = IsOverheating();
+
+            if (!overheating && IsHot())
+                uiOCEffect |= OCEffects_Overheat;
+            else if (overheating && IsCool())
+                uiOCEffect &= ~OCEffects_Overheat;
         }
     };
 
@@ -64,6 +89,9 @@ namespace Overcharge
     {
         HeatData(const HeatConfiguration* cfg);
         HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* config);
+
+        Actor* rActor = nullptr;
+        TESObjectWEAP* rWeap = nullptr;
 
         HeatFX    fx;
         HeatState state;

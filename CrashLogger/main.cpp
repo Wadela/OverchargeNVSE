@@ -56,9 +56,14 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 		}
 		for (const auto& i : mainLoop) i(); // call all mainloop functions
 
+		static int OCFrameCounter = 0;
 		if (!IsGamePaused() && !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
 		{
-			Overcharge::WeaponCooldown();										//Cooldown system runs in gameloop
+			Overcharge::UpdatePlayerOCWeapons();										//Cooldown system runs in gameloop
+			if (++OCFrameCounter >= Overcharge::NPC_UPDATE_THROTTLE) {
+				Overcharge::UpdateActiveOCWeapons();
+				OCFrameCounter = 0;
+			}
 		}
 	}
 }
@@ -106,6 +111,8 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 
 	Overcharge::InitHooks();
 	Overcharge::LoadConfigMain("Data\\NVSE\\Plugins\\Overcharge.ini");
+	Overcharge::activeOCWeapons.reserve(16);
+	Overcharge::playerOCWeapons.reserve(8);
 	g_pluginHandle = nvse->GetPluginHandle();
 	g_seInterface = const_cast<NVSEInterface*>(nvse);
 

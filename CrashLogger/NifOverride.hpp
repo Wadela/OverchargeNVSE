@@ -15,6 +15,11 @@
 
 namespace Overcharge
 {
+	constexpr float NI_PI = 3.1415927410125732f;
+	constexpr float NI_HALF_PI = 0.5f * NI_PI;
+	constexpr float NI_TWO_PI = 2.0f * NI_PI;
+	constexpr float DEG_TO_RAD = NI_PI / 180.0f;
+
 	extern std::vector<NiParticleSystemPtr> worldSpaceParticles;
 
 	template<typename T>
@@ -61,6 +66,56 @@ namespace Overcharge
 
 		if (matProp)
 		matProp->m_emit = color;
+	}
+
+	static void ApplyEmissiveColor(NiAVObjectPtr obj, const NiColor& color, NiMaterialPropertyPtr matProp)
+	{
+		if (obj->IsNiType<NiNode>()) {
+			TraverseNiNode<NiGeometry>(static_cast<NiNode*>(obj.m_pObject), [&](NiGeometryPtr geom) {
+				SetEmissiveColor(geom.m_pObject, color, matProp);
+				});
+		}
+
+		else if (obj->IsNiType<NiGeometry>())
+			SetEmissiveColor(obj, color, matProp);
+	}
+
+	static void ApplyFixedRotation(NiAVObjectPtr obj, float percent, bool rotX, bool rotY, bool rotZ)
+	{
+		float x = rotX ? NI_PI * percent : 0.0f;
+		float y = rotY ? NI_PI * percent : 0.0f;
+		float z = rotZ ? NI_PI * percent : 0.0f;
+
+		if (obj->IsNiType<NiNode>())
+		{
+			TraverseNiNode<NiGeometry>(static_cast<NiNode*>(obj.m_pObject), [&](NiGeometryPtr geom) {
+				geom->m_kLocal.m_Rotate.FromEulerAnglesXYZ(x, y, z);
+				});
+		}
+		else obj->m_kLocal.m_Rotate.FromEulerAnglesXYZ(x, y, z);
+	}
+
+	static void ApplyFixedSpin(NiAVObjectPtr obj, float percent, float time, bool rotX, bool rotY, bool rotZ)
+	{
+		float x = rotX ? NI_PI * percent : 0.0f;
+		float y = rotY ? NI_PI * percent : 0.0f;
+		float z = rotZ ? NI_PI * percent : 0.0f;
+		float angle = NI_TWO_PI * percent * time;
+
+		if (obj->IsNiType<NiNode>())
+		{
+			TraverseNiNode<NiGeometry>(static_cast<NiNode*>(obj.m_pObject), [&](NiGeometryPtr geom) {
+				NiMatrix3 rotDelta;
+				rotDelta.FromEulerAnglesXYZ(x, y, z);
+				obj->m_kLocal.m_Rotate = rotDelta * obj->m_kLocal.m_Rotate;
+				});
+		}
+		else
+		{
+			NiMatrix3 rotDelta;
+			rotDelta.FromEulerAnglesXYZ(x, y, z);
+			obj->m_kLocal.m_Rotate = rotDelta * obj->m_kLocal.m_Rotate;
+		}
 	}
 
 	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
@@ -182,6 +237,8 @@ namespace Overcharge
 		}
 		return model->spNode;
 	}
+
+
 
 	static void __fastcall ModelModel(const Model* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV) 
 	{
