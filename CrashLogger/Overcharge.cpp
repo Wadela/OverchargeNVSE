@@ -26,7 +26,7 @@ namespace Overcharge
             config.iOverchargeEffectThreshold,
             config.iMinDamage,
             config.iMinCritDamage,
-            config.iOverchargeEffect,
+            0,
             config.iObjectEffectID,
             config.fMinAccuracy,
             config.fMinFireRate,

@@ -97,26 +97,30 @@ namespace Overcharge
 
 	static void ApplyFixedSpin(NiAVObjectPtr obj, float percent, float time, bool rotX, bool rotY, bool rotZ)
 	{
-		float x = rotX ? NI_PI * percent : 0.0f;
-		float y = rotY ? NI_PI * percent : 0.0f;
-		float z = rotZ ? NI_PI * percent : 0.0f;
+		if (!obj)
+			return;
+
 		float angle = NI_TWO_PI * percent * time;
+
+		float x = rotX ? angle : 0.0f;
+		float y = rotY ? angle : 0.0f;
+		float z = rotZ ? angle : 0.0f;
+
+		NiMatrix3 rotDelta;
+		rotDelta.FromEulerAnglesXYZ(x, y, z);
 
 		if (obj->IsNiType<NiNode>())
 		{
 			TraverseNiNode<NiGeometry>(static_cast<NiNode*>(obj.m_pObject), [&](NiGeometryPtr geom) {
-				NiMatrix3 rotDelta;
-				rotDelta.FromEulerAnglesXYZ(x, y, z);
-				obj->m_kLocal.m_Rotate = rotDelta * obj->m_kLocal.m_Rotate;
+				geom->m_kLocal.m_Rotate = rotDelta * geom->m_kLocal.m_Rotate;
 				});
 		}
 		else
 		{
-			NiMatrix3 rotDelta;
-			rotDelta.FromEulerAnglesXYZ(x, y, z);
 			obj->m_kLocal.m_Rotate = rotDelta * obj->m_kLocal.m_Rotate;
 		}
 	}
+
 
 	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
 	static void PrepColorMod(NiParticleSystemPtr& childParticle)

@@ -166,16 +166,22 @@ namespace Overcharge
 	}
 
 
-	inline void UpdateOverchargeShot(HeatState& st, float frameTime, float timePassed, const HeatConfiguration* config)
+	inline void UpdateOverchargeShot(HeatState& st, float frameTime, const HeatConfiguration* config)
 	{
 		SInt32 attackHeld = 0;
 		SInt32 attackDepressed = 0;
+		SInt32 attackPressed = 0;
 		auto inputManager = BSInputManager::GetSingleton();
 		if (inputManager)
 		{
 			attackHeld = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Held);
 			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
+			attackPressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
 		}
+
+		if (config->iOverchargeEffect & OCEffects_Overcharge && attackPressed) st.uiTicksPassed = 0;
+
+		float timePassed = st.uiTicksPassed * frameTime;
 
 		if (config->iOverchargeEffect & OCEffects_Overcharge && attackHeld)
 		{
@@ -201,20 +207,19 @@ namespace Overcharge
 		{
 			st.uiOCEffect |= OCEffects_AltProjectile;
 		}
-		else if (st.uiOCEffect & OCEffects_AltProjectile) {
-			st.uiOCEffect &= ~OCEffects_AltProjectile;
-		}
 	}
 
 	inline void UpdateChargeDelay(HeatState& st, float frameTime, float timePassed, const HeatConfiguration* config)
 	{
 		SInt32 attackHeld = 0;
 		SInt32 attackDepressed = 0;
+		SInt32 attackPressed = 0;
 		auto inputManager = BSInputManager::GetSingleton();
 		if (inputManager)
 		{
 			attackHeld = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Held);
 			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
+			attackPressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
 		}
 
 		if (config->iOverchargeEffect & OCEffects_ChargeDelay && attackHeld)

@@ -162,6 +162,10 @@ namespace Overcharge
 				config.iObjectEffectThreshold = static_cast<UInt8>(ParseDelimitedData(parts[1], '\0', ')'));
 		}
 
+		if (std::string_view altProj = ini.GetValue(secItem, "sAlternateProjectile", ""); !altProj.empty())
+			config.iAltProjectileID = TESForm::GetFormIDByEdID(altProj.data());
+		else config.iAltProjectileID = defaults.iAltProjectileID;
+
 		ParseRangeFromINI(ini, secItem, "iAmmoConsumption", 
 			defaults.iMinAmmoUsed, defaults.iMaxAmmoUsed, 
 			config.iMinAmmoUsed, config.iMaxAmmoUsed, 

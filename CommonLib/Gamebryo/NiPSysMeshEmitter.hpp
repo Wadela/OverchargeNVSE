@@ -4,8 +4,8 @@
 #include "NiPoint3.hpp"
 #include "NiGeometry.hpp"
 
-NiSmartPointer(NiPSysMeshEmitter);
-NiSmartPointer(NiSkinnedEmitterData);
+//NiSmartPointer(NiPSysMeshEmitter);
+//NiSmartPointer(NiSkinnedEmitterData);
 
 class NiPSysMeshEmitter : public NiPSysEmitter {
 public:
@@ -37,7 +37,7 @@ public:
 	};
 
 	NiTObjectArray<NiGeometryPtr>			m_kGeomEmitterArray;
-	NiTObjectArray<NiSkinnedEmitterDataPtr>	m_kSkinnedEmitterData;
+	NiTObjectArray<void*>					m_kSkinnedEmitterData;
 	InitialVelocityType						m_eInitVelocityType;
 	MeshEmissionType						m_eEmissionType;
 	NiPoint3								m_kEmitAxis;

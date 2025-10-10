@@ -8,6 +8,7 @@
 #include "BSSoundHandle.hpp"
 #include "TESRegionSound.hpp"
 #include "TESRegionList.hpp"
+#include "NiNode.hpp"
 
 class AlchemyItem;
 class BGSNote;

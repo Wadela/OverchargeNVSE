@@ -38,7 +38,7 @@ public:
 		UInt16			usUnk2C;
 	};
 
-	BSSimpleList<ImpactData*>		kImpacts;				// 0x088
+	BSSimpleList<ImpactData*>			kImpacts;				// 0x088
 	bool								bHasImpacted;			// 0x08C
 	UInt8								pad091[3];
 	NiTransform							kFollowOffset;			// 0x094

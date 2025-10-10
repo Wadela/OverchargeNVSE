@@ -181,6 +181,7 @@ namespace Overcharge
 		UInt16 iMinProjectileSizePercent = 0xFFFF;
 		UInt16 iMaxProjectileSizePercent = 0xFFFF;
 
+		UInt32 iAltProjectileID = 0xFFFFFF;
 		UInt32 iObjectEffectID = 0xFFFFFF;
 		UInt32 iMinColor = 0xFFFFFF;
 		UInt32 iMaxColor = 0xFFFFFF;
