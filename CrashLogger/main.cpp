@@ -66,6 +66,10 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 			}
 		}
 	}
+	else if (msg->type == NVSEMessagingInterface::kMessage_PostLoadGame)
+	{
+		Overcharge::ClearOCWeapons();
+	}
 }
 
 bool NVSEPlugin_Query(const NVSEInterface* nvse, PluginInfo* info)

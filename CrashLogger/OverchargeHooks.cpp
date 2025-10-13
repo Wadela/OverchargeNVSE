@@ -1,17 +1,13 @@
 #include "OverchargeHooks.hpp"
-#include "BGSExplosion.hpp"
-#include <NiPSysMeshEmitter.hpp>
 
 namespace Overcharge
 {
-	std::vector<std::shared_ptr<HeatData>> playerOCWeapons;
-	std::vector<std::shared_ptr<HeatData>> activeOCWeapons;
+	std::vector<std::shared_ptr<HeatData>>		playerOCWeapons;
+	std::vector<std::shared_ptr<HeatData>>		activeOCWeapons;
+	std::vector<BSPSysSimpleColorModifierPtr>	colorModifiers;
+	std::vector<NiParticleSystemPtr>			worldSpaceParticles;
 
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
-	std::unordered_set<BSPSysSimpleColorModifier*>				colorModifiers; 
-	std::vector<NiParticleSystemPtr>							worldSpaceParticles;
-
-	PlayerCharacter* g_Player = PlayerCharacter::GetSingleton();
 
 	bool UpdateActiveWeapons(std::shared_ptr<HeatData> instance, float frameTime, bool isPlayer = false)
 	{
@@ -34,8 +30,7 @@ namespace Overcharge
 			UpdateChargeDelay(st, frameTime, timePassed, instance->config);
 		}
 
-		if (instance->rActor->GetCurrentWeapon() != instance->rWeap
-			|| instance->rActor->IsDying()) st.bIsActive = false;
+		if (instance->rActor->IsDying()) st.bIsActive = false;
 
 		if (timePassed >= COOLDOWN_DELAY && !(st.uiOCEffect & ~(OCEffects_Overheat)) && st.fHeatVal > 0.0f)
 			st.fHeatVal = (std::max)(0.0f, st.fHeatVal - frameTime * st.fCooldownRate);
@@ -52,7 +47,7 @@ namespace Overcharge
 			if (!node.second) continue;
 
 			if (node.first & OCXColor)
-			SetEmissiveColor(node.second.m_pObject, fx.currCol, fx.matProp);
+			SetEmissiveColor(node.second.m_pObject, fx.currCol, fx.objMatProp);
 
 			if ((node.first & OCXToggleOnEffect) && (node.first & OCXParticle)) {
 				if (node.second->IsNiType<NiNode>()) {
@@ -93,7 +88,7 @@ namespace Overcharge
 			std::remove_if(activeOCWeapons.begin(), activeOCWeapons.end(), 
 				[&](std::shared_ptr<HeatData>& inst) 
 				{ 
-					if (inst->rActor == g_Player 
+					if (inst->rActor == PlayerCharacter::GetSingleton()
 					&& inst->state.fHeatVal <= 0.0f)
 					{
 						return (!inst->state.bIsActive);
@@ -115,6 +110,20 @@ namespace Overcharge
 				}),
 			playerOCWeapons.end()
 		);
+	}
+
+	void ClearOCWeapons()
+	{
+		std::vector<std::shared_ptr<HeatData>>().swap(playerOCWeapons);
+		playerOCWeapons.reserve(8);
+		std::vector<std::shared_ptr<HeatData>>().swap(activeOCWeapons);
+		activeOCWeapons.reserve(12);
+		std::vector<BSPSysSimpleColorModifierPtr>().swap(colorModifiers);
+		colorModifiers.reserve(24);
+		std::vector<NiParticleSystemPtr>().swap(worldSpaceParticles);
+		worldSpaceParticles.reserve(24);
+		std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>().swap(activeInstances);
+		activeInstances.reserve(32);
 	}
 
 	bool __fastcall PlayFireAnimation(Actor* rActor, void* edx, UInt8 groupID)
@@ -213,7 +222,7 @@ namespace Overcharge
 					activeInstances[valueNode] = heat;
 					});
 				TraverseNiNode<NiGeometry>(muzzleNode, [&heat](NiGeometryPtr geom) {
-					SetEmissiveColor(geom.m_pObject, heat->fx.currCol);
+					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, NiMaterialProperty::CreateObject());
 					});
 				TraverseNiNode<NiParticleSystem>(muzzleNode, [&heat](NiParticleSystemPtr psys) {
 					activeInstances[psys] = heat;
@@ -279,7 +288,7 @@ namespace Overcharge
 			activeInstances[valueNode] = heat;
 			});
 		TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometryPtr geom) {
-			SetEmissiveColor(geom.m_pObject, heat->fx.currCol);
+			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.fxMatProp);
 			});
 		TraverseNiNode<NiParticleSystem>(projNode, [&heat](NiParticleSystemPtr psys) {
 			activeInstances[psys] = heat;
@@ -308,7 +317,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.fxMatProp);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -345,7 +354,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.fxMatProp);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -401,7 +410,7 @@ namespace Overcharge
 					activeInstances[valueNode] = heat;
 					});
 				TraverseNiNode<NiGeometry>(node, [&heat](NiGeometryPtr geom) {
-					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.matProp);
+					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.objMatProp);
 					});
 				TraverseNiNode<NiParticleSystem>(node, [&heat](NiParticleSystemPtr psys) {
 					activeInstances[psys] = heat;
@@ -430,7 +439,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(explNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.matProp);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, NiMaterialProperty::CreateObject());
 				});
 			TraverseNiNode<NiParticleSystem>(explNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -476,8 +485,8 @@ namespace Overcharge
 				for (const auto& modifier : thisPtr->m_pkTarget->m_kModifierList)
 				{
 					//Adding the active color modifier to target it for a later detour of its update.
-					if (const auto scm = modifier->NiDynamicCast<BSPSysSimpleColorModifier>())
-						colorModifiers.emplace(scm);
+					if (BSPSysSimpleColorModifierPtr scm = modifier->NiDynamicCast<BSPSysSimpleColorModifier>())
+						colorModifiers.emplace_back(scm);
 				}
 				//Disabling emissive colors so the vertex colors control the appearance.
 				if (thisPtr->m_pkTarget->GetMaterialProperty())
@@ -501,7 +510,7 @@ namespace Overcharge
 
 	static inline void __fastcall ColorModifierUpdate(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData) 
 	{
-		if (!apData->m_pkColor || !colorModifiers.contains(apThis) || g_OCSettings.iEnableVisualEffects < 1)
+		if (!apData->m_pkColor || !ContainsValue(colorModifiers, apThis) || g_OCSettings.iEnableVisualEffects < 1)
 		{
 			OriginalColorModifierUpdate(apThis, edx, afTime, apData);
 			return;
@@ -585,9 +594,6 @@ namespace Overcharge
 		auto heat = GetOrCreateHeat(rActor);
 		return weapon;
 	}
-
-
-
 
 	void InitHooks()
 	{

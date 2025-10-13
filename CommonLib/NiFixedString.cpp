@@ -5,28 +5,32 @@ NiFixedString::NiFixedString() {
 	m_kHandle = nullptr;
 }
 
-// 0x438170
-NiFixedString::NiFixedString(const char* pcString) {
-	if (pcString)
-		m_kHandle = NiGlobalStringTable::AddString(pcString);
+// GAME - 0x438170
+// GECK - 0x43D6B0
+NiFixedString::NiFixedString(const char* apcString) {
+	if (apcString)
+		m_kHandle = NiGlobalStringTable::AddString(apcString);
 	else
 		m_kHandle = nullptr;
 }
 
-NiFixedString::NiFixedString(const NiFixedString& kString) {
-	m_kHandle = kString.m_kHandle;
+NiFixedString::NiFixedString(const NiFixedString& arString) {
+	NiGlobalStringTable::IncRefCount(const_cast<NiGlobalStringTable::GlobalStringHandle&>(arString.m_kHandle));
+	m_kHandle = arString.m_kHandle;
 }
 
-// 0x4381B0
+// GAME - 0x4381B0
+// GECK - 0x43D6E0
 NiFixedString::~NiFixedString() {
 	NiGlobalStringTable::DecRefCount(m_kHandle);
 }
 
-// 0xA2E750
-NiFixedString& NiFixedString::operator=(const char* pcString) {
-	if (m_kHandle != pcString) {
+// GAME - 0xA2E750
+// GECK - 0x7D8020
+NiFixedString& NiFixedString::operator=(const char* apcString) {
+	if (m_kHandle != apcString) {
 		NiGlobalStringTable::GlobalStringHandle kHandle = m_kHandle;
-		m_kHandle = NiGlobalStringTable::AddString(pcString);
+		m_kHandle = NiGlobalStringTable::AddString(apcString);
 		NiGlobalStringTable::DecRefCount(kHandle);
 	}
 	return *this;
@@ -42,14 +46,6 @@ NiFixedString& NiFixedString::operator=(const NiFixedString& arString) {
 	return *this;
 }
 
-bool NiFixedString::operator==(const NiFixedString& akString) {
-	return !strcmp(m_kHandle, akString.m_kHandle);
-}
-
-bool NiFixedString::operator==(const char* pcString) {
-	return !strcmp(m_kHandle, pcString);
-}
-
 NiFixedString::operator const char* () const {
 	return m_kHandle;
 }
@@ -62,6 +58,10 @@ const char* NiFixedString::c_str() const {
 	return m_kHandle;
 }
 
+NiFixedString::operator std::basic_string_view<char>() const noexcept {
+	return { m_kHandle, GetLength() };
+}
+
 UInt32 NiFixedString::GetLength() const {
 	return NiGlobalStringTable::GetLength(m_kHandle);
 }
@@ -71,4 +71,28 @@ bool NiFixedString::Includes(const char* apToFind) const {
 		return false;
 
 	return strstr(m_kHandle, apToFind) != nullptr;
+}
+
+bool operator==(const NiFixedString& arString1, const NiFixedString& arString2) {
+	return arString1.m_kHandle == arString2.m_kHandle;
+}
+
+bool operator==(const NiFixedString& arString, const char* apcString) {
+	if (arString.m_kHandle == apcString)
+		return true;
+
+	if (!arString.m_kHandle || !apcString)
+		return false;
+
+	return !strcmp(arString.m_kHandle, apcString);
+}
+
+bool operator==(const char* apcString, const NiFixedString& arString) {
+	if (arString.m_kHandle == apcString)
+		return true;
+
+	if (!arString.m_kHandle || !apcString)
+		return false;
+
+	return !strcmp(arString.m_kHandle, apcString);
 }

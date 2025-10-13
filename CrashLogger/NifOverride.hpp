@@ -121,7 +121,6 @@ namespace Overcharge
 		}
 	}
 
-
 	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
 	static void PrepColorMod(NiParticleSystemPtr& childParticle)
 	{

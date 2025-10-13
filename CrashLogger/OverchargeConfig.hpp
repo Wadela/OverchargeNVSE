@@ -139,6 +139,8 @@ namespace Overcharge
 		float  fHUDScale = 100.0f;
 		float  fHUDOffsetX = 0.0f;
 		float  fHUDOffsetY = 0.0f;
+
+		float  fSkillLevelScaling = 0.35f;
 	};
 
 	struct HeatedNode

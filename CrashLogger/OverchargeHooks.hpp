@@ -5,8 +5,8 @@
 #include "OverchargeConfig.hpp"
 #include "SafeWrite.hpp"
 #include "NifOverride.hpp"
-
-
+#include "TESObjectLIGH.hpp"
+#include "NonActorMagicCaster.hpp"
 //Gamebryo
 #include <NiPoint3.hpp>
 #include <NiPointLight.hpp>
@@ -23,20 +23,19 @@
 #include <EffectSetting.hpp>
 #include <MagicItemForm.hpp>
 #include "ModelLoader.hpp"
-#include "MissileProjectile.hpp"
-
+#include "BGSExplosion.hpp"
+#include <NiPSysMeshEmitter.hpp>
 //#include <tracy/Tracy.hpp>
 
 namespace Overcharge
 {
 	constexpr int NPC_UPDATE_THROTTLE = 15;
 
-	extern std::vector<std::shared_ptr<HeatData>> playerOCWeapons;
-	extern std::vector< std::shared_ptr<HeatData>>  activeOCWeapons;
+	extern std::vector<std::shared_ptr<HeatData>>		playerOCWeapons;
+	extern std::vector<std::shared_ptr<HeatData>>		activeOCWeapons;
+	extern std::vector<BSPSysSimpleColorModifierPtr>	colorModifiers;
 
-	extern std::unordered_map<UInt64, std::shared_ptr<HeatData>>		activeWeapons;
 	extern std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
-	extern std::unordered_set<BSPSysSimpleColorModifier*>				colorModifiers;
 
 	inline std::vector<std::pair<UInt32, NiAVObjectPtr>> ObjsFromStrings(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode, bool isPlayer1st = false)
 	{
@@ -46,6 +45,7 @@ namespace Overcharge
 			for (auto& it : data->sHeatedNodes)
 			{
 				UInt32 flags = it.flags;
+				if (!it.nodeName) continue;
 				const NiFixedString& nodeName = it.nodeName;
 
 				if (NiAVObjectPtr block = sourceNode->GetObjectByName(nodeName))
@@ -90,25 +90,10 @@ namespace Overcharge
 		return (it != vec.end()) ? *it : nullptr;
 	}
 
-
-	inline std::shared_ptr<HeatData> GetOrCreateHeat(const UInt32 actorID, const UInt32 weaponID, const NiAVObjectPtr& sourceNode, const HeatConfiguration& config)
-	{
-		const UInt64 key = MakeHashKey(actorID, weaponID);
-
-		auto [it, inserted] = activeWeapons.try_emplace(key);
-		if (inserted) {
-			auto heat = std::make_shared<HeatData>(&config);
-			heat->fx.targetBlocks = ObjsFromStrings(&config, sourceNode);
-			it->second = std::move(heat);
-		}
-		it->second->config = &config;
-
-		return it->second;
-	}
-
 	inline void InitializeHeatData(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
 	{
 		auto player = PlayerCharacter::GetSingleton();
+		if (!player || !heat || !heat->rActor || !heat->rWeap) return; 
 		UInt32 actorID = heat->rActor->uiFormID;
 
 		if (actorID == player->uiFormID) {
@@ -131,11 +116,22 @@ namespace Overcharge
 
 		float actorSkLvl = heat->rActor->GetActorValueF(ActorValue::Index(heat->rWeap->weaponSkill));
 		float reqSkill = heat->rWeap->skillRequirement;
-		float ratio = (std::max)(actorSkLvl / reqSkill, 0.0001f);
-		float smoothOff = 0.5f * std::tanh(std::log(ratio));
+		float percentScaling = g_OCSettings.fSkillLevelScaling ? g_OCSettings.fSkillLevelScaling : 0.30f; // default 35% if not in config
+		float baseHeatPerShot = heat->state.fHeatPerShot;
+		float baseCooldownRate = heat->state.fCooldownRate;
 
-		heat->state.fHeatPerShot = (std::max)(0.0f, heat->state.fHeatPerShot * (1 - smoothOff));
-		heat->state.fCooldownRate = (std::max)(0.0f, heat->state.fCooldownRate * (1 + smoothOff));
+		if (!actorSkLvl || !reqSkill || !percentScaling || !baseHeatPerShot || !baseCooldownRate) return;
+
+		if (reqSkill > 0.0f) {
+			float skillRatio = actorSkLvl / reqSkill;
+			float finalMultiplier = 1.0f + percentScaling * (1.0f - skillRatio);
+
+			float minMult = 1.0f - percentScaling;
+			float maxMult = 1.0f + percentScaling;
+			finalMultiplier = std::clamp(finalMultiplier, minMult, maxMult);
+
+			heat->state.fHeatPerShot = baseHeatPerShot * finalMultiplier;
+		}
 	}
 
 	inline std::shared_ptr<HeatData> GetOrCreateHeat(Actor* rActor)
@@ -198,7 +194,7 @@ namespace Overcharge
 			&& !(st.uiOCEffect & OCEffects_Overheat)
 			&& st.fHeatVal <= HOT_THRESHOLD)
 		{
-			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
+			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (3 * st.fHeatPerShot));
 		}
 
 		if ((st.uiOCEffect & OCEffects_Overcharge) &&
@@ -240,11 +236,12 @@ namespace Overcharge
 			&& !(st.uiOCEffect & OCEffects_Overheat)
 			&& st.fHeatVal <= HOT_THRESHOLD)
 		{
-			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
+			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (3 * st.fHeatPerShot));
 			st.uiTicksPassed = 0;
 		}
 	}
 
+	void ClearOCWeapons();
 	void UpdateActiveOCWeapons();
 	void UpdatePlayerOCWeapons();
 }

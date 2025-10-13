@@ -80,7 +80,8 @@ namespace Overcharge
         HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names);
 
         NiColor                    currCol;
-        NiMaterialPropertyPtr      matProp;
+        NiMaterialPropertyPtr      objMatProp;
+        NiMaterialPropertyPtr      fxMatProp;
 
         std::vector<std::pair<UInt32, NiAVObjectPtr>> targetBlocks;
     };
