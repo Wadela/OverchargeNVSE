@@ -134,6 +134,9 @@ namespace Overcharge
 			if (BSPSysSimpleColorModifier* colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
 			{
 				NiColorA OGCol = colorMod->kColor2;
+				const NiColor emit = (OGCol.r, OGCol.g, OGCol.b);
+				SetEmissiveColor(childParticle.m_pObject, emit);
+
 				NiColorA grayScale = DesaturateRGBA(OGCol, 1.0f);
 
 				grayScale.a = colorMod->kColor1.a;
@@ -247,7 +250,7 @@ namespace Overcharge
 	{
 		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, abAssignShaders, abKeepUV);
 
-		if (thisPtr && g_OCSettings.iEnableVisualEffects > 0)
+		if (thisPtr && g_OCSettings.iVisualEffects > 0)
 		ModelLoaderLoadFile(thisPtr, modelPath); 
 	}
 

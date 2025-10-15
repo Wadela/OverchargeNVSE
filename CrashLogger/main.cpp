@@ -46,6 +46,7 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 		for (const auto& i : deferredInit) i(); // call all deferred init functions
 
 		Overcharge::LoadWeaponConfigs("Data\\NVSE\\Plugins\\OCWeapons");
+		Overcharge::InitPerks();
 		Overcharge::PostLoad();
 	}
 	else if (msg->type == NVSEMessagingInterface::kMessage_MainGameLoop)
@@ -115,8 +116,7 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 
 	Overcharge::InitHooks();
 	Overcharge::LoadConfigMain("Data\\NVSE\\Plugins\\Overcharge.ini");
-	Overcharge::activeOCWeapons.reserve(16);
-	Overcharge::playerOCWeapons.reserve(8);
+
 	g_pluginHandle = nvse->GetPluginHandle();
 	g_seInterface = const_cast<NVSEInterface*>(nvse);
 

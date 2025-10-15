@@ -3,6 +3,7 @@
 #include "MainHeader.hpp"
 #include "OverchargeConfig.hpp"
 #include "NiParticleSystem.hpp"
+#include "BGSPerk.hpp"
 
 namespace Overcharge
 {
@@ -12,10 +13,22 @@ namespace Overcharge
     constexpr float COOLDOWN_DELAY = 0.5f;
     constexpr float CHARGE_THRESHOLD = 1.2f;
 
+    extern BGSPerk* OCPerkOverclocker;
+    extern BGSPerk* OCPerkVoltageRegulator;
+    extern BGSPerk* OCPerkGalvanicRelativist;
+    extern BGSPerk* OCPerkCircuitBender;
+    extern BGSPerk* OCPerkCriticalMass;
+    extern BGSPerk* OCPerkCoolantLeak;
+    extern BGSPerk* OCPerkThermicInversion;
+
+    constexpr UInt16 STOP_COOLDOWN_FLAGS = OCEffects_Overcharge | OCEffects_ChargeDelay;
+    constexpr UInt16 STOP_FIRING_FLAGS = OCEffects_Overheat | OCEffects_Overcharge | OCEffects_ChargeDelay;
+
     //Overheating Code
     struct HeatState
     {
-        bool    bIsActive = true;
+        bool    bIsActive           = true;
+        bool    bCanOverheat        = true;
 
         UInt8   uiAmmoUsed          = 0xFF;
         UInt8   uiProjectiles       = 0xFF;
@@ -65,12 +78,16 @@ namespace Overcharge
 
         inline void UpdateOverheat()
         {
-            const bool overheating = IsOverheating();
+            if (bCanOverheat == true)
+            {
+                const bool overheating = IsOverheating();
 
-            if (!overheating && IsHot())
-                uiOCEffect |= OCEffects_Overheat;
-            else if (overheating && IsCool())
-                uiOCEffect &= ~OCEffects_Overheat;
+                if (!overheating && IsHot())
+                    uiOCEffect |= OCEffects_Overheat;
+                else if (overheating && IsCool())
+                    uiOCEffect &= ~OCEffects_Overheat;
+            } 
+            else uiOCEffect &= ~OCEffects_Overheat;
         }
     };
 

@@ -9,6 +9,14 @@ namespace Overcharge
 
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
 
+	BGSPerk* OCPerkOverclocker;
+	BGSPerk* OCPerkVoltageRegulator;
+	BGSPerk* OCPerkGalvanicRelativist;
+	BGSPerk* OCPerkCircuitBender;
+	BGSPerk* OCPerkCriticalMass;
+	BGSPerk* OCPerkCoolantLeak;
+	BGSPerk* OCPerkThermicInversion;
+
 	bool UpdateActiveWeapons(std::shared_ptr<HeatData> instance, float frameTime, bool isPlayer = false)
 	{
 		if (!instance || !instance->rActor || !instance->rWeap) return false;
@@ -20,62 +28,32 @@ namespace Overcharge
 			++st.uiTicksPassed;
 
 		float timePassed = st.uiTicksPassed * frameTime;
-		float heatPercent = st.fHeatVal / 100.0f;
 
-		st.UpdateOverheat();
+		if (instance->config->iOverchargeEffect & OCEffects_Overheat)
+			st.UpdateOverheat();
 
-		if (isPlayer) 
+		if (isPlayer)
 		{
 			UpdateOverchargeShot(st, frameTime, instance->config);
 			UpdateChargeDelay(st, frameTime, timePassed, instance->config);
 		}
 
-		if (instance->rActor->IsDying()) st.bIsActive = false;
+		if (instance->rActor->GetCurrentWeapon() != instance->rWeap
+			|| instance->rActor->IsDying()) st.bIsActive = false;
+		if (!st.bIsActive && !instance->rActor->IsDying()
+			&& instance->rActor->IsWeaponDrawn()
+			&& instance->rActor->GetCurrentWeapon() == instance->rWeap)
+		{
+			st.bIsActive = true;
+			InitializeHeatData(instance, instance->config);
+		}
 
-		if (timePassed >= COOLDOWN_DELAY && !(st.uiOCEffect & ~(OCEffects_Overheat)) && st.fHeatVal > 0.0f)
+		if (timePassed >= COOLDOWN_DELAY && !(st.uiOCEffect & STOP_COOLDOWN_FLAGS) && st.fHeatVal > 0.0f)
 			st.fHeatVal = (std::max)(0.0f, st.fHeatVal - frameTime * st.fCooldownRate);
 
 		if (!st.bIsActive && st.fHeatVal <= 0.0f && timePassed >= ERASE_DELAY) return false;
 
-		fx.currCol = SmoothColorShift(
-			st.fHeatVal, 
-			instance->config->iMinColor, 
-			instance->config->iMaxColor);
-
-		for (const auto& node : fx.targetBlocks) 
-		{
-			if (!node.second) continue;
-
-			if (node.first & OCXColor)
-			SetEmissiveColor(node.second.m_pObject, fx.currCol, fx.objMatProp);
-
-			if ((node.first & OCXToggleOnEffect) && (node.first & OCXParticle)) {
-				if (node.second->IsNiType<NiNode>()) {
-					TraverseNiNode<NiParticleSystem>(
-						static_cast<NiNode*>(node.second.m_pObject),
-						[&](NiParticleSystem* psys) {
-							if (auto ctlr = psys->GetControllers()) {
-								if (st.uiOCEffect & OCEffects_Overheat)
-									ctlr->Start();
-								else
-									ctlr->Stop();
-							}
-						});
-				}
-			}
-			if (node.first & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
-				ApplyFixedRotation(node.second, heatPercent,
-					node.first & OCXRotateX,
-					node.first & OCXRotateY,
-					node.first & OCXRotateZ);
-			}
-			if (node.first & (OCXSpinX | OCXSpinY | OCXSpinZ)) {
-				ApplyFixedSpin(node.second, heatPercent, frameTime,
-					node.first & OCXSpinX,
-					node.first & OCXSpinY,
-					node.first & OCXSpinZ);
-			}
-		}
+		UpdateHeatFX(instance, frameTime);
 
 		return true;
 	}
@@ -85,11 +63,11 @@ namespace Overcharge
 		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
 
 		activeOCWeapons.erase(
-			std::remove_if(activeOCWeapons.begin(), activeOCWeapons.end(), 
-				[&](std::shared_ptr<HeatData>& inst) 
-				{ 
+			std::remove_if(activeOCWeapons.begin(), activeOCWeapons.end(),
+				[&](std::shared_ptr<HeatData>& inst)
+				{
 					if (inst->rActor == PlayerCharacter::GetSingleton()
-					&& inst->state.fHeatVal <= 0.0f)
+						&& inst->state.fHeatVal <= 0.0f)
 					{
 						return (!inst->state.bIsActive);
 					}
@@ -140,12 +118,12 @@ namespace Overcharge
 		{
 			const float heatRatio = heat->state.fHeatVal / 100.0f;
 			rWeap->animAttackMult = ScaleByPercentRange(
-				rWeap->animAttackMult, 
-				heat->config->fMinFireRate, heat->config->fMaxFireRate, 
+				rWeap->animAttackMult,
+				heat->config->fMinFireRate, heat->config->fMaxFireRate,
 				heatRatio
 			);
 
-			if (heat->state.uiOCEffect != 0 && heat->state.uiOCEffect != OCEffects_AltProjectile)
+			if (heat->state.uiOCEffect & STOP_FIRING_FLAGS)
 			{
 				rActor->pkBaseProcess->SetIsNextAttackLoopQueued(0);
 				rActor->pkBaseProcess->SetForceFireWeapon(0);
@@ -156,14 +134,14 @@ namespace Overcharge
 			}
 		}
 		result = ThisStdCall<bool>(0x893A40, rActor, groupID);
-		rWeap->animAttackMult = ogFireRate; 
+		rWeap->animAttackMult = ogFireRate;
 		return result;
 	}
 
 	static inline void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, Actor* rActor)
 	{
 		auto heat = GetOrCreateHeat(rActor);
-		if (!rWeap || !rActor || !heat) 
+		if (!rWeap || !rActor || !heat)
 		{
 			ThisStdCall(0x523150, rWeap, rActor);
 			return;
@@ -186,6 +164,8 @@ namespace Overcharge
 		heat->state.uiDamage = ScaleByPercentRange(rWeap->usAttackDamage, config->iMinDamage, config->iMaxDamage, hRatio);
 		heat->state.uiCritDamage = ScaleByPercentRange(rWeap->criticalDamage, config->iMinCritDamage, config->iMaxCritDamage, hRatio);
 		heat->state.fAccuracy = ScaleByPercentRange(rWeap->minSpread, config->fMinAccuracy, config->fMaxAccuracy, hRatio);
+
+		UpdatePerks(heat);
 
 		rWeap->ammoUse = heat->state.uiAmmoUsed;
 		rWeap->numProjectiles = heat->state.uiProjectiles;
@@ -233,8 +213,8 @@ namespace Overcharge
 	}
 
 	static Projectile* __cdecl ProjectileWrapper(
-		BGSProjectile* apBGSProjectile, Actor* apActor, CombatController* apCombatController, TESObjectWEAP* apWeap, 
-		NiPoint3 akPos, float afRotZ, float afRotX, NiNode* a10, TESObjectREFR* apLiveGrenadeTargetRef, 
+		BGSProjectile* apBGSProjectile, Actor* apActor, CombatController* apCombatController, TESObjectWEAP* apWeap,
+		NiPoint3 akPos, float afRotZ, float afRotX, NiNode* a10, TESObjectREFR* apLiveGrenadeTargetRef,
 		bool abAlwaysHit, bool abIgnoreGravity, float afAngularMomentumZ, float afAngularMomentumX, TESObjectCELL* apCell)
 	{
 		UInt32 actorID = apActor ? apActor->uiFormID : 0;
@@ -242,17 +222,17 @@ namespace Overcharge
 		auto heat = GetActiveHeat(actorID, weapID);
 		auto ogProj = apBGSProjectile;
 
-		if (heat && apActor == PlayerCharacter::GetSingleton() 
-		&& heat->state.uiOCEffect & OCEffects_AltProjectile 
-		&& heat->config->iAltProjectileID != 0xFFFFFF) {
+		if (heat && apActor == PlayerCharacter::GetSingleton()
+			&& heat->state.uiOCEffect & OCEffects_AltProjectile
+			&& heat->config->iAltProjectileID != 0xFFFFFF) {
 			heat->state.uiOCEffect &= ~OCEffects_AltProjectile;
 			TESForm* altForm = TESForm::GetByID(heat->config->iAltProjectileID);
 			BGSProjectile* altProj = reinterpret_cast<BGSProjectile*>(altForm);
 			apBGSProjectile = altProj;
 		}
 
-		Projectile* proj = CdeclCall<Projectile*>(0x9BCA60, 
-			apBGSProjectile, apActor,apCombatController, apWeap,
+		Projectile* proj = CdeclCall<Projectile*>(0x9BCA60,
+			apBGSProjectile, apActor, apCombatController, apWeap,
 			akPos, afRotZ, afRotX, a10, apLiveGrenadeTargetRef,
 			abAlwaysHit, abIgnoreGravity, afAngularMomentumZ, afAngularMomentumX, apCell);
 
@@ -343,8 +323,8 @@ namespace Overcharge
 		UInt32 weapID = hitData->pWeapon->uiFormID;
 		if (auto heat = GetActiveHeat(sourceID, weapID))
 		{
-			if (hitData->pkTarget && heat->config->iObjectEffectID 
-		    && heat->state.fHeatVal >= heat->config->iObjectEffectThreshold) {
+			if (hitData->pkTarget && heat->config->iObjectEffectID
+				&& heat->state.fHeatVal >= heat->config->iObjectEffectThreshold) {
 				TESForm* effect = TESForm::GetByID(heat->config->iObjectEffectID);
 				if (effect) hitData->pkTarget->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, hitData->pkTarget, 1, 0);
 			}
@@ -466,7 +446,7 @@ namespace Overcharge
 			EmitterEmitParticles(thisPtr, edx, fTime, usNumParticles, pfAges);
 			return;
 		}
-		
+
 		NiPSysVolumeEmitterPtr volEmit = thisPtr->IsNiType<NiPSysVolumeEmitter>()
 			? static_cast<NiPSysVolumeEmitter*>(thisPtr)
 			: nullptr;
@@ -477,7 +457,7 @@ namespace Overcharge
 		{
 			//Bright or more opaque particles should typically use a DstBlendMode of 'One' so checking it filters particles like smoke or dust.
 			NiAlphaPropertyPtr alpha = thisPtr->m_pkTarget->GetAlphaProperty();
-			if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::ALPHA_ONE)) 
+			if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::ALPHA_ONE))
 				activeInstances.erase(it);
 			else
 			{
@@ -508,15 +488,15 @@ namespace Overcharge
 		}
 	}
 
-	static inline void __fastcall ColorModifierUpdate(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData) 
+	static inline void __fastcall ColorModifierUpdate(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData)
 	{
-		if (!apData->m_pkColor || !ContainsValue(colorModifiers, apThis) || g_OCSettings.iEnableVisualEffects < 1)
+		if (!apData->m_pkColor || !ContainsValue(colorModifiers, apThis))
 		{
 			OriginalColorModifierUpdate(apThis, edx, afTime, apData);
 			return;
 		}
 		//Detour Original Function - We ONLY update alphas otherwise the color modifier will reset vertex colors
-		for (int i = 0; i < apData->m_usActiveVertices; ++i) 
+		for (int i = 0; i < apData->m_usActiveVertices; ++i)
 		{
 			NiParticleInfo* pInfo = &apData->m_pkParticleInfo[i];
 			float lifePercent = pInfo->m_fAge / pInfo->m_fLifeSpan;
@@ -603,9 +583,9 @@ namespace Overcharge
 		UInt32 check3DFile = 0x447168;			//0x447168 Checks loaded NIF file
 		UInt32 createProjectile = 0x5245BD;
 		UInt32 spawnImpact = 0x9C2058;			//Projectile::SpawnCollisionEffects @ Projectile::ProcessImpacts 
-		UInt32 spawnImpactEffects = 0x9C2AC3;  
+		UInt32 spawnImpactEffects = 0x9C2AC3;
 		UInt32 spawnActorImpactEffects = 0x88F245;
-		UInt32 muzzleFlashEnable = 0x9BB7CD; 
+		UInt32 muzzleFlashEnable = 0x9BB7CD;
 		UInt32 initParticle = 0xC2237A;
 		UInt32 colorParticle = 0xC220E5;
 		UInt32 GetAttackSpeedMult = 0x645D73;
@@ -617,7 +597,7 @@ namespace Overcharge
 		UInt32 clearUnrefEmitters = 0xC5E164;
 		UInt32 colorModUpdate = 0xC602E0;
 		UInt32 impactBodyPart = 0x8B5D9B;
-		UInt32 DismemberBodyPart = 0x8B5135; 
+		UInt32 DismemberBodyPart = 0x8B5135;
 		UInt32 DisintegrateEffectShader = 0x8214E8;
 		UInt32 StartParticleShader = 0x82021B;
 		UInt32 SetupParticleShader = 0x5077ED;
@@ -637,10 +617,10 @@ namespace Overcharge
 		// Hooks
 
 		WriteRelCall(actorFire, &FireWeaponWrapper);
-		WriteRelCall(createProjectile, &ProjectileWrapper); 
-		WriteRelCall(spawnImpactEffects, &ImpactWrapper);  
+		WriteRelCall(createProjectile, &ProjectileWrapper);
+		WriteRelCall(spawnImpactEffects, &ImpactWrapper);
 		WriteRelCall(spawnActorImpactEffects, &ImpactActorWrapper);
-		WriteRelCall(muzzleFlashEnable, &MuzzleFlashEnable); 
+		WriteRelCall(muzzleFlashEnable, &MuzzleFlashEnable);
 		WriteRelJump(clearUnrefEmitters, &ClearUnrefEmittersHook);
 		WriteRelJump(colorModUpdate, &ColorModifierUpdate);
 		WriteRelCall(InitMagicShaderCmd, &MSHEInit);

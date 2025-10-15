@@ -111,14 +111,15 @@ namespace Overcharge
 		else {
 			if (NiAVObjectPtr sourceNode = heat->rActor->Get3D())
 			heat->fx.targetBlocks = ObjsFromStrings(config, sourceNode);
+			if (!ContainsValue(activeOCWeapons, heat))
 			activeOCWeapons.push_back(heat);
 		}
 
 		float actorSkLvl = heat->rActor->GetActorValueF(ActorValue::Index(heat->rWeap->weaponSkill));
 		float reqSkill = heat->rWeap->skillRequirement;
-		float percentScaling = g_OCSettings.fSkillLevelScaling ? g_OCSettings.fSkillLevelScaling : 0.30f; // default 35% if not in config
-		float baseHeatPerShot = heat->state.fHeatPerShot;
-		float baseCooldownRate = heat->state.fCooldownRate;
+		float percentScaling = g_OCSettings.fSkillLevelScaling ? g_OCSettings.fSkillLevelScaling : 0.30f; //default 35% if not in config
+		float baseHeatPerShot = heat->config->fHeatPerShot;
+		float baseCooldownRate = heat->config->fCooldownPerSecond;
 
 		if (!actorSkLvl || !reqSkill || !percentScaling || !baseHeatPerShot || !baseCooldownRate) return;
 
@@ -161,9 +162,10 @@ namespace Overcharge
 		return heat;
 	}
 
-
 	inline void UpdateOverchargeShot(HeatState& st, float frameTime, const HeatConfiguration* config)
 	{
+		if (st.uiOCEffect & OCEffects_Overheat) return;
+
 		SInt32 attackHeld = 0;
 		SInt32 attackDepressed = 0;
 		SInt32 attackPressed = 0;
@@ -207,6 +209,8 @@ namespace Overcharge
 
 	inline void UpdateChargeDelay(HeatState& st, float frameTime, float timePassed, const HeatConfiguration* config)
 	{
+		if (st.uiOCEffect & OCEffects_Overheat) return;
+
 		SInt32 attackHeld = 0;
 		SInt32 attackDepressed = 0;
 		SInt32 attackPressed = 0;
@@ -238,6 +242,150 @@ namespace Overcharge
 		{
 			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (3 * st.fHeatPerShot));
 			st.uiTicksPassed = 0;
+		}
+	}
+
+	inline void UpdateHeatFX(std::shared_ptr<HeatData>& heat, float frameTime)
+	{
+		auto& st = heat->state;
+		auto& fx = heat->fx;
+		auto& cfg = heat->config;
+
+		fx.currCol = SmoothColorShift(st.fHeatVal, cfg->iMinColor, cfg->iMaxColor);
+
+		if (fx.targetBlocks.empty()) return;
+
+		float heatPercent = st.fHeatVal / 100.0f;
+
+		for (const auto& node : fx.targetBlocks)
+		{
+			if (!node.second) continue;
+
+			UInt32 effectFlags = 0;
+			if (node.first & OCXOnOverheat)   effectFlags |= OCEffects_Overheat;
+			if (node.first & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
+			if (node.first & OCXOnDelay)      effectFlags |= OCEffects_ChargeDelay;
+
+			const bool onEffect = (effectFlags == 0) || (st.uiOCEffect & effectFlags);
+
+			if ((node.first & OCXParticle) && node.second->IsNiType<NiNode>()) {
+				TraverseNiNode<NiParticleSystem>(
+					static_cast<NiNode*>(node.second.m_pObject),
+					[&](NiParticleSystem* psys) {
+						if (auto ctlr = psys->GetControllers())
+						{
+							if (onEffect) ctlr->Start();
+							else ctlr->Stop();
+						}
+					});
+			}
+
+			if (!onEffect) continue;
+
+			if (node.first & OCXColor)
+				SetEmissiveColor(node.second.m_pObject, fx.currCol, fx.objMatProp);
+
+			if (node.first & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
+				ApplyFixedRotation(node.second, heatPercent,
+					node.first & OCXRotateX,
+					node.first & OCXRotateY,
+					node.first & OCXRotateZ);
+			}
+
+			if (node.first & (OCXSpinX | OCXSpinY | OCXSpinZ)) {
+				ApplyFixedSpin(node.second, heatPercent, frameTime,
+					node.first & OCXSpinX,
+					node.first & OCXSpinY,
+					node.first & OCXSpinZ);
+			}
+		}
+	}
+
+
+	inline void InitPerks()
+	{
+		auto overclocker = TESForm::GetByID("OCPerkOverclocker");
+		if (overclocker && overclocker->eTypeID == TESForm::kType_BGSPerk)
+			OCPerkOverclocker = static_cast<BGSPerk*>(overclocker);
+
+		auto voltageReg = TESForm::GetByID("OCPerkVoltageRegulator");
+		if (voltageReg && voltageReg->eTypeID == TESForm::kType_BGSPerk)
+			OCPerkVoltageRegulator = static_cast<BGSPerk*>(voltageReg);
+
+		auto galRelativ = TESForm::GetByID("OCPerkGalvanicRelativist");
+		if (galRelativ && galRelativ->eTypeID == TESForm::kType_BGSPerk)
+			OCPerkGalvanicRelativist = static_cast<BGSPerk*>(galRelativ);
+
+		auto cirBender = TESForm::GetByID("OCPerkCircuitBender");
+		if (cirBender && cirBender->eTypeID == TESForm::kType_BGSPerk)
+			OCPerkCircuitBender = static_cast<BGSPerk*>(cirBender);
+
+		auto critMass = TESForm::GetByID("OCPerkCriticalMass");
+		if (critMass && critMass->eTypeID == TESForm::kType_BGSPerk)
+			OCPerkCriticalMass = static_cast<BGSPerk*>(critMass);
+
+		auto coolantLeak = TESForm::GetByID("OCPerkCoolantLeak");
+		if (coolantLeak && coolantLeak->eTypeID == TESForm::kType_BGSPerk)
+			OCPerkCoolantLeak = static_cast<BGSPerk*>(coolantLeak);
+
+	}
+
+	inline void UpdatePerks(std::shared_ptr<HeatData> data)
+	{
+		if (!data || !data->rActor) return;
+
+		auto& st = data->state;
+
+		if (data->rActor->GetPerkRank(OCPerkOverclocker, 0))
+		{
+			if (st.fHeatVal > 60)
+			{
+				st.uiCritDamage *= 1.1;
+			}
+		}
+		if (data->rActor->GetPerkRank(OCPerkVoltageRegulator, 0))
+		{
+			int rng = rand();
+			if (st.fHeatVal < 50.0f && (rng % 100) < 25)
+			{
+				st.uiAmmoUsed = 0;
+			}
+		}
+		if (data->rActor->GetPerkRank(OCPerkGalvanicRelativist, 0))
+		{
+			if (st.fHeatVal > 35.0f && st.fHeatVal < 65.0f)
+			{
+				st.uiDamage *= 1.2;
+			}
+			else st.uiDamage *= 0.9;
+		}
+		if (data->rActor->GetPerkRank(OCPerkCircuitBender, 0))
+		{
+			if (st.uiOCEffect & OCEffects_AltProjectile && (rand() % 100) < 50)
+			{
+				st.fHeatVal = (std::max)(0.0f, st.fHeatVal - st.fHeatPerShot);
+			}
+		}
+		if (data->rActor->GetPerkRank(OCPerkCriticalMass, 0))
+		{
+			if (st.IsHot() && !(st.uiOCEffect & OCEffects_SelfDamage))
+			{
+				st.uiOCEffect |= OCEffects_SelfDamage;
+				TESForm* effect = TESForm::GetByID("EnchFlamerEffect");
+				if (effect) data->rActor->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, data->rActor, 1, 0);
+				st.bCanOverheat = false;
+			}
+			else if (!st.IsHot() && st.uiOCEffect & OCEffects_SelfDamage)
+			{
+				st.uiOCEffect &= ~OCEffects_SelfDamage;
+			}
+		}
+		if (data->rActor->GetPerkRank(OCPerkCoolantLeak, 0))
+		{
+			if (st.fHeatVal >= 70.0f)
+			{
+				st.fHeatVal = 100.0f;
+			}
 		}
 	}
 

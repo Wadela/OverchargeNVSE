@@ -289,7 +289,6 @@ bool Cmd_GetHeatConfig_Execute(COMMAND_ARGS)
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
 		case 5:
-			*result = config.iWeaponType;
 			break;
 		case 6:
 			*result = config.fCooldownPerSecond;

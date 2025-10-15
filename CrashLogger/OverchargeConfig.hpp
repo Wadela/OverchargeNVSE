@@ -11,37 +11,36 @@ namespace Overcharge
 	extern case_insensitive_set extraModels;
 	extern case_insensitive_set definedModels;
 
-	enum OCXAddons
+	enum OCXAddons : UInt16
 	{
 		None			  = 0,
 		OCXColor		  = 1 << 0,
 		OCXParticle		  = 1 << 1,
-		OCXToggleOnEffect = 1 << 2,
-		OCXRotateX		  = 1 << 3,
-		OCXRotateY		  = 1 << 4,
-		OCXRotateZ		  = 1 << 5,
-		OCXSpinX		  = 1 << 6,
-		OCXSpinY		  = 1 << 7,
-		OCXSpinZ		  = 1 << 8,
+		OCXOnOverheat	  = 1 << 2,
+		OCXOnOvercharge   = 1 << 3,
+		OCXOnDelay		  = 1 << 4,
+		OCXRotateX		  = 1 << 5,
+		OCXRotateY		  = 1 << 6,
+		OCXRotateZ		  = 1 << 7,
+		OCXSpinX		  = 1 << 8,
+		OCXSpinY		  = 1 << 9,
+		OCXSpinZ		  = 1 << 10,
 	};
 
 	enum OCFlags : UInt16
 	{
 		OCFlags_None		  = 0,
 
-		OCFlags_Scripts		  = 1 << 0,
-		OCFlags_Meshes		  = 1 << 1,
-		OCFlags_Animations	  = 1 << 2,
-		OCFlags_Sounds		  = 1 << 3,
-		OCFlags_Gameplay	  = 1 << 4,
-		OCFlags_EnchEffects	  = 1 << 5,
-		OCFlags_MuzzleFlashes = 1 << 6,
-		OCFlags_Projectiles	  = 1 << 7,
-		OCFlags_Impacts		  = 1 << 8,
-		OCFlags_KillEffects	  = 1 << 9,
-		OCFlags_AshPiles	  = 1 << 10,
-		OCFlags_WeapMods	  = 1 << 11,
-		OCFlags_Perks		  = 1 << 12,
+		OCFlags_Meshes		  = 1 << 0,
+		OCFlags_Animations	  = 1 << 1,
+		OCFlags_Sounds		  = 1 << 2,
+		OCFlags_Gameplay	  = 1 << 3,
+		OCFlags_MuzzleFlash	  = 1 << 4,
+		OCFlags_Projectile	  = 1 << 5,
+		OCFlags_Impacts		  = 1 << 6,
+		OCFlags_KillEffects	  = 1 << 7,
+		OCFlags_AshPiles	  = 1 << 8,
+		OCFlags_Perks		  = 1 << 9,
 
 		OCFlags_All			  = 0xFFFF
 	};
@@ -54,7 +53,7 @@ namespace Overcharge
 		OCEffects_Overcharge	 = 1 << 1,
 		OCEffects_ChargeDelay	 = 1 << 2,
 		OCEffects_AltProjectile  = 1 << 3,
-
+		OCEffects_SelfDamage	 = 1 << 4,
 
 		OCEffects_All			 = 0xFF
 	};
@@ -69,11 +68,13 @@ namespace Overcharge
 		OCWeap_Thrown
 	};
 
-	constexpr std::array<std::pair<UInt16, std::string_view>, 9> OCXAddonNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 11> OCXAddonNames
 	{ {
 		{ OCXColor,				"color"	     },
 		{ OCXParticle,			"particle"   },
-		{ OCXToggleOnEffect,	"oneffect"	 },
+		{ OCXOnOverheat,		"onoverheat" },
+		{ OCXOnOvercharge,		"oncharge"	 },
+		{ OCXOnDelay,			"ondelay"	 },
 		{ OCXRotateX,			"rotateX"	 },
 		{ OCXRotateY,			"rotatey"    },
 		{ OCXRotateZ,			"rotatez"    },
@@ -82,29 +83,27 @@ namespace Overcharge
 		{ OCXSpinZ	,			"spinz"		 }
 	} };
 
-	constexpr std::array<std::pair<UInt16, std::string_view>, 14> OCFlagNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 10> OCFlagNames
 	{ {
-		{ OCFlags_Scripts,		 "Scripts"		 },
-		{ OCFlags_Meshes,        "Meshes"		 },
-		{ OCFlags_Animations,    "Animations"	 },
+		{ OCFlags_Meshes,        "meshes"		 },
+		{ OCFlags_Animations,    "animations"	 },
 		{ OCFlags_Sounds,        "Sounds"		 },
-		{ OCFlags_Gameplay,      "Gameplay"		 },
-		{ OCFlags_EnchEffects,   "EnchEffects"	 },
-		{ OCFlags_MuzzleFlashes, "MuzzleFlashes" },
-		{ OCFlags_Projectiles,   "Projectiles"   },
+		{ OCFlags_Gameplay,      "gameplay"		 },
+		{ OCFlags_MuzzleFlash,	 "muzzleflash"   },
+		{ OCFlags_Projectile,    "Projectiles"   },
 		{ OCFlags_Impacts,       "Impacts"		 },
 		{ OCFlags_KillEffects,   "KillEffects"	 },
-		{ OCFlags_AshPiles,      "AshPiles"		 },
-		{ OCFlags_WeapMods,      "WeapMods"		 },
-		{ OCFlags_Perks,         "Perks"		 }
+		{ OCFlags_AshPiles,      "piles"		 },
+		{ OCFlags_Perks,		 "perks"		 }
 	} };
 
-	constexpr std::array<std::pair<UInt16, std::string_view>, 6> OCEffectNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 5> OCEffectNames
 	{ {
-		{ OCEffects_Overheat,		"Overheat"	 },
-		{ OCEffects_Overcharge,		"Overcharge" },
-		{ OCEffects_ChargeDelay,	"Delay"		 },
-		{ OCEffects_AltProjectile,  "Special"	 }
+		{ OCEffects_Overheat,		"Overheat"		},
+		{ OCEffects_Overcharge,		"Overcharge"	},
+		{ OCEffects_ChargeDelay,	"Delay"			},
+		{ OCEffects_AltProjectile,  "AltProjectile"	},
+		{ OCEffects_SelfDamage,		"SelfDamage"	}
 	} };
 
 	constexpr std::array<std::pair<UInt8, std::string_view>, 15> OCWeapTypeNames
@@ -128,19 +127,20 @@ namespace Overcharge
 
 	struct OverchargeSettings
 	{
-		bool   bEnableCustomAnimations = true;
-		bool   bEnableCustomMeshes = true;
-		bool   bEnableCustomSounds = true;
-		bool   bEnableAshPiles = true;
-		bool   bEnableScriptedEffects = true;
-		UInt8  iEnableVisualEffects = 1;
-		UInt8  iEnableGameplayEffects = 1;
+		UInt8  iVisualEffects = 1;
+		UInt8  iGameplayEffects = 1;
+
+		bool   bMeshes = true;
+		bool   bAnimations = true;
+		bool   bSounds = true;
+		bool   bPerks = true;
+
+		float  fSkillLevelScaling = 0.35f;
+
 		UInt8  iHUDIndicator = 1;
 		float  fHUDScale = 100.0f;
 		float  fHUDOffsetX = 0.0f;
 		float  fHUDOffsetY = 0.0f;
-
-		float  fSkillLevelScaling = 0.35f;
 	};
 
 	struct HeatedNode
@@ -161,7 +161,6 @@ namespace Overcharge
 
 	struct HeatConfiguration
 	{
-		UInt8 iWeaponType = OCWeap_None;
 		UInt8 iMinProjectiles = 0xFF;
 		UInt8 iMaxProjectiles = 0xFF;
 		UInt8 iMinAmmoUsed = 0xFF;

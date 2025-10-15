@@ -4,7 +4,6 @@ namespace Overcharge
 {
 	case_insensitive_set extraModels{};
 	case_insensitive_set definedModels{};
-	std::unordered_set<NiNode*>	extraNiNodes;
 	std::vector<OCXNode> OCExtraModels;
 
 	std::unordered_map<UInt64, const HeatConfiguration>	weaponDataMap;
@@ -22,11 +21,11 @@ namespace Overcharge
 		}
 
 		//Global
-		g_OCSettings.iEnableVisualEffects = ini.GetLongValue("Global", "iEnableVisualEffects", 1);
-		g_OCSettings.iEnableGameplayEffects = ini.GetLongValue("Global", "iEnableGameplayEffects", 1);
-		g_OCSettings.bEnableCustomAnimations = ini.GetBoolValue("Global", "bEnableCustomAnimations", true);
-		g_OCSettings.bEnableCustomMeshes = ini.GetBoolValue("Global", "bEnableCustomMeshes", true);
-		g_OCSettings.bEnableCustomSounds = ini.GetBoolValue("Global", "bEnableCustomSounds", true);
+		g_OCSettings.iVisualEffects = ini.GetLongValue("Global", "iEnableVisualEffects", 1);
+		g_OCSettings.iGameplayEffects = ini.GetLongValue("Global", "iEnableGameplayEffects", 1);
+		g_OCSettings.bMeshes = ini.GetBoolValue("Global", "bEnableCustomMeshes", true);
+		g_OCSettings.bAnimations = ini.GetBoolValue("Global", "bEnableCustomAnimations", true);
+		g_OCSettings.bSounds = ini.GetBoolValue("Global", "bEnableCustomSounds", true);
 		g_OCSettings.fSkillLevelScaling = static_cast<float>(ini.GetDoubleValue("User Interface", "fSkillLevelScaling", 0.35));
 
 		//User Interface
@@ -35,34 +34,16 @@ namespace Overcharge
 		g_OCSettings.fHUDOffsetX = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDOffsetX", 0.0));
 		g_OCSettings.fHUDOffsetY = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDOffsetY", 0.0));
 
-		//Experimental
-		g_OCSettings.bEnableAshPiles = ini.GetBoolValue("Experimental", "bEnableAshPiles", true);
-		g_OCSettings.bEnableScriptedEffects = ini.GetBoolValue("Experimental", "bEnableScriptedEffects", true);
-
-		//Load all ash pile entries
-		if (g_OCSettings.iEnableVisualEffects >= 1)
+		//Load all extra model entries (i.e. Ash Piles)
+		for (int i = 0;; ++i)
 		{
-			for (int i = 0;; ++i)
-			{
-				std::string key = "sAshPile" + std::to_string(i);
-				const char* val = ini.GetValue("Experimental", key.c_str(), nullptr);
+			std::string key = "sExtraMesh" + std::to_string(i);
+			const char* val = ini.GetValue("Extra", key.c_str(), nullptr);
 
-				if (!val)
-					break;
+			if (!val)
+				break;
 
-				definedModels.emplace(val);
-			}
-
-			for (int i = 0;; ++i)
-			{
-				std::string key = "sExtraModel" + std::to_string(i);
-				const char* val = ini.GetValue("Experimental", key.c_str(), nullptr);
-
-				if (!val)
-					break;
-
-				definedModels.emplace(val);
-			}
+			definedModels.emplace(val);
 		}
 	}
 
@@ -222,7 +203,7 @@ namespace Overcharge
 
 		if (!baseConfig)
 		{
-			config.iWeaponType = ini.GetLongValue(secItem, "iWeaponType", defaults.iWeaponType);
+			ini.GetLongValue(secItem, "iWeaponType", 0);
 
 			std::string_view OCString{ ini.GetValue(secItem, "sOverchargeFlags", "") };
 			config.iOverchargeFlags = !OCString.empty()
@@ -322,7 +303,6 @@ namespace Overcharge
 		}
 		else
 		{
-			config.iWeaponType = baseConfig->iWeaponType;
 			config.iOverchargeFlags = baseConfig->iOverchargeFlags;
 			config.sAnimFile = baseConfig->sAnimFile;
 			config.sHeatedNodes = baseConfig->sHeatedNodes;
