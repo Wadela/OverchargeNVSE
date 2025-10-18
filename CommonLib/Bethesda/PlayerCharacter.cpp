@@ -1,5 +1,9 @@
 #include "PlayerCharacter.hpp"
 
+bool PlayerCharacter::HasPipBoyOpen() const {
+	return ThisStdCall(0x967AE0, this);
+}
+
 NiNode* PlayerCharacter::GetCamera1st() {
 	return *reinterpret_cast<NiNode**>(0x11E07D0);
 }

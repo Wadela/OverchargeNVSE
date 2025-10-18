@@ -58,7 +58,7 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 		for (const auto& i : mainLoop) i(); // call all mainloop functions
 
 		static int OCFrameCounter = 0;
-		if (!IsGamePaused() && !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
+		if (!IsGamePaused() && !MenuMode() && !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
 		{
 			Overcharge::UpdatePlayerOCWeapons();										//Cooldown system runs in gameloop
 			if (++OCFrameCounter >= Overcharge::NPC_UPDATE_THROTTLE) {

@@ -1,5 +1,5 @@
 #pragma once
-#include <PluginAPI.hpp>
+#include <nvse/PluginAPI.hpp>
 #include "definitions.h"
 
 class DIHookControl;

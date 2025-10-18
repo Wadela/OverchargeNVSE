@@ -1,17 +1,12 @@
 #pragma once
 
-#include "MainHeader.hpp"
+//Overcharge
+#include "Overcharge.hpp"
 
 //Bethesda
+#include <ModelLoader.hpp>
 #include <BSValueNode.hpp>
 #include <BSPSysSimpleColorModifier.hpp>
-
-//Gamebryo
-#include <NiParticleSystem.hpp>
-
-
-#include "Overcharge.hpp"
-#include <ModelLoader.hpp>
 
 namespace Overcharge
 {

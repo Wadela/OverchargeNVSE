@@ -297,7 +297,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.fxMatProp);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -334,7 +334,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.fxMatProp);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -369,7 +369,7 @@ namespace Overcharge
 		return mshe;
 	}
 
-	static TESObjectREFR* __fastcall CreateRefAtLocation(TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject, NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior, TESWorldSpace* pWorld, TESObjectREFR* pReference, BGSPrimitive* pAddPrimitive, void* pAdditionalData)
+	static TESObjectREFR* __fastcall CreateRefAtLocation(TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject, NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior, TESWorldSpace* pWorld, TESObjectREFR* pReference, void* pAddPrimitive, void* pAdditionalData)
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
 		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);

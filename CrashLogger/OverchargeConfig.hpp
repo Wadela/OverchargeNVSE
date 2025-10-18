@@ -1,15 +1,30 @@
 #pragma once
 
-#include "SimpleINILibrary.h"
+//Overcharge
 #include "MainHeader.hpp"
+
+//Bethesda
 #include "TESObjectWEAP.hpp"
 #include "BGSImpactDataSet.hpp"
 #include "ModelLoader.hpp"
+#include "BGSPerk.hpp"
+
+//Other Libraries
+#include "SimpleINILibrary.h"
+
 
 namespace Overcharge
 {
 	extern case_insensitive_set extraModels;
 	extern case_insensitive_set definedModels;
+
+	extern BGSPerk* OCPerkOverclocker;
+	extern BGSPerk* OCPerkVoltageRegulator;
+	extern BGSPerk* OCPerkGalvanicRelativist;
+	extern BGSPerk* OCPerkCircuitBender;
+	extern BGSPerk* OCPerkCriticalMass;
+	extern BGSPerk* OCPerkCoolantLeak;
+	extern BGSPerk* OCPerkThermicInversion;
 
 	enum OCXAddons : UInt16
 	{
@@ -19,12 +34,13 @@ namespace Overcharge
 		OCXOnOverheat	  = 1 << 2,
 		OCXOnOvercharge   = 1 << 3,
 		OCXOnDelay		  = 1 << 4,
-		OCXRotateX		  = 1 << 5,
-		OCXRotateY		  = 1 << 6,
-		OCXRotateZ		  = 1 << 7,
-		OCXSpinX		  = 1 << 8,
-		OCXSpinY		  = 1 << 9,
-		OCXSpinZ		  = 1 << 10,
+		OCXOnAltProj	  = 1 << 5,
+		OCXRotateX		  = 1 << 6,
+		OCXRotateY		  = 1 << 7,
+		OCXRotateZ		  = 1 << 8,
+		OCXSpinX		  = 1 << 9,
+		OCXSpinY		  = 1 << 10,
+		OCXSpinZ		  = 1 << 11,
 	};
 
 	enum OCFlags : UInt16
@@ -68,13 +84,14 @@ namespace Overcharge
 		OCWeap_Thrown
 	};
 
-	constexpr std::array<std::pair<UInt16, std::string_view>, 11> OCXAddonNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 12> OCXAddonNames
 	{ {
 		{ OCXColor,				"color"	     },
 		{ OCXParticle,			"particle"   },
 		{ OCXOnOverheat,		"onoverheat" },
 		{ OCXOnOvercharge,		"oncharge"	 },
 		{ OCXOnDelay,			"ondelay"	 },
+		{ OCXOnAltProj,		    "onaltproj"	 },
 		{ OCXRotateX,			"rotateX"	 },
 		{ OCXRotateY,			"rotatey"    },
 		{ OCXRotateZ,			"rotatez"    },

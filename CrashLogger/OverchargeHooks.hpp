@@ -1,30 +1,24 @@
 #pragma once
 
-#include "MainHeader.hpp"
-#include "Overcharge.hpp"
-#include "OverchargeConfig.hpp"
-#include "SafeWrite.hpp"
+//Overcharge
 #include "NifOverride.hpp"
-#include "TESObjectLIGH.hpp"
-#include "NonActorMagicCaster.hpp"
+
 //Gamebryo
 #include <NiPoint3.hpp>
 #include <NiPointLight.hpp>
-#include <NiPSysData.hpp>
 #include <NiPSysVolumeEmitter.hpp>
+#include <NiPSysMeshEmitter.hpp>
 
 //Bethesda
-#include "BSInputManager.hpp"
-#include <BGSPrimitive.hpp>
+#include <BSInputManager.hpp>
 #include <BSTempEffectParticle.hpp>
 #include <TESEffectShader.hpp>
-#include <Animation.hpp>
 #include <MuzzleFlash.hpp>
-#include <EffectSetting.hpp>
 #include <MagicItemForm.hpp>
-#include "ModelLoader.hpp"
-#include "BGSExplosion.hpp"
-#include <NiPSysMeshEmitter.hpp>
+
+//NVSE
+#include <SafeWrite.hpp>
+
 //#include <tracy/Tracy.hpp>
 
 namespace Overcharge
@@ -181,15 +175,40 @@ namespace Overcharge
 
 		float timePassed = st.uiTicksPassed * frameTime;
 
+		auto player = PlayerCharacter::GetSingleton();
+		auto node1st = player->GetNode(1);
+		auto trm = node1st->GetObjectByName("##trm");
+		static float shakeTime = 0.0f;
+		static float shakeBlend = 0.0f; 
+
 		if (config->iOverchargeEffect & OCEffects_Overcharge && attackHeld)
 		{
 			if (!(st.uiOCEffect & OCEffects_Overheat))
 				st.uiOCEffect |= OCEffects_Overcharge;
+
+			shakeTime += frameTime * 8.5f;
+			shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
+
+			const float freq1 = 6.0f;
+			const float freq2 = 12.0f;
+
+			float heatFactor = std::clamp(st.fHeatVal / 100.0f, 0.0f, 1.0f);
+			float shakeAmp = 0.08f * shakeBlend * heatFactor;
+
+			float jitterX = (sinf(shakeTime * freq1) + 0.4f * cosf(shakeTime * freq2)) * shakeAmp;
+			float jitterY = (cosf(shakeTime * freq1) + 0.1f * sinf(shakeTime * freq2)) * shakeAmp;
+
+			trm->m_kLocal.m_Translate.x = jitterX;
+			trm->m_kLocal.m_Translate.z = jitterY;
 		}
 		else if (attackDepressed && st.uiOCEffect & OCEffects_Overcharge)
 		{
 			st.uiOCEffect &= ~OCEffects_Overcharge;
 			inputManager->SetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
+
+			trm->m_kLocal.m_Translate.x = 0.0f;
+			trm->m_kLocal.m_Translate.y = 0.0f;
+			shakeTime = 0.0f;
 		}
 
 		if ((st.uiOCEffect & OCEffects_Overcharge)
@@ -222,6 +241,12 @@ namespace Overcharge
 			attackPressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
 		}
 
+		auto player = PlayerCharacter::GetSingleton();
+		auto node1st = player->GetNode(1);
+		auto trm = node1st->GetObjectByName("##trm");
+		static float shakeTime = 0.0f;
+		static float shakeBlend = 0.0f;
+
 		if (config->iOverchargeEffect & OCEffects_ChargeDelay && attackHeld)
 		{
 			if (!(st.uiOCEffect & OCEffects_Overheat))
@@ -234,12 +259,29 @@ namespace Overcharge
 		else if (attackDepressed && st.uiOCEffect & OCEffects_ChargeDelay)
 		{
 			st.uiOCEffect &= ~OCEffects_ChargeDelay;
+			trm->m_kLocal.m_Translate.x = 0.0f;
+			trm->m_kLocal.m_Translate.y = 0.0f;
+			shakeTime = 0.0f;
 		}
 
 		if ((st.uiOCEffect & OCEffects_ChargeDelay)
 			&& !(st.uiOCEffect & OCEffects_Overheat)
 			&& st.fHeatVal <= HOT_THRESHOLD)
 		{
+			shakeTime += frameTime * 8.5f;
+			shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
+
+			const float freq1 = 6.0f;
+			const float freq2 = 12.0f;
+
+			float shakeAmp = 0.08f * shakeBlend;
+
+			float jitterX = (sinf(shakeTime * freq1) + 0.4f * cosf(shakeTime * freq2)) * shakeAmp;
+			float jitterY = (cosf(shakeTime * freq1) + 0.1f * sinf(shakeTime * freq2)) * shakeAmp;
+
+			trm->m_kLocal.m_Translate.x = jitterX;
+			trm->m_kLocal.m_Translate.y = jitterY;
+
 			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (3 * st.fHeatPerShot));
 			st.uiTicksPassed = 0;
 		}
@@ -265,6 +307,7 @@ namespace Overcharge
 			if (node.first & OCXOnOverheat)   effectFlags |= OCEffects_Overheat;
 			if (node.first & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
 			if (node.first & OCXOnDelay)      effectFlags |= OCEffects_ChargeDelay;
+			if (node.first & OCXOnAltProj)    effectFlags |= OCEffects_AltProjectile;
 
 			const bool onEffect = (effectFlags == 0) || (st.uiOCEffect & effectFlags);
 
@@ -274,6 +317,8 @@ namespace Overcharge
 					[&](NiParticleSystem* psys) {
 						if (auto ctlr = psys->GetControllers())
 						{
+							if (node.first & OCXColor)
+							SetEmissiveColor(psys, fx.currCol, fx.fxMatProp);
 							if (onEffect) ctlr->Start();
 							else ctlr->Stop();
 						}

@@ -249,7 +249,6 @@ bool Cmd_GetHeatConfig_Execute(COMMAND_ARGS)
 	TESAmmo* sourceAmmo;
 	UInt32 type;
 	std::string resultString;
-	UInt32 col; 
 
 	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceWeap, &sourceAmmo, &type) && type > 0 && type <= 29)
 	{

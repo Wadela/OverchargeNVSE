@@ -1,9 +1,10 @@
 #pragma once
 
-#include "MainHeader.hpp"
+//Overcharge
 #include "OverchargeConfig.hpp"
+
+//Gamebryo
 #include "NiParticleSystem.hpp"
-#include "BGSPerk.hpp"
 
 namespace Overcharge
 {
@@ -12,14 +13,6 @@ namespace Overcharge
     constexpr float ERASE_DELAY = 5.0f;
     constexpr float COOLDOWN_DELAY = 0.5f;
     constexpr float CHARGE_THRESHOLD = 1.2f;
-
-    extern BGSPerk* OCPerkOverclocker;
-    extern BGSPerk* OCPerkVoltageRegulator;
-    extern BGSPerk* OCPerkGalvanicRelativist;
-    extern BGSPerk* OCPerkCircuitBender;
-    extern BGSPerk* OCPerkCriticalMass;
-    extern BGSPerk* OCPerkCoolantLeak;
-    extern BGSPerk* OCPerkThermicInversion;
 
     constexpr UInt16 STOP_COOLDOWN_FLAGS = OCEffects_Overcharge | OCEffects_ChargeDelay;
     constexpr UInt16 STOP_FIRING_FLAGS = OCEffects_Overheat | OCEffects_Overcharge | OCEffects_ChargeDelay;
