@@ -309,26 +309,11 @@ public:
 	TESSound*			modShootDistSound;
 	TESSound*			modShoot2DSound;
 	BGSImpactDataSet*	impactDataSet;	// 24C
-	TESObjectSTAT*		worldStatic;		// 250
-	TESObjectSTAT*		mod1Static;		// 254
-	TESObjectSTAT*		mod2Static;		// 258
-	TESObjectSTAT*		mod3Static;		// 25C
-	TESObjectSTAT*		mod12Static;		// 260
-	TESObjectSTAT*		mod13Static;		// 264
-	TESObjectSTAT*		mod23Static;		// 268
-	TESObjectSTAT*		mod123Static;		// 26C
-	TESModelTextureSwap	textureMod1;		// 270 Mod 1
-	TESModelTextureSwap	textureMod2;		// 290 Mod 2
-	TESModelTextureSwap	textureMod3;		// 2B0 Mod 3
-	TESModelTextureSwap	textureMod12;		// 2D0 Mod 1-2
-	TESModelTextureSwap	textureMod13;		// 2F0 Model 1-3
-	TESModelTextureSwap	textureMod23;		// 310 Model 2-3
-	TESModelTextureSwap	textureMod123;		// 330 Model 1-2-3
-	TESObjectIMOD*		itemMod1;			// 350
-	TESObjectIMOD*		itemMod2;			// 354
-	TESObjectIMOD*		itemMod3;			// 358
-	UInt32				unk35C;				// 35C
-	UInt32				unk360;				// 360
+	TESObjectSTAT*		pWorldStatic;
+	TESObjectSTAT*		pModStatics[7];
+	TESModelTextureSwap kModModels[7];
+	TESObjectIMOD*		pItemMod[3];
+	BSString			kEmbeddedNodeName;
 	UInt32				soundLevel;			// 364
 	UInt32				unk368;				// 368
 	UInt32				unk36C;				// 36C

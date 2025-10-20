@@ -15,6 +15,7 @@
 #include <TESEffectShader.hpp>
 #include <MuzzleFlash.hpp>
 #include <MagicItemForm.hpp>
+#include "PlayerCharacter.hpp"
 
 //NVSE
 #include <SafeWrite.hpp>
@@ -31,20 +32,23 @@ namespace Overcharge
 
 	extern std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
 
-	inline std::vector<std::pair<UInt32, NiAVObjectPtr>> ObjsFromStrings(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode, bool isPlayer1st = false)
+	inline std::vector<OCBlock> ObjsFromStrings(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode, bool isPlayer1st = false)
 	{
-		std::vector<std::pair<UInt32, NiAVObjectPtr>> blocks;
+		std::vector<OCBlock> blocks;
 		if (sourceNode && data)
 		{
 			for (auto& it : data->sHeatedNodes)
 			{
-				UInt32 flags = it.flags;
+				UInt16 flags = it.flags;
 				if (!it.nodeName) continue;
 				const NiFixedString& nodeName = it.nodeName;
 
 				if (NiAVObjectPtr block = sourceNode->GetObjectByName(nodeName))
 				{
-					blocks.emplace_back(flags, block);
+					NiMaterialPropertyPtr matProp = nullptr;
+					if (flags & OCXColor)
+					matProp = NiMaterialProperty::CreateObject();
+					blocks.push_back({flags, matProp, block});
 					if (isPlayer1st && flags & OCXParticle && block->IsNiType<NiNode>())
 					{
 						TraverseNiNode<NiParticleSystem>(static_cast<NiNode*>(block.m_pObject), [&](NiParticleSystemPtr psys) {
@@ -84,34 +88,37 @@ namespace Overcharge
 		return (it != vec.end()) ? *it : nullptr;
 	}
 
-	inline void InitializeHeatData(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
+	inline void InitializeHeat3D(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
 	{
 		auto player = PlayerCharacter::GetSingleton();
-		if (!player || !heat || !heat->rActor || !heat->rWeap) return; 
+		if (!player || !heat || !heat->rActor || !heat->rWeap) return;
 		UInt32 actorID = heat->rActor->uiFormID;
 
 		if (actorID == player->uiFormID) {
-			NiAVObjectPtr player1st = player->GetNode(1);
-			NiAVObjectPtr player3rd = player->GetNode(0);
+			NiAVObjectPtr player1st = player->GetPlayerNode(1);
+			NiAVObjectPtr player3rd = player->GetPlayerNode(0);
 			if (player1st && player3rd) {
 				auto blocks1st = ObjsFromStrings(config, player1st, true);
 				auto blocks3rd = ObjsFromStrings(config, player3rd);
 				blocks1st.insert(blocks1st.end(), blocks3rd.begin(), blocks3rd.end());
 				heat->fx.targetBlocks = std::move(blocks1st);
 			}
-			if (!ContainsValue(playerOCWeapons, heat)) 
-			playerOCWeapons.push_back(heat); 
+			if (!ContainsValue(playerOCWeapons, heat))
+				playerOCWeapons.push_back(heat);
 		}
 		else {
 			if (NiAVObjectPtr sourceNode = heat->rActor->Get3D())
-			heat->fx.targetBlocks = ObjsFromStrings(config, sourceNode);
+				heat->fx.targetBlocks = ObjsFromStrings(config, sourceNode);
 			if (!ContainsValue(activeOCWeapons, heat))
-			activeOCWeapons.push_back(heat);
+				activeOCWeapons.push_back(heat);
 		}
+	}
 
+	inline void InitializeHeatData(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
+	{
 		float actorSkLvl = heat->rActor->GetActorValueF(ActorValue::Index(heat->rWeap->weaponSkill));
 		float reqSkill = heat->rWeap->skillRequirement;
-		float percentScaling = g_OCSettings.fSkillLevelScaling ? g_OCSettings.fSkillLevelScaling : 0.30f; //default 35% if not in config
+		float percentScaling = g_OCSettings.fSkillLevelScaling ? g_OCSettings.fSkillLevelScaling : 0.25f; //default 25% if not in config
 		float baseHeatPerShot = heat->config->fHeatPerShot;
 		float baseCooldownRate = heat->config->fCooldownPerSecond;
 
@@ -123,9 +130,10 @@ namespace Overcharge
 
 			float minMult = 1.0f - percentScaling;
 			float maxMult = 1.0f + percentScaling;
-			finalMultiplier = std::clamp(finalMultiplier, minMult, maxMult);
-
-			heat->state.fHeatPerShot = baseHeatPerShot * finalMultiplier;
+			float heatMultiplier = InterpolateTowards(finalMultiplier, minMult, maxMult);
+			float cooldownMultiplier = InterpolateTowards(finalMultiplier, maxMult, minMult);
+			heat->state.fHeatPerShot = baseHeatPerShot * heatMultiplier;
+			heat->state.fCooldownRate = baseCooldownRate * cooldownMultiplier;
 		}
 	}
 
@@ -145,12 +153,15 @@ namespace Overcharge
 		auto heat = GetActiveHeat(rActor->uiFormID, rWeap->uiFormID);
 		if (heat) {
 			heat->config = config;
+			InitializeHeatData(heat, config);
+			InitializeHeat3D(heat, config);
 			return heat;
 		}
 
 		heat = std::make_shared<HeatData>(config);
 		heat->rActor = rActor;
 		heat->rWeap = rWeap;
+		InitializeHeat3D(heat, config);
 		InitializeHeatData(heat, config);
 
 		return heat;
@@ -176,7 +187,7 @@ namespace Overcharge
 		float timePassed = st.uiTicksPassed * frameTime;
 
 		auto player = PlayerCharacter::GetSingleton();
-		auto node1st = player->GetNode(1);
+		auto node1st = player->GetPlayerNode(1);
 		auto trm = node1st->GetObjectByName("##trm");
 		static float shakeTime = 0.0f;
 		static float shakeBlend = 0.0f; 
@@ -242,7 +253,7 @@ namespace Overcharge
 		}
 
 		auto player = PlayerCharacter::GetSingleton();
-		auto node1st = player->GetNode(1);
+		auto node1st = player->GetPlayerNode(1);
 		auto trm = node1st->GetObjectByName("##trm");
 		static float shakeTime = 0.0f;
 		static float shakeBlend = 0.0f;
@@ -301,10 +312,10 @@ namespace Overcharge
 
 		for (const auto& node : fx.targetBlocks)
 		{
-			if (!node.second) continue;
+			if (!node.target) continue;
 
 			UInt32 effectFlags = 0;
-			if (node.first & OCXOnOverheat)   effectFlags |= OCEffects_Overheat;
+			if (node.OCXFlags & OCXOnOverheat)   effectFlags |= OCEffects_Overheat;
 			if (node.first & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
 			if (node.first & OCXOnDelay)      effectFlags |= OCEffects_ChargeDelay;
 			if (node.first & OCXOnAltProj)    effectFlags |= OCEffects_AltProjectile;
@@ -318,7 +329,7 @@ namespace Overcharge
 						if (auto ctlr = psys->GetControllers())
 						{
 							if (node.first & OCXColor)
-							SetEmissiveColor(psys, fx.currCol, fx.fxMatProp);
+							SetEmissiveColor(psys, fx.currCol);
 							if (onEffect) ctlr->Start();
 							else ctlr->Stop();
 						}
@@ -328,7 +339,7 @@ namespace Overcharge
 			if (!onEffect) continue;
 
 			if (node.first & OCXColor)
-				SetEmissiveColor(node.second.m_pObject, fx.currCol, fx.objMatProp);
+				SetEmissiveColor(node.second.m_pObject, fx.currCol);
 
 			if (node.first & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
 				ApplyFixedRotation(node.second, heatPercent,
@@ -434,6 +445,7 @@ namespace Overcharge
 		}
 	}
 
+	void InitHooks();
 	void ClearOCWeapons();
 	void UpdateActiveOCWeapons();
 	void UpdatePlayerOCWeapons();

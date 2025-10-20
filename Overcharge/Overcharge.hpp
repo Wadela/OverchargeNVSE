@@ -84,16 +84,23 @@ namespace Overcharge
         }
     };
 
+    struct OCBlock
+    {
+        UInt16 OCXFlags                 = 0xFFFF;
+        NiMaterialPropertyPtr matProp   = nullptr;
+        NiAVObjectPtr target            = nullptr;
+    };
+
     struct HeatFX
     {
         HeatFX();
-        HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names);
+        HeatFX(UInt32 col, std::vector<OCBlock> blocks);
 
-        NiColor                    currCol;
-        NiMaterialPropertyPtr      objMatProp;
-        NiMaterialPropertyPtr      fxMatProp;
+        NiColor currCol;
 
-        std::vector<std::pair<UInt32, NiAVObjectPtr>> targetBlocks;
+        //0 Muzzle Flash, 1 Projectile, 2 Impact, 3 Explosion
+        std::array<NiMaterialPropertyPtr, 4> matProps; 
+        std::vector<OCBlock>                 targetBlocks;
     };
 
     struct HeatData

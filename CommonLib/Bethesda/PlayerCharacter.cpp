@@ -13,6 +13,6 @@ NiNode* PlayerCharacter::GetCamera3rd() {
 }
 
 // GAME - 0x950BB0
-NiNode* PlayerCharacter::GetNode(bool abFirstPerson) const {
+NiNode* PlayerCharacter::GetPlayerNode(bool abFirstPerson) const {
     return ThisStdCall<NiNode*>(0x950BB0, this, abFirstPerson);
 }

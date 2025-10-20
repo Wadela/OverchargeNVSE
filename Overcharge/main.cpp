@@ -1,11 +1,10 @@
-﻿#include <main.hpp>
+﻿#include "main.hpp"
 #include <format>
 #include <iostream>
-#include "InitHooks.hpp"
 #include "NifOverride.hpp"
 #include <BGSSaveLoadGame.hpp>
 #include "OverchargeConfig.hpp"
-#include <OverchargeHooks.hpp>
+#include "OverchargeHooks.hpp"
 #include "CommandsOvercharge.hpp"
 //#include <tracy/Tracy.hpp>
 
@@ -23,13 +22,6 @@ void InitSingletons()
 	g_player = PlayerCharacter::GetSingleton();
 	g_TESDataHandler = TESDataHandler::GetSingleton();
 	g_HUDMainMenu = HUDMainMenu::GetSingleton();
-}
-
-void FillPluginInfo(PluginInfo* info)
-{
-	info->infoVersion = PluginInfo::kInfoVersion;
-	info->name = "Overcharge";
-	info->version = Overcharge_VERSION * 100;
 }
 
 void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
@@ -77,7 +69,9 @@ bool NVSEPlugin_Query(const NVSEInterface* nvse, PluginInfo* info)
 {
 	g_currentGame = kFalloutNewVegas;
 
-	FillPluginInfo(info);
+	info->infoVersion = PluginInfo::kInfoVersion;
+	info->name = "Overcharge";
+	info->version = 100;
 
 	// version checks
 	if (nvse->isEditor) {
@@ -105,8 +99,6 @@ bool NVSEPlugin_Query(const NVSEInterface* nvse, PluginInfo* info)
 
 	}
 
-	Inits();
-
 	return true;
 }
 
@@ -117,8 +109,11 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 	Overcharge::InitHooks();
 	Overcharge::LoadConfigMain("Data\\NVSE\\Plugins\\Overcharge.ini");
 
-	g_pluginHandle = nvse->GetPluginHandle();
+	UInt32 const uiOpCodeBase = 0x4000;
+	nvse->SetOpcodeBase(uiOpCodeBase);
+
 	g_seInterface = const_cast<NVSEInterface*>(nvse);
+	g_pluginHandle = nvse->GetPluginHandle();
 
 	g_messagingInterface = static_cast<NVSEMessagingInterface*>(nvse->QueryInterface(NVSEInterface::kInterface_Messaging));
 	g_messagingInterface->RegisterListener(g_pluginHandle, "NVSE", NVSEMessageHandler);

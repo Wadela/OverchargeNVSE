@@ -10,7 +10,7 @@
 #include "BGSPerk.hpp"
 
 //Other Libraries
-#include "SimpleINILibrary.h"
+#include "libraries/SimpleINILibrary.h"
 
 
 namespace Overcharge

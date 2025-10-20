@@ -22,58 +22,55 @@
     <ClCompile Include="Bethesda\TLSData.cpp">
       <Filter>Types</Filter>
     </ClCompile>
-    <ClCompile Include="NiNode.cpp">
+    <ClCompile Include="Gamebryo\NiNode.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiObject.cpp">
+    <ClCompile Include="Gamebryo\NiObject.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiAVObject.cpp">
+    <ClCompile Include="Gamebryo\NiAVObject.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiObjectNET.cpp">
+    <ClCompile Include="Gamebryo\NiObjectNET.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="PlayerCharacter.cpp">
+    <ClCompile Include="Gamebryo\NiFixedString.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiFixedString.cpp">
+    <ClCompile Include="Gamebryo\NiGlobalStringTable.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiGlobalStringTable.cpp">
+    <ClCompile Include="Gamebryo\NiBound.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiBound.cpp">
+    <ClCompile Include="Gamebryo\NiStream.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiStream.cpp">
+    <ClCompile Include="Bethesda\BSStream.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="BSStream.cpp">
+    <ClCompile Include="Gamebryo\NiCloningProcess.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiCloningProcess.cpp">
+    <ClCompile Include="Gamebryo\NiLight.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiLight.cpp">
+    <ClCompile Include="Gamebryo\NiPoint4.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiPoint4.cpp">
+    <ClCompile Include="Gamebryo\NiPoint3.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiPoint3.cpp">
+    <ClCompile Include="Gamebryo\NiTimeController.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiTimeController.cpp">
+    <ClCompile Include="Gamebryo\NiDX9Renderer.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiDX9Renderer.cpp">
+    <ClCompile Include="Gamebryo\NiRenderer.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiRenderer.cpp">
-      <Filter>Type Methods</Filter>
-    </ClCompile>
-    <ClCompile Include="NiMemObject.cpp">
+    <ClCompile Include="Gamebryo\NiMemObject.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
     <ClCompile Include="Gamebryo\NiMemManager.cpp">
@@ -82,16 +79,16 @@
     <ClCompile Include="Gamebryo\NiMemory.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiMatrix3.cpp">
+    <ClCompile Include="Gamebryo\NiMatrix3.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="BSRenderedTexture.cpp">
+    <ClCompile Include="Bethesda\BSRenderedTexture.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiPropertyState.cpp">
+    <ClCompile Include="Gamebryo\NiPropertyState.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="BSSpinLock.cpp">
+    <ClCompile Include="Bethesda\BSSpinLock.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
     <ClCompile Include="Bethesda\MemoryManager.cpp">
@@ -100,22 +97,16 @@
     <ClCompile Include="Bethesda\BSMemory.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiTransform.cpp">
+    <ClCompile Include="Gamebryo\NiTransform.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiBinaryStream.cpp">
+    <ClCompile Include="Gamebryo\NiBinaryStream.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="NiBillboardNode.cpp">
+    <ClCompile Include="Gamebryo\NiBillboardNode.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
-    <ClCompile Include="BSSemaphore.cpp">
-      <Filter>Type Methods</Filter>
-    </ClCompile>
-    <ClCompile Include="Actor.cpp">
-      <Filter>Type Methods</Filter>
-    </ClCompile>
-    <ClCompile Include="TESObjectREFR.cpp">
+    <ClCompile Include="Bethesda\BSSemaphore.cpp">
       <Filter>Type Methods</Filter>
     </ClCompile>
     <ClCompile Include="Bethesda\MagicItem.cpp">
@@ -3909,41 +3900,32 @@
     <ClInclude Include="Bethesda\ZeroOverheadHeap.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="BSParticleSystemManager.h">
+    <ClInclude Include="Bethesda\BSParticleSystemManager.h">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="TeleportPath.hpp">
+    <ClInclude Include="Bethesda\TeleportPath.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="TESRegionSound.hpp">
+    <ClInclude Include="Bethesda\TESRegionSound.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="ItemChange.hpp">
+    <ClInclude Include="Bethesda\ItemChange.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="ModifierList.hpp">
+    <ClInclude Include="Bethesda\ModifierList.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="Modifier.hpp">
+    <ClInclude Include="Bethesda\Modifier.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="FastModifierCollection.hpp">
+    <ClInclude Include="Bethesda\FastModifierCollection.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="NiTextKey.hpp">
+    <ClInclude Include="Gamebryo\NiTextKey.hpp">
       <Filter>Types</Filter>
     </ClInclude>
-    <ClInclude Include="CombatWorldStateList.hpp">
+    <ClInclude Include="Gamebryo\NiTextKeyExtraData.hpp">
       <Filter>Types</Filter>
-    </ClInclude>
-    <ClInclude Include="NiTextKeyExtraData.hpp">
-      <Filter>Types</Filter>
-    </ClInclude>
-    <ClInclude Include="NiTransformController.hpp">
-      <Filter>Types</Filter>
-    </ClInclude>
-    <ClInclude Include="BSAnimGroupSequence.cpp">
-      <Filter>Type Methods</Filter>
     </ClInclude>
     <ClInclude Include="Bethesda\MissileProjectile.hpp" />
   </ItemGroup>
@@ -3956,7 +3938,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="BSString.inl">
+    <None Include="Bethesda\BSString.inl">
       <Filter>Type Methods</Filter>
     </None>
   </ItemGroup>

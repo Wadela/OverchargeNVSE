@@ -368,7 +368,7 @@ public:
 
 	bool IsSleepingorResting() const;
 
-	NiNode* GetNode(const bool abFirstPerson) const;
+	NiNode* GetPlayerNode(const bool abFirstPerson) const;
 
 	void UpdatePlayerControlsMask(bool abEnable, UInt32 aMask);
 

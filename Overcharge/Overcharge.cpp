@@ -146,16 +146,22 @@ namespace Overcharge
 
     HeatFX::HeatFX() :
         currCol(0, 0, 0),
-        objMatProp(NiMaterialProperty::CreateObject()),
-        fxMatProp(NiMaterialProperty::CreateObject()),
+        matProps(
+            NiMaterialProperty::CreateObject(), 
+            NiMaterialProperty::CreateObject(), 
+            NiMaterialProperty::CreateObject(), 
+            NiMaterialProperty::CreateObject()),
         targetBlocks() {
     }
 
-    HeatFX::HeatFX(UInt32 col, std::vector<std::pair<UInt32, NiAVObjectPtr>> names) :
+    HeatFX::HeatFX(UInt32 col, std::vector<OCBlock> blocks) :
         currCol(UInt32toRGB(col)),
-        objMatProp(NiMaterialProperty::CreateObject()),
-        fxMatProp(NiMaterialProperty::CreateObject()),
-        targetBlocks(names) {
+        matProps(
+            NiMaterialProperty::CreateObject(), 
+            NiMaterialProperty::CreateObject(), 
+            NiMaterialProperty::CreateObject(), 
+            NiMaterialProperty::CreateObject()),
+        targetBlocks(blocks) {
     }
 
     HeatData::HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* cfg) : state(heat), fx(visuals), config(cfg) {}

@@ -255,6 +255,14 @@ namespace Overcharge
 				OCExtraModels.push_back({ fixed, hNode, 0.0f, (0, 0, 0), (0,0,0) });
 
 				config.sHeatedNodes.push_back({ static_cast<UInt16>(i), flags, tempName});
+
+				for (auto& modModel : rWeap->kModModels)
+				{
+					if (NiFixedString modFixed = modModel.kModel.c_str())
+					{
+						OCExtraModels.push_back({ modFixed, hNode, 0.0f, (0, 0, 0), (0,0,0) });
+					}
+				}
 			}
 
 			for (int i = 0;; ++i)
@@ -294,6 +302,14 @@ namespace Overcharge
 				NiFixedString fixed(rWeap->kModel.c_str());
 
 				OCExtraModels.push_back({ fixed, hNode, scale, translate, rotate });
+
+				for (auto& modModel : rWeap->kModModels)
+				{
+					if (NiFixedString modFixed = modModel.kModel.c_str())
+					{
+						OCExtraModels.push_back({ modFixed, hNode, scale, translate, rotate });
+					}
+				}
 
 				const char* dot = std::strrchr(nodeName.data(), '.');
 				size_t len = dot ? static_cast<size_t>(dot - nodeName.data()) : nodeName.size();

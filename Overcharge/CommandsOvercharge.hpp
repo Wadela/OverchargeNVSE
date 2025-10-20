@@ -4,7 +4,7 @@
 #include "Overcharge.hpp"
 #include "OverchargeHooks.hpp"
 #include "OverchargeConfig.hpp"
-#include <main.hpp>
+#include "main.hpp"
 
 void Console_Print(const char* fmt, ...) 
 {

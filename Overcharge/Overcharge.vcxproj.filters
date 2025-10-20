@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="dllmain.c" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="OverchargeConfig.cpp">
+      <Filter>Wadel</Filter>
+    </ClCompile>
+    <ClCompile Include="OverchargeHooks.cpp">
+      <Filter>Wadel</Filter>
+    </ClCompile>
+    <ClCompile Include="Overcharge.cpp">
+      <Filter>Wadel</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nvse\Utilities.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nvse\SafeWrite.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nvse\dinput8.cpp">
+      <Filter>NVSE</Filter>
+    </ClCompile>
+    <ClCompile Include="tracy\public\TracyClient.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nvse\Logging.cpp">
+      <Filter>NVSE</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="main.hpp" />
+    <ClInclude Include="OverchargeHooks.hpp">
+      <Filter>Wadel</Filter>
+    </ClInclude>
+    <ClInclude Include="Overcharge.hpp">
+      <Filter>Wadel</Filter>
+    </ClInclude>
+    <ClInclude Include="OverchargeConfig.hpp">
+      <Filter>Wadel</Filter>
+    </ClInclude>
+    <ClInclude Include="NifOverride.hpp">
+      <Filter>Wadel</Filter>
+    </ClInclude>
+    <ClInclude Include="MainHeader.hpp">
+      <Filter>Wadel</Filter>
+    </ClInclude>
+    <ClInclude Include="WaldezTools.hpp">
+      <Filter>Wadel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\Utilities.hpp">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\Safewrite.hpp">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\dinput8.hpp">
+      <Filter>NVSE</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandsOvercharge.hpp">
+      <Filter>Wadel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\CommandTable.hpp">
+      <Filter>NVSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\Formatter.hpp">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\json.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\libraries\SimpleINILibrary.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\Logging.hpp">
+      <Filter>NVSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\PluginAPI.hpp">
+      <Filter>NVSE</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nvse\prefix.hpp">
+      <Filter>NVSE</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="exports.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="NVSE">
+      <UniqueIdentifier>{6c8511cb-44ac-41d6-b1fe-0dc3a95e07fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wadel">
+      <UniqueIdentifier>{257e765c-92ee-4274-98bc-b79cec67224a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shared">
+      <UniqueIdentifier>{6de3697c-5bf3-476e-9510-a7549a3d9fbd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
