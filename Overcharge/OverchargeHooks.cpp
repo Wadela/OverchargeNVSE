@@ -202,7 +202,8 @@ namespace Overcharge
 					activeInstances[valueNode] = heat;
 					});
 				TraverseNiNode<NiGeometry>(muzzleNode, [&heat](NiGeometryPtr geom) {
-					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.matProps[0]);
+					auto matProp = PickMaterial(geom.m_pObject, heat->fx);
+					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
 					});
 				TraverseNiNode<NiParticleSystem>(muzzleNode, [&heat](NiParticleSystemPtr psys) {
 					activeInstances[psys] = heat;
@@ -268,7 +269,8 @@ namespace Overcharge
 			activeInstances[valueNode] = heat;
 			});
 		TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometryPtr geom) {
-			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.matProps[1]);
+			auto matProp = PickMaterial(geom.m_pObject, heat->fx);
+			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
 			});
 		TraverseNiNode<NiParticleSystem>(projNode, [&heat](NiParticleSystemPtr psys) {
 			activeInstances[psys] = heat;
@@ -297,7 +299,8 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.matProps[2]);
+				auto matProp = PickMaterial(geom.m_pObject, heat->fx);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -334,7 +337,8 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.matProps[2]);
+				auto matProp = PickMaterial(geom.m_pObject, heat->fx);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -419,7 +423,8 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(explNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, heat->fx.matProps[3]);
+				auto matProp = PickMaterial(geom.m_pObject, heat->fx);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
 				});
 			TraverseNiNode<NiParticleSystem>(explNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;

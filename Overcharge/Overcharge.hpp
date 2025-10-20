@@ -98,7 +98,7 @@ namespace Overcharge
 
         NiColor currCol;
 
-        //0 Muzzle Flash, 1 Projectile, 2 Impact, 3 Explosion
+        //0: <0.25 Alpha, 1: <0.75 Alpha, 2: >=1.0 Alpha && <1.25 EmitMult, 3: >=1.0 Alpha && >1.25 EmitMult
         std::array<NiMaterialPropertyPtr, 4> matProps; 
         std::vector<OCBlock>                 targetBlocks;
     };

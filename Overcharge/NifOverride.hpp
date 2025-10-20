@@ -48,32 +48,58 @@ namespace Overcharge
 		if (!geom) return;
 
 		auto& matProp = geom->m_kProperties.m_spMaterialProperty;
-		if (newMatProp)
+		if (newMatProp && matProp != newMatProp)
 		{
+			geom->RemoveProperty(NiProperty::MATERIAL);
+			geom->DetachProperty(matProp);
+			geom->AddProperty(newMatProp);
+			geom->AttachProperty(newMatProp);
+
 			newMatProp->m_fAlpha = matProp->m_fAlpha;
 			newMatProp->m_fEmitMult = matProp->m_fEmitMult;
 			newMatProp->m_fShine = matProp->m_fShine;
+			newMatProp->m_spec = matProp->m_spec;
+			newMatProp->m_emit = color;
 
-			matProp = newMatProp;
-			geom->RemoveProperty(NiProperty::MATERIAL);
-			geom->AddProperty(newMatProp);
+			geom->UpdateProperties();
+
+			return;
 		}
 
 		if (matProp)
 		matProp->m_emit = color;
 	}
 
-	static void ApplyEmissiveColor(NiAVObjectPtr obj, const NiColor& color, NiMaterialPropertyPtr matProp)
+	static NiMaterialPropertyPtr PickMaterial(NiAVObjectPtr obj, HeatFX& fx)
 	{
-		if (obj->IsNiType<NiNode>()) {
-			TraverseNiNode<NiGeometry>(static_cast<NiNode*>(obj.m_pObject), [&](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, color, matProp);
-				});
-		}
+		if (!obj)
+			return nullptr;
 
-		else if (obj->IsNiType<NiGeometry>())
-			SetEmissiveColor(obj, color, matProp);
+		auto geom = obj->NiDynamicCast<NiGeometry>();
+		if (!geom)
+			return nullptr;
+
+		auto& matProp = geom->m_kProperties.m_spMaterialProperty;
+		if (!matProp)
+			return nullptr;
+
+		float alpha = matProp->m_fAlpha;
+		float emitMult = matProp->m_fEmitMult;
+
+		NiMaterialPropertyPtr chosenMat = nullptr;
+
+		if (alpha < 0.25f)
+			chosenMat = fx.matProps[0];
+		else if (alpha < 1.0f)
+			chosenMat = fx.matProps[1];
+		else if (alpha >= 1.0f && emitMult <= 1.25f)
+			chosenMat = fx.matProps[2];
+		else if (alpha >= 1.0f && emitMult > 1.25f)
+			chosenMat = fx.matProps[3];
+
+		return chosenMat ? chosenMat : matProp;
 	}
+
 
 	static void ApplyFixedRotation(NiAVObjectPtr obj, float percent, bool rotX, bool rotY, bool rotZ)
 	{

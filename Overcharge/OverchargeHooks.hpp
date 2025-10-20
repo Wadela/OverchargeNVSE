@@ -316,20 +316,20 @@ namespace Overcharge
 
 			UInt32 effectFlags = 0;
 			if (node.OCXFlags & OCXOnOverheat)   effectFlags |= OCEffects_Overheat;
-			if (node.first & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
-			if (node.first & OCXOnDelay)      effectFlags |= OCEffects_ChargeDelay;
-			if (node.first & OCXOnAltProj)    effectFlags |= OCEffects_AltProjectile;
+			if (node.OCXFlags & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
+			if (node.OCXFlags & OCXOnDelay)      effectFlags |= OCEffects_ChargeDelay;
+			if (node.OCXFlags & OCXOnAltProj)    effectFlags |= OCEffects_AltProjectile;
 
 			const bool onEffect = (effectFlags == 0) || (st.uiOCEffect & effectFlags);
 
-			if ((node.first & OCXParticle) && node.second->IsNiType<NiNode>()) {
+			if ((node.OCXFlags & OCXParticle) && node.target->IsNiType<NiNode>()) {
 				TraverseNiNode<NiParticleSystem>(
-					static_cast<NiNode*>(node.second.m_pObject),
+					static_cast<NiNode*>(node.target.m_pObject),
 					[&](NiParticleSystem* psys) {
 						if (auto ctlr = psys->GetControllers())
 						{
-							if (node.first & OCXColor)
-							SetEmissiveColor(psys, fx.currCol);
+							if (node.OCXFlags & OCXColor)
+							SetEmissiveColor(psys, fx.currCol, node.matProp);
 							if (onEffect) ctlr->Start();
 							else ctlr->Stop();
 						}
@@ -338,21 +338,21 @@ namespace Overcharge
 
 			if (!onEffect) continue;
 
-			if (node.first & OCXColor)
-				SetEmissiveColor(node.second.m_pObject, fx.currCol);
+			if (node.OCXFlags & OCXColor)
+				SetEmissiveColor(node.target.m_pObject, fx.currCol, node.matProp);
 
-			if (node.first & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
-				ApplyFixedRotation(node.second, heatPercent,
-					node.first & OCXRotateX,
-					node.first & OCXRotateY,
-					node.first & OCXRotateZ);
+			if (node.OCXFlags & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
+				ApplyFixedRotation(node.target, heatPercent,
+					node.OCXFlags & OCXRotateX,
+					node.OCXFlags & OCXRotateY,
+					node.OCXFlags & OCXRotateZ);
 			}
 
-			if (node.first & (OCXSpinX | OCXSpinY | OCXSpinZ)) {
-				ApplyFixedSpin(node.second, heatPercent, frameTime,
-					node.first & OCXSpinX,
-					node.first & OCXSpinY,
-					node.first & OCXSpinZ);
+			if (node.OCXFlags & (OCXSpinX | OCXSpinY | OCXSpinZ)) {
+				ApplyFixedSpin(node.target, heatPercent, frameTime,
+					node.OCXFlags & OCXSpinX,
+					node.OCXFlags & OCXSpinY,
+					node.OCXFlags & OCXSpinZ);
 			}
 		}
 	}
