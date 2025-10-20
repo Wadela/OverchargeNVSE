@@ -48,7 +48,7 @@ namespace Overcharge
 		if (!geom) return;
 
 		auto& matProp = geom->m_kProperties.m_spMaterialProperty;
-		if (newMatProp && matProp != newMatProp)
+		if (newMatProp)
 		{
 			geom->RemoveProperty(NiProperty::MATERIAL);
 			geom->DetachProperty(matProp);
@@ -97,7 +97,7 @@ namespace Overcharge
 		else if (alpha >= 1.0f && emitMult > 1.25f)
 			chosenMat = fx.matProps[3];
 
-		return chosenMat ? chosenMat : matProp;
+		return chosenMat;
 	}
 
 

@@ -383,7 +383,6 @@ namespace Overcharge
 		auto coolantLeak = TESForm::GetByID("OCPerkCoolantLeak");
 		if (coolantLeak && coolantLeak->eTypeID == TESForm::kType_BGSPerk)
 			OCPerkCoolantLeak = static_cast<BGSPerk*>(coolantLeak);
-
 	}
 
 	inline void UpdatePerks(std::shared_ptr<HeatData> data)
