@@ -12,7 +12,7 @@ namespace Overcharge
     constexpr float COOL_THRESHOLD = 20.0f;
     constexpr float ERASE_DELAY = 5.0f;
     constexpr float COOLDOWN_DELAY = 0.5f;
-    constexpr float CHARGE_THRESHOLD = 1.2f;
+    constexpr float CHARGE_THRESHOLD = 2.0f;
 
     constexpr UInt16 STOP_COOLDOWN_FLAGS = OCEffects_Overcharge | OCEffects_ChargeDelay;
     constexpr UInt16 STOP_FIRING_FLAGS = OCEffects_Overheat | OCEffects_Overcharge | OCEffects_ChargeDelay;
@@ -43,9 +43,10 @@ namespace Overcharge
         float   fProjectileSpeed    = -1;
         float   fProjectileSize     = -1;
 
-        float   fHeatVal            = 0.0f;
         float   fHeatPerShot        = -1;
         float   fCooldownRate       = -1;
+        float   fHeatVal            = 0.0f;
+        float   fTargetVal          = 0.0f;
 
         HeatState() = default;
 
@@ -76,7 +77,9 @@ namespace Overcharge
                 const bool overheating = IsOverheating();
 
                 if (!overheating && IsHot())
-                    uiOCEffect |= OCEffects_Overheat;
+                {
+                    uiOCEffect = OCEffects_Overheat;
+                }
                 else if (overheating && IsCool())
                     uiOCEffect &= ~OCEffects_Overheat;
             } 
@@ -86,7 +89,7 @@ namespace Overcharge
 
     struct OCBlock
     {
-        UInt16 OCXFlags                 = 0xFFFF;
+        UInt32 OCXFlags                 = 0xFFFFFF;
         NiMaterialPropertyPtr matProp   = nullptr;
         NiAVObjectPtr target            = nullptr;
     };
@@ -101,6 +104,9 @@ namespace Overcharge
         //0: <0.25 Alpha, 1: <0.75 Alpha, 2: >=1.0 Alpha && <1.25 EmitMult, 3: >=1.0 Alpha && >1.25 EmitMult
         std::array<NiMaterialPropertyPtr, 4> matProps; 
         std::vector<OCBlock>                 targetBlocks;
+
+        BSSoundHandle heatSoundHandle;
+        BSSoundHandle chargeSoundHandle;
     };
 
     struct HeatData

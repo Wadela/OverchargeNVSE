@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 //Overcharge
 #include "NifOverride.hpp"
@@ -16,6 +16,7 @@
 #include <MuzzleFlash.hpp>
 #include <MagicItemForm.hpp>
 #include "PlayerCharacter.hpp"
+#include "MiddleHighProcess.hpp"
 
 //NVSE
 #include <SafeWrite.hpp>
@@ -39,15 +40,20 @@ namespace Overcharge
 		{
 			for (auto& it : data->sHeatedNodes)
 			{
-				UInt16 flags = it.flags;
+				UInt32 flags = it.flags;
 				if (!it.nodeName) continue;
 				const NiFixedString& nodeName = it.nodeName;
 
 				if (NiAVObjectPtr block = sourceNode->GetObjectByName(nodeName))
 				{
+					if (flags & OCXCull)
+						block->SetAppCulled(true);
+
 					NiMaterialPropertyPtr matProp = nullptr;
+
 					if (flags & OCXColor)
-					matProp = NiMaterialProperty::CreateObject();
+						matProp = NiMaterialProperty::CreateObject();
+
 					blocks.push_back({flags, matProp, block});
 					if (isPlayer1st && flags & OCXParticle && block->IsNiType<NiNode>())
 					{
@@ -88,7 +94,7 @@ namespace Overcharge
 		return (it != vec.end()) ? *it : nullptr;
 	}
 
-	inline void InitializeHeat3D(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
+	inline void InitializeHeatFX(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
 	{
 		auto player = PlayerCharacter::GetSingleton();
 		if (!player || !heat || !heat->rActor || !heat->rWeap) return;
@@ -137,6 +143,46 @@ namespace Overcharge
 		}
 	}
 
+	inline bool FadeOutAndStop(BSSoundHandle* handle, uint32_t auiMilliseconds)
+	{
+		if (handle->uiSoundID == -1)
+			return 0;
+
+		UInt32 uiSoundID = handle->uiSoundID;
+		BSAudioManager* audioManager = BSAudioManager::GetSingleton();
+
+		audioManager->FadeTo(uiSoundID, auiMilliseconds, 4);
+	}
+
+	inline void InitializeHeatSounds(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
+	{
+		std::string_view heatSound = heat->config->sHeatSoundFile;
+		if (!heatSound.empty())
+			heat->fx.heatSoundHandle =
+			BSWin32Audio::GetSingleton()->GetSoundHandleByFilePath(
+				heatSound.data(), 0, nullptr);
+
+		std::string_view chargeSound = heat->config->sChargeSoundFile;
+		if (!chargeSound.empty())
+		{
+			UInt32 audioFlags = 0;
+			if (chargeSound.size() >= 3)
+			{
+				size_t dotPos = chargeSound.rfind('.');
+				size_t endPos = (dotPos != std::string_view::npos) ? dotPos : chargeSound.size();
+				if (chargeSound[endPos - 3] == '_' &&
+					chargeSound[endPos - 2] == 'l' &&
+					chargeSound[endPos - 1] == 'p')
+				{
+					audioFlags = 0x10;
+				}
+			}
+			heat->fx.chargeSoundHandle =
+				BSWin32Audio::GetSingleton()->GetSoundHandleByFilePath(
+					chargeSound.data(), audioFlags, nullptr);
+		}
+	}
+
 	inline std::shared_ptr<HeatData> GetOrCreateHeat(Actor* rActor)
 	{
 		if (!rActor) return nullptr;
@@ -154,26 +200,34 @@ namespace Overcharge
 		if (heat) {
 			heat->config = config;
 			InitializeHeatData(heat, config);
-			InitializeHeat3D(heat, config);
 			return heat;
 		}
 
 		heat = std::make_shared<HeatData>(config);
 		heat->rActor = rActor;
 		heat->rWeap = rWeap;
-		InitializeHeat3D(heat, config);
+		InitializeHeatFX(heat, config);
 		InitializeHeatData(heat, config);
-
+		InitializeHeatSounds(heat, config);
 		return heat;
 	}
 
-	inline void UpdateOverchargeShot(HeatState& st, float frameTime, const HeatConfiguration* config)
+	inline void DisableAiming()
 	{
-		if (st.uiOCEffect & OCEffects_Overheat) return;
+		auto inputManager = BSInputManager::GetSingleton();
+		inputManager->SetUserAction(BSInputManager::Aim, BSInputManager::None);
+		inputManager->SetUserAction(BSInputManager::ReadyItem, BSInputManager::None);
+		inputManager->SetUserAction(BSInputManager::VATS_, BSInputManager::None);
+	}
 
+	inline void UpdateOverchargeShot(std::shared_ptr<HeatData> inst, float frameTime)
+	{
 		SInt32 attackHeld = 0;
 		SInt32 attackDepressed = 0;
 		SInt32 attackPressed = 0;
+		HeatState& st = inst->state;
+		const HeatConfiguration* config = inst->config;
+
 		auto inputManager = BSInputManager::GetSingleton();
 		if (inputManager)
 		{
@@ -182,7 +236,10 @@ namespace Overcharge
 			attackPressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
 		}
 
-		if (config->iOverchargeEffect & OCEffects_Overcharge && attackPressed) st.uiTicksPassed = 0;
+		if (config->iOverchargeEffect & OCEffects_Overcharge && attackPressed)
+		{
+			st.uiTicksPassed = 0;
+		}
 
 		float timePassed = st.uiTicksPassed * frameTime;
 
@@ -191,6 +248,7 @@ namespace Overcharge
 		auto trm = node1st->GetObjectByName("##trm");
 		static float shakeTime = 0.0f;
 		static float shakeBlend = 0.0f; 
+		static float currentVolume = 0.0f;
 
 		if (config->iOverchargeEffect & OCEffects_Overcharge && attackHeld)
 		{
@@ -199,34 +257,41 @@ namespace Overcharge
 
 			shakeTime += frameTime * 8.5f;
 			shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
-
 			const float freq1 = 6.0f;
-			const float freq2 = 12.0f;
-
+			const float freq2 = 11.0f;
 			float heatFactor = std::clamp(st.fHeatVal / 100.0f, 0.0f, 1.0f);
 			float shakeAmp = 0.08f * shakeBlend * heatFactor;
-
-			float jitterX = (sinf(shakeTime * freq1) + 0.4f * cosf(shakeTime * freq2)) * shakeAmp;
-			float jitterY = (cosf(shakeTime * freq1) + 0.1f * sinf(shakeTime * freq2)) * shakeAmp;
-
+			float jitterX = (sinf(shakeTime * freq1) + 0.45f * cosf(shakeTime * freq2)) * shakeAmp;
+			float jitterY = (cosf(shakeTime * freq1) + 0.15f * sinf(shakeTime * freq2)) * shakeAmp;
 			trm->m_kLocal.m_Translate.x = jitterX;
 			trm->m_kLocal.m_Translate.z = jitterY;
+
+			float targetVolume = st.fHeatVal / 100.0f;
+			float rampSpeed = 2.0f;
+			currentVolume += (targetVolume - currentVolume) * std::clamp(frameTime * rampSpeed, 0.0f, 1.0f);
+
+			inst->fx.chargeSoundHandle.SetVolume(currentVolume);
+			if (!inst->fx.chargeSoundHandle.IsPlaying())
+				inst->fx.chargeSoundHandle.FadeInPlay(50);
 		}
 		else if (attackDepressed && st.uiOCEffect & OCEffects_Overcharge)
 		{
 			st.uiOCEffect &= ~OCEffects_Overcharge;
 			inputManager->SetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
-
+			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
 			trm->m_kLocal.m_Translate.x = 0.0f;
 			trm->m_kLocal.m_Translate.y = 0.0f;
 			shakeTime = 0.0f;
+			currentVolume = 0.0f;
 		}
 
 		if ((st.uiOCEffect & OCEffects_Overcharge)
 			&& !(st.uiOCEffect & OCEffects_Overheat)
+			&& timePassed >= COOLDOWN_DELAY
 			&& st.fHeatVal <= HOT_THRESHOLD)
 		{
 			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (3 * st.fHeatPerShot));
+
 		}
 
 		if ((st.uiOCEffect & OCEffects_Overcharge) &&
@@ -237,13 +302,14 @@ namespace Overcharge
 		}
 	}
 
-	inline void UpdateChargeDelay(HeatState& st, float frameTime, float timePassed, const HeatConfiguration* config)
+	inline void UpdateChargeDelay(std::shared_ptr<HeatData> inst, float frameTime)
 	{
-		if (st.uiOCEffect & OCEffects_Overheat) return;
-
 		SInt32 attackHeld = 0;
 		SInt32 attackDepressed = 0;
 		SInt32 attackPressed = 0;
+		HeatState& st = inst->state;
+		const HeatConfiguration* config = inst->config;
+
 		auto inputManager = BSInputManager::GetSingleton();
 		if (inputManager)
 		{
@@ -258,21 +324,39 @@ namespace Overcharge
 		static float shakeTime = 0.0f;
 		static float shakeBlend = 0.0f;
 
-		if (config->iOverchargeEffect & OCEffects_ChargeDelay && attackHeld)
+		if ((config->iOverchargeEffect & OCEffects_ChargeDelay) && attackPressed)
+			st.uiTicksPassed = 0;
+
+		if ((config->iOverchargeEffect & OCEffects_ChargeDelay) && attackHeld)
 		{
 			if (!(st.uiOCEffect & OCEffects_Overheat))
 			{
-				if (st.fHeatVal < st.uiOCEffectThreshold)
+				if (st.uiTicksPassed == 0)
+					st.fTargetVal = st.fHeatVal + st.uiOCEffectThreshold;
+
+				if (st.fHeatVal < st.fTargetVal)
+				{
 					st.uiOCEffect |= OCEffects_ChargeDelay;
-				else st.uiOCEffect &= ~OCEffects_ChargeDelay;
+				}
+				else
+				{
+					st.uiOCEffect &= ~OCEffects_ChargeDelay;
+					FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
+					trm->m_kLocal.m_Translate.x = 0.0f;
+					trm->m_kLocal.m_Translate.y = 0.0f;
+					shakeTime = 0.0f;
+					st.fTargetVal = -1.0f;
+				}
 			}
 		}
-		else if (attackDepressed && st.uiOCEffect & OCEffects_ChargeDelay)
+		else if (attackDepressed && (st.uiOCEffect & OCEffects_ChargeDelay))
 		{
 			st.uiOCEffect &= ~OCEffects_ChargeDelay;
+			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
 			trm->m_kLocal.m_Translate.x = 0.0f;
 			trm->m_kLocal.m_Translate.y = 0.0f;
 			shakeTime = 0.0f;
+			st.fTargetVal = -1.0f;
 		}
 
 		if ((st.uiOCEffect & OCEffects_ChargeDelay)
@@ -282,9 +366,7 @@ namespace Overcharge
 			shakeTime += frameTime * 8.5f;
 			shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
 
-			const float freq1 = 6.0f;
-			const float freq2 = 12.0f;
-
+			const float freq1 = 6.0f, freq2 = 12.0f;
 			float shakeAmp = 0.08f * shakeBlend;
 
 			float jitterX = (sinf(shakeTime * freq1) + 0.4f * cosf(shakeTime * freq2)) * shakeAmp;
@@ -293,10 +375,14 @@ namespace Overcharge
 			trm->m_kLocal.m_Translate.x = jitterX;
 			trm->m_kLocal.m_Translate.y = jitterY;
 
+			if (!inst->fx.chargeSoundHandle.IsPlaying())
+				inst->fx.chargeSoundHandle.FadeInPlay(50);
+
 			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (3 * st.fHeatPerShot));
 			st.uiTicksPassed = 0;
 		}
 	}
+
 
 	inline void UpdateHeatFX(std::shared_ptr<HeatData>& heat, float frameTime)
 	{
@@ -319,8 +405,11 @@ namespace Overcharge
 			if (node.OCXFlags & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
 			if (node.OCXFlags & OCXOnDelay)      effectFlags |= OCEffects_ChargeDelay;
 			if (node.OCXFlags & OCXOnAltProj)    effectFlags |= OCEffects_AltProjectile;
+			bool hasEffectFlags = node.OCXFlags & (OCXOnOverheat | OCXOnOvercharge | OCXOnDelay | OCXOnAltProj);
 
-			const bool onEffect = (effectFlags == 0) || (st.uiOCEffect & effectFlags);
+			bool onEffect = (effectFlags == 0) || (st.uiOCEffect & effectFlags);
+			if (node.OCXFlags & OCXOnInactive)
+				onEffect = onEffect && !st.bIsActive;
 
 			if ((node.OCXFlags & OCXParticle) && node.target->IsNiType<NiNode>()) {
 				TraverseNiNode<NiParticleSystem>(
@@ -328,31 +417,42 @@ namespace Overcharge
 					[&](NiParticleSystem* psys) {
 						if (auto ctlr = psys->GetControllers())
 						{
-							if (node.OCXFlags & OCXColor)
-							SetEmissiveColor(psys, fx.currCol, node.matProp);
 							if (onEffect) ctlr->Start();
 							else ctlr->Stop();
 						}
 					});
 			}
 
+			if ((node.OCXFlags & OCXCull))
+				node.target->SetAppCulled(!st.bIsActive);
+
 			if (!onEffect) continue;
 
 			if (node.OCXFlags & OCXColor)
-				SetEmissiveColor(node.target.m_pObject, fx.currCol, node.matProp);
-
+			{
+				if (node.target->IsNiType<NiNode>())
+					TraverseNiNode<NiGeometry>(
+						static_cast<NiNode*>(node.target.m_pObject),
+						[&](NiGeometry* geom) {
+							SetEmissiveColor(geom, fx.currCol, node.matProp);
+						});
+				else if (node.target->IsNiType<NiGeometry>())
+					SetEmissiveColor(node.target.m_pObject, fx.currCol, node.matProp);
+			}
+			bool isNegative = node.OCXFlags & OCXNegative;
 			if (node.OCXFlags & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
 				ApplyFixedRotation(node.target, heatPercent,
 					node.OCXFlags & OCXRotateX,
 					node.OCXFlags & OCXRotateY,
-					node.OCXFlags & OCXRotateZ);
+					node.OCXFlags & OCXRotateZ,
+					isNegative);
 			}
-
 			if (node.OCXFlags & (OCXSpinX | OCXSpinY | OCXSpinZ)) {
 				ApplyFixedSpin(node.target, heatPercent, frameTime,
 					node.OCXFlags & OCXSpinX,
 					node.OCXFlags & OCXSpinY,
-					node.OCXFlags & OCXSpinZ);
+					node.OCXFlags & OCXSpinZ,
+					isNegative);
 			}
 		}
 	}

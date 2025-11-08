@@ -180,10 +180,12 @@
     <ClCompile Include="Bethesda\bhkCharacterController.cpp" />
     <ClCompile Include="Bethesda\bhkUtilFunctions.cpp" />
     <ClCompile Include="Bethesda\bhkWorld.cpp" />
+    <ClCompile Include="Bethesda\BSAudioManager.cpp" />
     <ClCompile Include="Bethesda\BSFaceGenManager.cpp" />
     <ClCompile Include="Bethesda\BSInputManager.cpp" />
     <ClCompile Include="Bethesda\BSMemory.cpp" />
     <ClCompile Include="Bethesda\BSShaderAccumulator.cpp" />
+    <ClCompile Include="Bethesda\BSWin32Audio.cpp" />
     <ClCompile Include="Bethesda\MagicItem.cpp" />
     <ClCompile Include="Bethesda\MemoryManager.cpp" />
     <ClCompile Include="Bethesda\MissileProjectile.cpp" />

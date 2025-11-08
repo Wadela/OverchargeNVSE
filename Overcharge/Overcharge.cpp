@@ -13,7 +13,7 @@ namespace Overcharge
         uiAmmoThreshold(ammoTH), uiProjThreshold(projTH), uiEnchThreshold(enchTH), uiOCEffectThreshold(effectTH),
         uiDamage(dmg), uiCritDamage(critDmg), uiTicksPassed(0), uiOCEffect(OCEffect), uiObjectEffectID(enchID),
         fAccuracy(accuracy), fFireRate(rof), fProjectileSpeed(projSpd), fProjectileSize(projSize),
-        fHeatVal(0.0f), fHeatPerShot(perShot), fCooldownRate(cooldown) {
+        fHeatPerShot(perShot), fCooldownRate(cooldown), fHeatVal(0.0f), fTargetVal(0.0f) {
     }
 
     HeatState::HeatState(const HeatConfiguration& config)

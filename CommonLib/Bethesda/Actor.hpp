@@ -292,6 +292,15 @@ public:
 		return nullptr;
 	}
 
+	TESAmmo* GetCurrentAmmo() {
+		if (pkBaseProcess) {
+			const ItemChange* pCurrentAmmo = pkBaseProcess->GetAmmo();
+			if (pCurrentAmmo)
+				return reinterpret_cast<TESAmmo*>(pCurrentAmmo->pObject);
+		}
+		return nullptr;
+	}
+
 	TESPackage* GetCurrentPackage() const;
 
 	double GetDistanceToRef(TESObjectREFR* apTarget, bool abEnabledOnly, bool abSharedSpace) const;

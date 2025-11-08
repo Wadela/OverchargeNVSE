@@ -101,11 +101,14 @@ namespace Overcharge
 	}
 
 
-	static void ApplyFixedRotation(NiAVObjectPtr obj, float percent, bool rotX, bool rotY, bool rotZ)
+	static void ApplyFixedRotation(NiAVObjectPtr obj, float percent, bool rotX, bool rotY, bool rotZ, bool isNegative = false)
 	{
-		float x = rotX ? NI_PI * percent : 0.0f;
-		float y = rotY ? NI_PI * percent : 0.0f;
-		float z = rotZ ? NI_PI * percent : 0.0f;
+		if (!obj) return;
+
+		float sign = isNegative ? -1.0f : 1.0f;
+		float x = rotX ? sign * NI_PI * percent : 0.0f;
+		float y = rotY ? sign * NI_PI * percent : 0.0f;
+		float z = rotZ ? sign * NI_PI * percent : 0.0f;
 
 		if (obj->IsNiType<NiNode>())
 		{
@@ -116,16 +119,15 @@ namespace Overcharge
 		else obj->m_kLocal.m_Rotate.FromEulerAnglesXYZ(x, y, z);
 	}
 
-	static void ApplyFixedSpin(NiAVObjectPtr obj, float percent, float time, bool rotX, bool rotY, bool rotZ)
+	static void ApplyFixedSpin(NiAVObjectPtr obj, float percent, float time, bool rotX, bool rotY, bool rotZ, bool isNegative = false)
 	{
-		if (!obj)
-			return;
+		if (!obj) return;
 
 		float angle = NI_TWO_PI * percent * time;
-
-		float x = rotX ? angle : 0.0f;
-		float y = rotY ? angle : 0.0f;
-		float z = rotZ ? angle : 0.0f;
+		float sign = isNegative ? -1.0f : 1.0f;
+		float x = rotX ? angle * sign : 0.0f;
+		float y = rotY ? angle * sign : 0.0f;
+		float z = rotZ ? angle * sign : 0.0f;
 
 		NiMatrix3 rotDelta;
 		rotDelta.FromEulerAnglesXYZ(x, y, z);

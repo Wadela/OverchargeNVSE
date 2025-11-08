@@ -106,8 +106,10 @@ namespace Overcharge
 
 		std::string_view sub = str.substr(open + 1, close - open - 1);
 		auto parts = SplitByDelimiter(sub, ',');
-		for (size_t i = 0; i < parts.size() && i < 3; ++i)
-			std::from_chars(parts[i].data(), parts[i].data() + parts[i].size(), values[i]);
+		for (size_t i = 0; i < parts.size() && i < 3; ++i) {
+			std::string tmp(parts[i]);           // make null-terminated string
+			values[i] = std::strtof(tmp.c_str(), nullptr);
+		}
 
 		return values;
 	}
@@ -136,9 +138,16 @@ namespace Overcharge
 			auto parts = SplitByDelimiter(objEffect, '(');
 			if (!parts.empty())
 			{
-				config.iObjectEffectID = parts[0].empty()
-					? defaults.iObjectEffectID
-					: TESForm::GetFormIDByEdID(parts[0].data());
+				if (parts[0].empty())
+				{
+					config.iObjectEffectID = defaults.iObjectEffectID;
+				}
+				else
+				{
+					char tempName[64];
+					std::snprintf(tempName, sizeof(tempName), "%.*s", (int)parts[0].size(), parts[0].data());
+					config.iObjectEffectID = TESForm::GetFormIDByEdID(tempName);
+				}
 			}
 			if (parts.size() >= 2)
 				config.iObjectEffectThreshold = static_cast<UInt8>(ParseDelimitedData(parts[1], '\0', ')'));
@@ -210,8 +219,26 @@ namespace Overcharge
 				? StringToFlags(OCString, ' ', OCFlagNames)
 				: defaults.iOverchargeFlags;
 
+			char heatSoundBuffer[128];
+			if (std::string_view hSound = ini.GetValue(secItem, "sOverheatSFX", ""); !hSound.empty())
+			{
+				std::snprintf(heatSoundBuffer, sizeof(heatSoundBuffer), 
+					"Sound\\OCSounds\\%.*s", (int)hSound.size(), hSound.data());
+
+				config.sHeatSoundFile = heatSoundBuffer;
+			}
+
+			char chargeSoundBuffer[128];
+			if (std::string_view cSound = ini.GetValue(secItem, "sChargeSFX", ""); !cSound.empty())
+			{
+				std::snprintf(chargeSoundBuffer, sizeof(chargeSoundBuffer), 
+					"Sound\\OCSounds\\%.*s", (int)cSound.size(), cSound.data());
+
+				config.sChargeSoundFile = chargeSoundBuffer;
+			}
+
 			char animFileBuffer[128];
-			std::string_view animFile = ini.GetValue(secItem, "sAnimationFile", "");
+			std::string_view animFile = ini.GetValue(secItem, "sOverheatAnimation", "");
 			std::string_view weapType = EnumToString(rWeap->eWeaponType, OCWeapTypeNames);
 			if (animFile.empty()) {
 				std::snprintf(animFileBuffer, sizeof(animFileBuffer), "OCAnims\\Overheat%.*s.kf",
@@ -239,7 +266,7 @@ namespace Overcharge
 				std::string_view nodeName = Trim(parts[0]);
 				std::snprintf(tempName, sizeof(tempName), "%.*s", nodeName.size(), nodeName.data());
 
-				UInt16 flags = 0;
+				UInt32 flags = 0;
 				if (parts.size() >= 2)
 				{
 					std::string_view flagsStr = parts[1];
@@ -251,7 +278,7 @@ namespace Overcharge
 				}
 
 				NiFixedString fixed(rWeap->kModel.c_str());
-				HeatedNode hNode({ 0xFFFF, flags, NiFixedString(tempName) });
+				HeatedNode hNode({ 0xFFFFFF, flags, NiFixedString(tempName) });
 				OCExtraModels.push_back({ fixed, hNode, 0.0f, (0, 0, 0), (0,0,0) });
 
 				config.sHeatedNodes.push_back({ static_cast<UInt16>(i), flags, tempName});
@@ -274,7 +301,7 @@ namespace Overcharge
 				auto parts = SplitByDelimiter(nodeVal, '(');
 				std::string_view nodeName = Trim(parts[0]);
 
-				UInt16 flags = 0;
+				UInt32 flags = 0;
 				if (parts.size() >= 2)
 				{
 					std::string_view flagsStr = parts[1];

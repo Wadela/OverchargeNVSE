@@ -32,20 +32,25 @@ namespace Overcharge
 		if (instance->config->iOverchargeEffect & OCEffects_Overheat)
 			st.UpdateOverheat();
 
-		if (isPlayer)
-		{
-			UpdateOverchargeShot(st, frameTime, instance->config);
-			UpdateChargeDelay(st, frameTime, timePassed, instance->config);
-		}
-
 		if (instance->rActor->GetCurrentWeapon() != instance->rWeap
-			|| instance->rActor->IsDying()) st.bIsActive = false;
+			|| instance->rActor->IsDying()
+			|| !instance->rActor->IsWeaponDrawn()) st.bIsActive = false;
 		if (!st.bIsActive && !instance->rActor->IsDying()
 			&& instance->rActor->IsWeaponDrawn()
 			&& instance->rActor->GetCurrentWeapon() == instance->rWeap)
 		{
 			st.bIsActive = true;
 			InitializeHeatData(instance, instance->config);
+		}
+
+		if (isPlayer && st.bIsActive)
+		{
+			if (!st.IsOverheating())
+			{
+				UpdateOverchargeShot(instance, frameTime);
+				UpdateChargeDelay(instance, frameTime);
+			}
+			else DisableAiming();
 		}
 
 		if (timePassed >= COOLDOWN_DELAY && !(st.uiOCEffect & STOP_COOLDOWN_FLAGS) && st.fHeatVal > 0.0f)
@@ -168,6 +173,9 @@ namespace Overcharge
 		UpdatePerks(heat);
 
 		rWeap->ammoUse = heat->state.uiAmmoUsed;
+		if (heat->state.uiOCEffect & OCEffects_AltProjectile)
+			rWeap->ammoUse *= 3;
+
 		rWeap->numProjectiles = heat->state.uiProjectiles;
 		rWeap->usAttackDamage = heat->state.uiDamage;
 		rWeap->criticalDamage = heat->state.uiCritDamage;
@@ -231,6 +239,9 @@ namespace Overcharge
 			BGSProjectile* altProj = reinterpret_cast<BGSProjectile*>(altForm);
 			apBGSProjectile = altProj;
 		}
+		else if (heat && heat->state.uiOCEffect & OCEffects_AltProjectile)
+			heat->state.uiOCEffect &= ~OCEffects_AltProjectile;
+
 
 		Projectile* proj = CdeclCall<Projectile*>(0x9BCA60,
 			apBGSProjectile, apActor, apCombatController, apWeap,
@@ -270,7 +281,8 @@ namespace Overcharge
 			});
 		TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometryPtr geom) {
 			auto matProp = PickMaterial(geom.m_pObject, heat->fx);
-			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
+			auto matProp1 = NiMaterialProperty::CreateObject();
+			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp1);
 			});
 		TraverseNiNode<NiParticleSystem>(projNode, [&heat](NiParticleSystemPtr psys) {
 			activeInstances[psys] = heat;
@@ -299,7 +311,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				auto matProp = PickMaterial(geom.m_pObject, heat->fx);
+				auto matProp = NiMaterialProperty::CreateObject();
 				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
@@ -337,8 +349,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				auto matProp = PickMaterial(geom.m_pObject, heat->fx);
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -593,6 +604,29 @@ namespace Overcharge
 		return weapon;
 	}
 
+	double __fastcall GetWeapAttackMult(TESObjectWEAP* thisPtr, void* edx, char a2)
+	{
+		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
+		Actor* rActor = *reinterpret_cast<Actor**>(ebp + 0x8);
+
+		if (!thisPtr || !rActor || !rActor->GetCurrentWeapon())
+			return ThisStdCall<double>(0x646020, thisPtr, a2);
+
+		const auto ogAnimAttackMult = thisPtr->animAttackMult;
+		if (auto heat = GetActiveHeat(rActor->uiFormID, thisPtr->uiFormID))
+		{
+			const float heatRatio = heat->state.fHeatVal / 100.0f;
+			thisPtr->animAttackMult = ScaleByPercentRange(
+				thisPtr->animAttackMult,
+				heat->config->fMinFireRate, heat->config->fMaxFireRate,
+				heatRatio
+			);
+		}
+		double result = ThisStdCall<double>(0x646020, thisPtr, a2);
+		thisPtr->animAttackMult = ogAnimAttackMult;
+		return result;
+	}
+
 	void InitHooks()
 	{
 		// Hook Addresses
@@ -652,5 +686,6 @@ namespace Overcharge
 		WriteRelCall(readyWeapAddr, &EquipItemWrapper);
 		WriteRelCall(0x9AD024, &CreateExplosionLight);
 		WriteRelJump(0xC220C0, &ReplaceColorModifiers);
+		WriteRelCall(0x929F5D, &GetWeapAttackMult);
 	}
 }

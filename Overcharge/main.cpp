@@ -6,8 +6,10 @@
 #include "OverchargeConfig.hpp"
 #include "OverchargeHooks.hpp"
 #include "CommandsOvercharge.hpp"
+#include "OverchargeHooks.hpp"
 //#include <tracy/Tracy.hpp>
 
+BSSoundHandle* g_SoundHandle;
 
 bool IsGamePaused()
 {

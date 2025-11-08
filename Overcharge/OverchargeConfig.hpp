@@ -7,6 +7,7 @@
 #include "TESObjectWEAP.hpp"
 #include "BGSImpactDataSet.hpp"
 #include "ModelLoader.hpp"
+#include "BSWin32Audio.hpp"
 #include "BGSPerk.hpp"
 
 //Other Libraries
@@ -26,21 +27,26 @@ namespace Overcharge
 	extern BGSPerk* OCPerkCoolantLeak;
 	extern BGSPerk* OCPerkThermicInversion;
 
-	enum OCXAddons : UInt16
+	enum OCXAddons : UInt32
 	{
 		None			  = 0,
-		OCXColor		  = 1 << 0,
-		OCXParticle		  = 1 << 1,
-		OCXOnOverheat	  = 1 << 2,
-		OCXOnOvercharge   = 1 << 3,
-		OCXOnDelay		  = 1 << 4,
-		OCXOnAltProj	  = 1 << 5,
-		OCXRotateX		  = 1 << 6,
-		OCXRotateY		  = 1 << 7,
-		OCXRotateZ		  = 1 << 8,
-		OCXSpinX		  = 1 << 9,
-		OCXSpinY		  = 1 << 10,
-		OCXSpinZ		  = 1 << 11,
+		OCXColor		  = 1 << 1,
+		OCXParticle		  = 1 << 2,
+		OCXOnFire		  = 1 << 3,
+		OCXOnOverheat	  = 1 << 4,
+		OCXOnOvercharge   = 1 << 5,
+		OCXOnDelay		  = 1 << 6,
+		OCXOnAltProj	  = 1 << 7,
+		OCXOnInactive     = 1 << 8,
+		OCXRotateX		  = 1 << 9,
+		OCXRotateY		  = 1 << 10,
+		OCXRotateZ		  = 1 << 11,
+		OCXSpinX		  = 1 << 12,
+		OCXSpinY		  = 1 << 13,
+		OCXSpinZ		  = 1 << 14,
+		OCXFlicker		  = 1 << 15,
+		OCXNegative		  = 1 << 16,
+		OCXCull		      = 1 << 17,
 	};
 
 	enum OCFlags : UInt16
@@ -84,20 +90,25 @@ namespace Overcharge
 		OCWeap_Thrown
 	};
 
-	constexpr std::array<std::pair<UInt16, std::string_view>, 12> OCXAddonNames
+	constexpr std::array<std::pair<UInt32, std::string_view>, 17> OCXAddonNames
 	{ {
 		{ OCXColor,				"color"	     },
 		{ OCXParticle,			"particle"   },
+		{ OCXOnFire,			"onfire"	 },
 		{ OCXOnOverheat,		"onoverheat" },
 		{ OCXOnOvercharge,		"oncharge"	 },
 		{ OCXOnDelay,			"ondelay"	 },
 		{ OCXOnAltProj,		    "onaltproj"	 },
+		{ OCXOnInactive,		"oninactive" },
 		{ OCXRotateX,			"rotateX"	 },
 		{ OCXRotateY,			"rotatey"    },
 		{ OCXRotateZ,			"rotatez"    },
-		{ OCXSpinX	,			"spinx"	     },
-		{ OCXSpinY	,			"spiny"		 },
-		{ OCXSpinZ	,			"spinz"		 }
+		{ OCXSpinX,				"spinx"	     },
+		{ OCXSpinY,				"spiny"		 },
+		{ OCXSpinZ,				"spinz"		 },
+		{ OCXFlicker,			"flicker"	 },
+		{ OCXNegative,			"negative"	 },
+		{ OCXCull,				"cull"		 }
 	} };
 
 	constexpr std::array<std::pair<UInt16, std::string_view>, 10> OCFlagNames
@@ -162,8 +173,8 @@ namespace Overcharge
 
 	struct HeatedNode
 	{
-		UInt16			index;
-		UInt16			flags;
+		UInt32			index;
+		UInt32			flags;
 		NiFixedString	nodeName;
 	};
 
@@ -212,6 +223,9 @@ namespace Overcharge
 		float fMaxAccuracy = -1;
 
 		NiFixedString sAnimFile;
+		NiFixedString sHeatSoundFile;
+		NiFixedString sChargeSoundFile;
+
 		std::vector<HeatedNode> sHeatedNodes;
 	};
 
