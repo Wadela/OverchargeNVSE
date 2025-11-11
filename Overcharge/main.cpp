@@ -6,18 +6,9 @@
 #include "OverchargeConfig.hpp"
 #include "OverchargeHooks.hpp"
 #include "CommandsOvercharge.hpp"
-#include "OverchargeHooks.hpp"
 //#include <tracy/Tracy.hpp>
 
 BSSoundHandle* g_SoundHandle;
-
-bool IsGamePaused()
-{
-	bool isMainOrPauseMenuOpen = *(Menu**)0x11DAAC0; // g_startMenu, credits to lStewieAl
-	auto* console = ConsoleManager::GetSingleton();
-
-	return isMainOrPauseMenuOpen || console->IsConsoleOpen();
-}
 
 void InitSingletons()
 {
@@ -39,7 +30,7 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 
 		for (const auto& i : deferredInit) i(); // call all deferred init functions
 
-		Overcharge::LoadWeaponConfigs("Data\\NVSE\\Plugins\\OCWeapons");
+		Overcharge::LoadWeaponConfigs("Data\\NVSE\\OCWeapons");
 		Overcharge::InitPerks();
 		Overcharge::PostLoad();
 	}
@@ -52,7 +43,8 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 		for (const auto& i : mainLoop) i(); // call all mainloop functions
 
 		static int OCFrameCounter = 0;
-		if (!IsGamePaused() && !MenuMode() && !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
+		if (!Overcharge::IsGamePaused() && !MenuMode() 
+			&& !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
 		{
 			Overcharge::UpdatePlayerOCWeapons();										//Cooldown system runs in gameloop
 			if (++OCFrameCounter >= Overcharge::NPC_UPDATE_THROTTLE) {
@@ -153,9 +145,9 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 
 	for (const auto& i : pluginLoad) i(); // call all plugin load functions
 
-	g_seInterface->RegisterCommand(&kCommandInfo_GetHeatState);
-	g_seInterface->RegisterCommand(&kCommandInfo_SetHeatState);
-	g_seInterface->RegisterCommand(&kCommandInfo_GetHeatConfig);
+	g_seInterface->RegisterCommand(&kCommandInfo_GetOCWeaponState);
+	g_seInterface->RegisterCommand(&kCommandInfo_SetOCWeaponState);
+	g_seInterface->RegisterCommand(&kCommandInfo_GetOCWeaponConfig);
 
 	return true;
 }

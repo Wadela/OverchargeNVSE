@@ -54,15 +54,12 @@ namespace Overcharge
 			geom->DetachProperty(matProp);
 			geom->AddProperty(newMatProp);
 			geom->AttachProperty(newMatProp);
-
 			newMatProp->m_fAlpha = matProp->m_fAlpha;
 			newMatProp->m_fEmitMult = matProp->m_fEmitMult;
 			newMatProp->m_fShine = matProp->m_fShine;
 			newMatProp->m_spec = matProp->m_spec;
 			newMatProp->m_emit = color;
-
 			geom->UpdateProperties();
-
 			return;
 		}
 
@@ -70,36 +67,31 @@ namespace Overcharge
 		matProp->m_emit = color;
 	}
 
-	static NiMaterialPropertyPtr PickMaterial(NiAVObjectPtr obj, HeatFX& fx)
+	static void CreateEmissiveColor(NiGeometryPtr geom, const NiColor& color)
 	{
-		if (!obj)
-			return nullptr;
-
-		auto geom = obj->NiDynamicCast<NiGeometry>();
-		if (!geom)
-			return nullptr;
-
+		if (!geom) return;
 		auto& matProp = geom->m_kProperties.m_spMaterialProperty;
-		if (!matProp)
-			return nullptr;
+		auto* newMatProp = NiMaterialProperty::CreateObject();
 
-		float alpha = matProp->m_fAlpha;
-		float emitMult = matProp->m_fEmitMult;
+		if (newMatProp)
+		{
+			geom->RemoveProperty(NiProperty::MATERIAL);
+			geom->DetachProperty(matProp);
+			geom->AddProperty(newMatProp);
+			geom->AttachProperty(newMatProp);
+			newMatProp->m_fAlpha = matProp->m_fAlpha;
+			newMatProp->m_fEmitMult = matProp->m_fEmitMult;
+			newMatProp->m_fShine = matProp->m_fShine;
+			newMatProp->m_spec = matProp->m_spec;
+			newMatProp->m_emit = color;
 
-		NiMaterialPropertyPtr chosenMat = nullptr;
-
-		if (alpha < 0.25f)
-			chosenMat = fx.matProps[0];
-		else if (alpha < 1.0f)
-			chosenMat = fx.matProps[1];
-		else if (alpha >= 1.0f && emitMult <= 1.25f)
-			chosenMat = fx.matProps[2];
-		else if (alpha >= 1.0f && emitMult > 1.25f)
-			chosenMat = fx.matProps[3];
-
-		return chosenMat;
+			if (auto& ctlr = matProp->m_spControllers) {
+				auto newCtlr = ctlr->Clone()->NiDynamicCast<NiTimeController>();
+				newCtlr->SetTarget(newMatProp);
+			}
+			geom->UpdateProperties();
+		}
 	}
-
 
 	static void ApplyFixedRotation(NiAVObjectPtr obj, float percent, bool rotX, bool rotY, bool rotZ, bool isNegative = false)
 	{
@@ -144,6 +136,31 @@ namespace Overcharge
 		}
 	}
 
+	inline void ApplyFlicker(float& currentMultiplier, float startMultiplier, float frameTime, UInt32 ticksPassed, bool negative = false)
+	{
+		const float phaseDuration = 0.15f;
+		const float totalDuration = phaseDuration * 2.0f;
+		const float endMultiplier = startMultiplier / 20.0f;
+		const float time = frameTime * ticksPassed;
+
+		float from = negative ? endMultiplier : startMultiplier;
+		float to = negative ? startMultiplier : endMultiplier;
+
+		if (time >= totalDuration) {
+			currentMultiplier = negative ? endMultiplier : startMultiplier;
+			return;
+		}
+
+		if (time < phaseDuration) {
+			float t = time / phaseDuration;
+			currentMultiplier = from + (to - from) * t;
+		}
+		else {
+			float t = (time - phaseDuration) / phaseDuration;
+			currentMultiplier = to + (from - to) * t;
+		}
+	}
+
 	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
 	static void PrepColorMod(NiParticleSystemPtr& childParticle)
 	{
@@ -157,7 +174,7 @@ namespace Overcharge
 			if (BSPSysSimpleColorModifier* colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
 			{
 				NiColorA OGCol = colorMod->kColor2;
-				const NiColor emit = (OGCol.r, OGCol.g, OGCol.b);
+				const NiColor emit{ OGCol.r, OGCol.g, OGCol.b };
 				SetEmissiveColor(childParticle.m_pObject, emit);
 
 				NiColorA grayScale = DesaturateRGBA(OGCol, 1.0f);
@@ -206,26 +223,21 @@ namespace Overcharge
 		}
 		else
 		{
+			char nameBuffer[256];
 			for (auto& it : OCExtraModels)
 			{
-				if (!filePath || !CaseInsensitiveCmp(filePath, it.targetParent.c_str()))
-					continue;
+				if (!filePath || !CaseInsensitiveCmp(filePath, it.targetParent.c_str())) continue;
 
 				NiNode* node = model->spNode;
 				if (!node) continue;
 
-				if (it.extraNode.index == 0xFFFF)
-				{
-					auto& name = it.extraNode.nodeName;
-					NiAVObjectPtr hNode = node->GetObjectByName(name);
-					if (hNode && (it.extraNode.flags & OCXColor) && hNode->IsNiType<NiGeometry>())
-					{
-						NiGeometryPtr geom = static_cast<NiGeometry*>(hNode.m_pObject);
-						PrepVertexColor(geom);
-					}
-					if (hNode && hNode->IsNiType<NiNode>())
-					{
-						NiNodePtr hNiNode = static_cast<NiNode*>(hNode.m_pObject);
+				if (it.extraNode.index == INVALID_U32 && it.extraNode.flags & OCXColor) {
+					if (NiAVObjectPtr hNode = node->GetObjectByName(it.extraNode.nodeName)) {
+						if (NiGeometryPtr geom = hNode->NiDynamicCast<NiGeometry>())
+							PrepVertexColor(geom);
+
+						else if (NiNodePtr nNode = hNode->NiDynamicCast<NiNode>())
+							TraverseNiNode<NiGeometry>(nNode, [](NiGeometryPtr geom) { PrepVertexColor(geom); });
 					}
 					continue;
 				}
@@ -239,16 +251,10 @@ namespace Overcharge
 				NiNodePtr extraNode = extraObj->IsNiNode();
 				if (!extraNode) continue;
 
-				if (it.extraNode.index >= 0) 
-				{
-					char nameBuffer[256];
-					std::snprintf(nameBuffer, sizeof(nameBuffer), "%s%u",
-						extraNode->m_kName.c_str(),
-						it.extraNode.index);
-					NiFixedString nameString(nameBuffer);
-					extraNode->SetName(nameString);
-				}
-
+				std::snprintf(nameBuffer, sizeof(nameBuffer), "%s%u", 
+					extraNode->m_kName.c_str(), it.extraNode.index);
+				NiFixedString nameString(nameBuffer); extraNode->SetName(nameString);
+				
 				node->AttachChild(extraNode, 0);
 				extraNode->m_kLocal.m_fScale = it.xNodeScale;
 				extraNode->m_kLocal.m_Translate = it.xNodeTranslate;
@@ -256,18 +262,15 @@ namespace Overcharge
 					it.xNodeRotation.x, it.xNodeRotation.y, it.xNodeRotation.z
 				);
 
-				if (it.extraNode.flags & OCXParticle)
-				{
+				if (it.extraNode.flags & OCXParticle) {
 					TraverseNiNode<NiParticleSystem>(extraNode, [&](NiParticleSystemPtr psys) {
-							if (auto ctlr = psys->GetControllers(); ctlr) ctlr->Stop();
+						if (auto ctlr = psys->GetControllers(); ctlr) ctlr->Stop();
 						});
 				}
 			}
 		}
 		return model->spNode;
 	}
-
-
 
 	static void __fastcall ModelModel(const Model* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV) 
 	{
@@ -284,9 +287,7 @@ namespace Overcharge
 
 	inline void PostLoad() {
 		// Add any extra models
-		for (const std::string elem : extraModels)
-		{
-			definedModels.insert(elem); 
-		}
+		for (const auto& elem : extraModels)
+			definedModels.insert(elem);
 	}
 } 

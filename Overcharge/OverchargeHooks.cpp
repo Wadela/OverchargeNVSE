@@ -24,41 +24,41 @@ namespace Overcharge
 		auto& st = instance->state;
 		auto& fx = instance->fx;
 
-		if (st.uiTicksPassed < 0xFFFF)
-			++st.uiTicksPassed;
+		if (instance->rActor->GetCurrentWeapon() != instance->rWeap
+			|| instance->rActor->IsDying()) st.bIsActive = false;
+		if (!st.bIsActive && !instance->rActor->IsDying()
+			&& instance->rActor->GetCurrentWeapon() == instance->rWeap)
+		{
+			st.bIsActive = true;
+			st.uiTicksPassed = 0;
+			InitializeHeatFX(instance, instance->config);
+			InitializeHeatData(instance, instance->config);
+		}
 
-		float timePassed = st.uiTicksPassed * frameTime;
+		const float timePassed = st.uiTicksPassed * frameTime;
+		const bool wasOverheating = st.IsOverheating();
 
 		if (instance->config->iOverchargeEffect & OCEffects_Overheat)
 			st.UpdateOverheat();
 
-		if (instance->rActor->GetCurrentWeapon() != instance->rWeap
-			|| instance->rActor->IsDying()
-			|| !instance->rActor->IsWeaponDrawn()) st.bIsActive = false;
-		if (!st.bIsActive && !instance->rActor->IsDying()
-			&& instance->rActor->IsWeaponDrawn()
-			&& instance->rActor->GetCurrentWeapon() == instance->rWeap)
-		{
-			st.bIsActive = true;
-			InitializeHeatData(instance, instance->config);
-		}
+		UpdateHeatFX(instance, frameTime);
 
-		if (isPlayer && st.bIsActive)
-		{
-			if (!st.IsOverheating())
-			{
+		if (st.uiTicksPassed < 0xFFFF)
+			++st.uiTicksPassed;
+
+		if (isPlayer && st.bIsActive) {
+			if (!st.IsOverheating()) {
 				UpdateOverchargeShot(instance, frameTime);
 				UpdateChargeDelay(instance, frameTime);
 			}
+			else if (!wasOverheating)
+			instance->fx.heatSoundHandle.FadeInPlay(100);
 			else DisableAiming();
 		}
 
+		if (!st.bIsActive && st.fHeatVal <= 0.0f && timePassed >= ERASE_DELAY) return false;
 		if (timePassed >= COOLDOWN_DELAY && !(st.uiOCEffect & STOP_COOLDOWN_FLAGS) && st.fHeatVal > 0.0f)
 			st.fHeatVal = (std::max)(0.0f, st.fHeatVal - frameTime * st.fCooldownRate);
-
-		if (!st.bIsActive && st.fHeatVal <= 0.0f && timePassed >= ERASE_DELAY) return false;
-
-		UpdateHeatFX(instance, frameTime);
 
 		return true;
 	}
@@ -66,17 +66,14 @@ namespace Overcharge
 	void UpdateActiveOCWeapons()
 	{
 		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
-
 		activeOCWeapons.erase(
 			std::remove_if(activeOCWeapons.begin(), activeOCWeapons.end(),
 				[&](std::shared_ptr<HeatData>& inst)
 				{
-					if (inst->rActor == PlayerCharacter::GetSingleton()
-						&& inst->state.fHeatVal <= 0.0f)
-					{
-						return (!inst->state.bIsActive);
-					}
-					return !UpdateActiveWeapons(inst, frameTime);
+					if (inst->rActor == PlayerCharacter::GetSingleton())
+						return false;
+
+					else return !UpdateActiveWeapons(inst, frameTime);
 				}),
 			activeOCWeapons.end()
 		);
@@ -84,7 +81,6 @@ namespace Overcharge
 	void UpdatePlayerOCWeapons()
 	{
 		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
-
 		playerOCWeapons.erase(
 			std::remove_if(playerOCWeapons.begin(), playerOCWeapons.end(),
 				[&](std::shared_ptr<HeatData>& inst)
@@ -93,6 +89,16 @@ namespace Overcharge
 				}),
 			playerOCWeapons.end()
 		);
+	}
+
+	void RefreshPlayerOCWeapons()
+	{
+		for (auto& OCWeap : playerOCWeapons)
+		{
+			InitializeHeatData(OCWeap, OCWeap->config);
+			InitializeHeatFX(OCWeap, OCWeap->config);
+			InitializeHeatSounds(OCWeap, OCWeap->config);
+		}
 	}
 
 	void ClearOCWeapons()
@@ -122,7 +128,7 @@ namespace Overcharge
 		if (auto heat = GetActiveHeat(rActor->uiFormID, rWeap->uiFormID))
 		{
 			const float heatRatio = heat->state.fHeatVal / 100.0f;
-			rWeap->animAttackMult = ScaleByPercentRange(
+			rWeap->animAttackMult = InterpolateBase(
 				rWeap->animAttackMult,
 				heat->config->fMinFireRate, heat->config->fMaxFireRate,
 				heatRatio
@@ -153,7 +159,7 @@ namespace Overcharge
 		}
 
 		heat->state.HeatOnFire();
-
+		
 		//Backup Weapon Values - Backup needed since we're editing the baseform.
 		const UInt8 ogAmmoUse = rWeap->ammoUse;
 		const UInt8 ogProjectiles = rWeap->numProjectiles;
@@ -166,9 +172,9 @@ namespace Overcharge
 		const float hRatio = heat->state.fHeatVal / 100.0f;
 		heat->state.uiAmmoUsed = ScaleByPercentRange(rWeap->ammoUse, config->iMinAmmoUsed, config->iMaxAmmoUsed, hRatio);
 		heat->state.uiProjectiles = ScaleByPercentRange(rWeap->numProjectiles, config->iMinProjectiles, config->iMaxProjectiles, hRatio);
-		heat->state.uiDamage = ScaleByPercentRange(rWeap->usAttackDamage, config->iMinDamage, config->iMaxDamage, hRatio);
-		heat->state.uiCritDamage = ScaleByPercentRange(rWeap->criticalDamage, config->iMinCritDamage, config->iMaxCritDamage, hRatio);
-		heat->state.fAccuracy = ScaleByPercentRange(rWeap->minSpread, config->fMinAccuracy, config->fMaxAccuracy, hRatio);
+		heat->state.uiDamage = InterpolateBase(rWeap->usAttackDamage, config->fMinDamage, config->fMaxDamage, hRatio);
+		heat->state.uiCritDamage = InterpolateBase(rWeap->criticalDamage, config->fMinCritDamage, config->fMaxCritDamage, hRatio);
+		heat->state.fAccuracy = InterpolateBase(rWeap->minSpread, config->fMinSpread, config->fMaxSpread, hRatio);
 
 		UpdatePerks(heat);
 
@@ -210,8 +216,7 @@ namespace Overcharge
 					activeInstances[valueNode] = heat;
 					});
 				TraverseNiNode<NiGeometry>(muzzleNode, [&heat](NiGeometryPtr geom) {
-					auto matProp = PickMaterial(geom.m_pObject, heat->fx);
-					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
+					CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 					});
 				TraverseNiNode<NiParticleSystem>(muzzleNode, [&heat](NiParticleSystemPtr psys) {
 					activeInstances[psys] = heat;
@@ -255,19 +260,19 @@ namespace Overcharge
 		//Update Projectile Values - Don't need to backup because they're references.
 		const float heatRatio = heat->state.fHeatVal / 100.0f;
 		projNode->m_kLocal.m_fScale =
-			InterpolateBasePercent(
+			InterpolateBase(
 				projNode->m_kLocal.m_fScale,
-				heat->config->iMinProjectileSizePercent,
-				heat->config->iMaxProjectileSizePercent,
+				heat->config->fMinProjectileSize,
+				heat->config->fMaxProjectileSize,
 				heatRatio
 			);
 		heat->state.fProjectileSize = projNode->m_kLocal.m_fScale;
 
 		proj->fSpeedMult =
-			InterpolateBasePercent(
+			InterpolateBase(
 				proj->fSpeedMult,
-				heat->config->iMinProjectileSpeedPercent,
-				heat->config->iMaxProjectileSpeedPercent,
+				heat->config->fMinProjectileSpeed,
+				heat->config->fMaxProjectileSpeed,
 				heatRatio
 			);
 		heat->state.fProjectileSpeed = proj->fSpeedMult;
@@ -280,9 +285,7 @@ namespace Overcharge
 			activeInstances[valueNode] = heat;
 			});
 		TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometryPtr geom) {
-			auto matProp = PickMaterial(geom.m_pObject, heat->fx);
-			auto matProp1 = NiMaterialProperty::CreateObject();
-			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp1);
+			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 			});
 		TraverseNiNode<NiParticleSystem>(projNode, [&heat](NiParticleSystemPtr psys) {
 			activeInstances[psys] = heat;
@@ -311,8 +314,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				auto matProp = NiMaterialProperty::CreateObject();
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
+				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -349,7 +351,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol);
+				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -405,14 +407,7 @@ namespace Overcharge
 					activeInstances[valueNode] = heat;
 					});
 				TraverseNiNode<NiGeometry>(node, [&heat](NiGeometryPtr geom) {
-					auto matProp = NiMaterialProperty::CreateObject();
-					if (geom->GetMaterialProperty())
-					{
-						auto oldMatProp = geom->GetMaterialProperty();
-						if (oldMatProp->GetControllers())
-							oldMatProp->GetControllers()->SetTarget(matProp);
-					}
-					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
+					CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 					});
 				TraverseNiNode<NiParticleSystem>(node, [&heat](NiParticleSystemPtr psys) {
 					activeInstances[psys] = heat;
@@ -441,14 +436,7 @@ namespace Overcharge
 				activeInstances[valueNode] = heat;
 				});
 			TraverseNiNode<NiGeometry>(explNode, [&heat](NiGeometryPtr geom) {
-				auto matProp = NiMaterialProperty::CreateObject();
-				if (geom->GetMaterialProperty())
-				{
-					auto oldMatProp = geom->GetMaterialProperty();
-					if (oldMatProp->GetControllers())
-						oldMatProp->GetControllers()->SetTarget(matProp);
-				}
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, matProp);
+				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 			TraverseNiNode<NiParticleSystem>(explNode, [&heat](NiParticleSystemPtr psys) {
 				activeInstances[psys] = heat;
@@ -600,7 +588,22 @@ namespace Overcharge
 	{
 		UInt32 weapon = ThisStdCall<UInt32>(0x8A1710, rActor);
 		if (!rActor) return weapon;
-		auto heat = GetOrCreateHeat(rActor);
+
+		static bool wasMenuMode = 0;
+
+		//While the game is running, as long as the game isn't paused or loading 
+		if (!IsGamePaused() && !MenuMode()
+			&& !BGSSaveLoadGame::GetSingleton()->IsLoading())
+		{
+			auto heat = GetOrCreateHeat(rActor);
+			if (wasMenuMode)
+			{
+				RefreshPlayerOCWeapons();
+				wasMenuMode = 0;
+			}
+		}
+		else (wasMenuMode = 1);
+
 		return weapon;
 	}
 
@@ -616,7 +619,7 @@ namespace Overcharge
 		if (auto heat = GetActiveHeat(rActor->uiFormID, thisPtr->uiFormID))
 		{
 			const float heatRatio = heat->state.fHeatVal / 100.0f;
-			thisPtr->animAttackMult = ScaleByPercentRange(
+			thisPtr->animAttackMult = InterpolateBase(
 				thisPtr->animAttackMult,
 				heat->config->fMinFireRate, heat->config->fMaxFireRate,
 				heatRatio

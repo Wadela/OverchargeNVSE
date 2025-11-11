@@ -17,6 +17,7 @@
 #include <MagicItemForm.hpp>
 #include "PlayerCharacter.hpp"
 #include "MiddleHighProcess.hpp"
+#include "BGSSaveLoadGame.hpp"
 
 //NVSE
 #include <SafeWrite.hpp>
@@ -25,6 +26,14 @@
 
 namespace Overcharge
 {
+	inline bool IsGamePaused()
+	{
+		bool isMainOrPauseMenuOpen = *(Menu**)0x11DAAC0; // g_startMenu, credits to lStewieAl
+		auto* console = ConsoleManager::GetSingleton();
+
+		return isMainOrPauseMenuOpen || console->IsConsoleOpen();
+	}
+
 	constexpr int NPC_UPDATE_THROTTLE = 15;
 
 	extern std::vector<std::shared_ptr<HeatData>>		playerOCWeapons;
@@ -33,31 +42,33 @@ namespace Overcharge
 
 	extern std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
 
-	inline std::vector<OCBlock> ObjsFromStrings(const HeatConfiguration* data, const NiAVObjectPtr& sourceNode, bool isPlayer1st = false)
+	inline std::vector<OCBlock> ObjsFromStrings(
+		const HeatConfiguration* data,
+		const NiAVObjectPtr& sourceNode,
+		bool isPlayer1st = false)
 	{
 		std::vector<OCBlock> blocks;
-		if (sourceNode && data)
+		if (!sourceNode || !data) return blocks;
+
+		blocks.reserve(data->sHeatedNodes.size());
+
+		for (auto& it : data->sHeatedNodes)
 		{
-			for (auto& it : data->sHeatedNodes)
+			if (!it.nodeName) continue;
+
+			if (NiAVObjectPtr block = sourceNode->GetObjectByName(it.nodeName))
 			{
-				UInt32 flags = it.flags;
-				if (!it.nodeName) continue;
-				const NiFixedString& nodeName = it.nodeName;
+				NiMaterialPropertyPtr mat = (it.flags & OCXColor)
+					? NiMaterialProperty::CreateObject()
+					: nullptr;
 
-				if (NiAVObjectPtr block = sourceNode->GetObjectByName(nodeName))
+				blocks.emplace_back(it.flags, mat, block);
+
+				if (isPlayer1st && (it.flags & OCXParticle))
 				{
-					if (flags & OCXCull)
-						block->SetAppCulled(true);
-
-					NiMaterialPropertyPtr matProp = nullptr;
-
-					if (flags & OCXColor)
-						matProp = NiMaterialProperty::CreateObject();
-
-					blocks.push_back({flags, matProp, block});
-					if (isPlayer1st && flags & OCXParticle && block->IsNiType<NiNode>())
+					if (NiNode* node = block->NiDynamicCast<NiNode>())
 					{
-						TraverseNiNode<NiParticleSystem>(static_cast<NiNode*>(block.m_pObject), [&](NiParticleSystemPtr psys) {
+						TraverseNiNode<NiParticleSystem>(node, [&](NiParticleSystemPtr psys) {
 							if (!ContainsValue(worldSpaceParticles, psys))
 								worldSpaceParticles.emplace_back(psys);
 							});
@@ -198,16 +209,19 @@ namespace Overcharge
 
 		auto heat = GetActiveHeat(rActor->uiFormID, rWeap->uiFormID);
 		if (heat) {
-			heat->config = config;
-			InitializeHeatData(heat, config);
+			if (heat->config != config)
+			{
+				heat->config = config;
+				InitializeHeatData(heat, config);
+			}
 			return heat;
 		}
 
 		heat = std::make_shared<HeatData>(config);
 		heat->rActor = rActor;
 		heat->rWeap = rWeap;
-		InitializeHeatFX(heat, config);
 		InitializeHeatData(heat, config);
+		InitializeHeatFX(heat, config);
 		InitializeHeatSounds(heat, config);
 		return heat;
 	}
@@ -237,9 +251,7 @@ namespace Overcharge
 		}
 
 		if (config->iOverchargeEffect & OCEffects_Overcharge && attackPressed)
-		{
 			st.uiTicksPassed = 0;
-		}
 
 		float timePassed = st.uiTicksPassed * frameTime;
 
@@ -290,7 +302,7 @@ namespace Overcharge
 			&& timePassed >= COOLDOWN_DELAY
 			&& st.fHeatVal <= HOT_THRESHOLD)
 		{
-			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (3 * st.fHeatPerShot));
+			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
 
 		}
 
@@ -334,7 +346,7 @@ namespace Overcharge
 				if (st.uiTicksPassed == 0)
 					st.fTargetVal = st.fHeatVal + st.uiOCEffectThreshold;
 
-				if (st.fHeatVal < st.fTargetVal)
+				if (st.fHeatVal <= st.fTargetVal)
 				{
 					st.uiOCEffect |= OCEffects_ChargeDelay;
 				}
@@ -378,17 +390,18 @@ namespace Overcharge
 			if (!inst->fx.chargeSoundHandle.IsPlaying())
 				inst->fx.chargeSoundHandle.FadeInPlay(50);
 
-			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (3 * st.fHeatPerShot));
-			st.uiTicksPassed = 0;
+			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
 		}
 	}
-
 
 	inline void UpdateHeatFX(std::shared_ptr<HeatData>& heat, float frameTime)
 	{
 		auto& st = heat->state;
 		auto& fx = heat->fx;
 		auto& cfg = heat->config;
+
+		if (st.fHeatVal <= 0 && st.uiTicksPassed <= 0)
+			InitializeHeatFX(heat, cfg);
 
 		fx.currCol = SmoothColorShift(st.fHeatVal, cfg->iMinColor, cfg->iMaxColor);
 
@@ -405,11 +418,12 @@ namespace Overcharge
 			if (node.OCXFlags & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
 			if (node.OCXFlags & OCXOnDelay)      effectFlags |= OCEffects_ChargeDelay;
 			if (node.OCXFlags & OCXOnAltProj)    effectFlags |= OCEffects_AltProjectile;
-			bool hasEffectFlags = node.OCXFlags & (OCXOnOverheat | OCXOnOvercharge | OCXOnDelay | OCXOnAltProj);
-
+			bool hasEffectFlags = node.OCXFlags & (OCXOnOverheat | OCXOnOvercharge | OCXOnDelay | OCXOnAltProj | OCXOnHolster);
 			bool onEffect = (effectFlags == 0) || (st.uiOCEffect & effectFlags);
-			if (node.OCXFlags & OCXOnInactive)
-				onEffect = onEffect && !st.bIsActive;
+			if (node.OCXFlags & OCXOnHolster && heat->rActor)
+				onEffect = onEffect && heat->rActor->IsWeaponDrawn();
+
+			bool isNegative = node.OCXFlags & OCXNegative;
 
 			if ((node.OCXFlags & OCXParticle) && node.target->IsNiType<NiNode>()) {
 				TraverseNiNode<NiParticleSystem>(
@@ -424,7 +438,16 @@ namespace Overcharge
 			}
 
 			if ((node.OCXFlags & OCXCull))
-				node.target->SetAppCulled(!st.bIsActive);
+			{
+				bool isCulled = node.target->GetAppCulled();
+				bool shouldCull = true;
+
+				if (hasEffectFlags)
+					shouldCull = !onEffect;
+
+				if (isCulled != shouldCull)
+					node.target->SetAppCulled(shouldCull);
+			}
 
 			if (!onEffect) continue;
 
@@ -439,7 +462,16 @@ namespace Overcharge
 				else if (node.target->IsNiType<NiGeometry>())
 					SetEmissiveColor(node.target.m_pObject, fx.currCol, node.matProp);
 			}
-			bool isNegative = node.OCXFlags & OCXNegative;
+
+			if ((node.OCXFlags & OCXFlicker))
+			{
+				if (st.fHeatVal <= 0 && st.uiTicksPassed <= 0)
+					st.fStartingVal = node.matProp->m_fEmitMult;
+
+				ApplyFlicker(node.matProp->m_fEmitMult, st.fStartingVal, 
+					frameTime, st.uiTicksPassed, isNegative);
+			}
+
 			if (node.OCXFlags & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
 				ApplyFixedRotation(node.target, heatPercent,
 					node.OCXFlags & OCXRotateX,
@@ -454,6 +486,7 @@ namespace Overcharge
 					node.OCXFlags & OCXSpinZ,
 					isNegative);
 			}
+
 		}
 	}
 
@@ -546,6 +579,7 @@ namespace Overcharge
 
 	void InitHooks();
 	void ClearOCWeapons();
+	void RefreshPlayerOCWeapons();
 	void UpdateActiveOCWeapons();
 	void UpdatePlayerOCWeapons();
 }

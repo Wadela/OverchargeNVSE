@@ -43,11 +43,11 @@ static ParamInfo kParams_2Form_1Int[3] =
 	{"Integer",	kParamType_Integer, 0}
 };
 
-DEFINE_COMMAND_PLUGIN(GetHeatState, "", 1, 2, kParams_1Form_1Int);
-DEFINE_COMMAND_PLUGIN(SetHeatState, "", 1, 3, kParams_1Form_1Int_1Float);
-DEFINE_COMMAND_PLUGIN(GetHeatConfig, "", 0, 3, kParams_2Form_1Int);
+DEFINE_COMMAND_PLUGIN(GetOCWeaponState, "", 1, 2, kParams_1Form_1Int);
+DEFINE_COMMAND_PLUGIN(SetOCWeaponState, "", 1, 3, kParams_1Form_1Int_1Float);
+DEFINE_COMMAND_PLUGIN(GetOCWeaponConfig, "", 0, 3, kParams_2Form_1Int);
 
-bool Cmd_GetHeatState_Execute(COMMAND_ARGS)
+bool Cmd_GetOCWeaponState_Execute(COMMAND_ARGS)
 {
 	*result = 0;
 	Actor* sourceRef = (Actor*)thisObj;
@@ -56,7 +56,7 @@ bool Cmd_GetHeatState_Execute(COMMAND_ARGS)
 	UInt32 type;
 	UInt32 col;
 
-	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceWeap, &type) && type > 0 && type <= 19)
+	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceWeap, &type) && type > 0 && type <= 23)
 	{
 		std::shared_ptr<Overcharge::HeatData> heat =
 			Overcharge::GetActiveHeat(sourceRef->uiFormID, sourceWeap->uiFormID);
@@ -66,61 +66,73 @@ bool Cmd_GetHeatState_Execute(COMMAND_ARGS)
 		switch (type)
 		{
 		case 1:
-			*result = heat->state.uiTicksPassed;
+			*result = heat->state.bIsActive;
 			break;
 		case 2:
-			*result = heat->state.fHeatVal;
+			*result = heat->state.bCanOverheat;
 			break;
 		case 3:
-			*result = heat->state.fCooldownRate;
-			break;
-		case 4:
-			*result = heat->state.fHeatPerShot;
-			break;
-		case 5:
-			*result = heat->state.uiDamage;
-			break;
-		case 6:
-			*result = heat->state.uiCritDamage;
-			break;
-		case 7:
-			*result = heat->state.fFireRate;
-			break;
-		case 8:
-			*result = heat->state.fAccuracy;
-			break;
-		case 9:
 			*result = heat->state.uiAmmoUsed;
 			break;
-		case 10:
+		case 4:
 			*result = heat->state.uiProjectiles;
 			break;
-		case 11:
-			*result = heat->state.fProjectileSize;
-			break;
-		case 12:
-			*result = heat->state.fProjectileSpeed;
-			break;
-		case 13:
+		case 5:
 			*result = heat->state.uiAmmoThreshold;
 			break;
-		case 14:
+		case 6:
 			*result = heat->state.uiProjThreshold;
 			break;
-		case 15:
-			*result = heat->state.uiOCEffectThreshold;
-			break;
-		case 16:
+		case 7:
 			*result = heat->state.uiEnchThreshold;
 			break;
-		case 17:
+		case 8:
+			*result = heat->state.uiOCEffectThreshold;
+			break;
+		case 9:
+			*result = heat->state.uiDamage;
+			break;
+		case 10:
+			*result = heat->state.uiCritDamage;
+			break;
+		case 11:
+			*result = heat->state.uiTicksPassed;
+			break;
+		case 12:
 			*result = heat->state.uiOCEffect;
 			resultString = FlagsToString(heat->state.uiOCEffect, Overcharge::OCEffectNames);
 			break;
-		case 18:
+		case 13:
 			*(UInt32*)result = heat->state.uiObjectEffectID;
 			break;
+		case 14:
+			*result = heat->state.fAccuracy;
+			break;
+		case 15:
+			*result = heat->state.fFireRate;
+			break;
+		case 16:
+			*result = heat->state.fProjectileSpeed;
+			break;
+		case 17:
+			*result = heat->state.fProjectileSize;
+			break;
+		case 18:
+			*result = heat->state.fHeatPerShot;
+			break;
 		case 19:
+			*result = heat->state.fCooldownRate;
+			break;
+		case 20:
+			*result = heat->state.fHeatVal;
+			break;
+		case 21:
+			*result = heat->state.fStartingVal;
+			break;
+		case 22:
+			*result = heat->state.fTargetVal;
+			break;
+		case 23:
 			col = Overcharge::RGBtoUInt32(heat->fx.currCol);
 			col = ((col & 0xFF0000) >> 16) | (col & 0x00FF00) | ((col & 0x0000FF) << 16);
 			*(UInt32*)result = col;
@@ -129,17 +141,17 @@ bool Cmd_GetHeatState_Execute(COMMAND_ARGS)
 			*result = 0;
 			return true;
 		}
-		if (type < 17 && IsConsoleOpen())
-			Console_Print("GetHeatState >> %d >> %g", type, *result);
-		else if (type > 17 && IsConsoleOpen())
-			Console_Print("GetHeatState >> %d >> %X", type, *(UInt32*)result);
-		else if (type == 17 && IsConsoleOpen())
+		if (type == 12 && IsConsoleOpen())
 			Console_Print("GetHeatState >> %d >> %g >> %s", type, *result, resultString.c_str());
+		else if (type == 13 && IsConsoleOpen())
+			Console_Print("GetHeatState >> %d >> %X", type, *(UInt32*)result);
+		else if (IsConsoleOpen())
+			Console_Print("GetHeatState >> %d >> %g", type, *result);
 	}
 	return true;
 }
 
-bool Cmd_SetHeatState_Execute(COMMAND_ARGS)
+bool Cmd_SetOCWeaponState_Execute(COMMAND_ARGS)
 {
 	*result = 0;
 	Actor* sourceRef = (Actor*)thisObj;
@@ -149,7 +161,7 @@ bool Cmd_SetHeatState_Execute(COMMAND_ARGS)
 	float value;
 	UInt32 col;
 
-	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceWeap, &type, &value) && type > 0 && type <= 19)
+	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceWeap, &type, &value) && type > 0 && type <= 23)
 	{
 		const TESAmmo* equippedAmmo = sourceWeap->GetEquippedAmmo(sourceRef);
 
@@ -168,61 +180,73 @@ bool Cmd_SetHeatState_Execute(COMMAND_ARGS)
 		switch (type)
 		{
 		case 1:
-			heat->state.uiTicksPassed = static_cast<UInt8>(value);
+			heat->state.bIsActive = static_cast<bool>(value);
 			break;
 		case 2:
-			heat->state.fHeatVal = value;
+			heat->state.bCanOverheat = static_cast<bool>(value);
 			break;
 		case 3:
-			heat->state.fCooldownRate = value;
-			break;
-		case 4:
-			heat->state.fHeatPerShot = value;
-			break;
-		case 5:
-			heat->state.uiDamage = static_cast<UInt16>(value);
-			break;
-		case 6:
-			heat->state.uiCritDamage = static_cast<UInt16>(value);
-			break;
-		case 7:
-			heat->state.fFireRate = value;
-			break;
-		case 8:
-			heat->state.fAccuracy = value;
-			break;
-		case 9:
 			heat->state.uiAmmoUsed = static_cast<UInt8>(value);
 			break;
-		case 10:
-			heat->state.uiProjectiles = value;
+		case 4:
+			heat->state.uiProjectiles = static_cast<UInt8>(value);
 			break;
-		case 11:
-			heat->state.fProjectileSize = value;
-			break;
-		case 12:
-			heat->state.fProjectileSpeed = value;
-			break;
-		case 13:
+		case 5:
 			heat->state.uiAmmoThreshold = static_cast<UInt8>(value);
 			break;
-		case 14:
+		case 6:
 			heat->state.uiProjThreshold = static_cast<UInt8>(value);
 			break;
-		case 15:
-			heat->state.uiOCEffectThreshold = static_cast<UInt8>(value);
-			break;
-		case 16:
+		case 7:
 			heat->state.uiEnchThreshold = static_cast<UInt8>(value);
 			break;
-		case 17:
-			heat->state.uiOCEffect = static_cast<UInt8>(value);
+		case 8:
+			heat->state.uiOCEffectThreshold = static_cast<UInt8>(value);
+			break;
+		case 9:
+			heat->state.uiDamage = static_cast<UInt16>(value);
+			break;
+		case 10:
+			heat->state.uiCritDamage = static_cast<UInt16>(value);
+			break;
+		case 11:
+			heat->state.uiTicksPassed = static_cast<UInt16>(value);
+			break;
+		case 12:
+			heat->state.uiOCEffect = static_cast<UInt16>(value);
 			resultString = FlagsToString(heat->state.uiOCEffect, Overcharge::OCEffectNames);
 			break;
-		case 18:
+		case 13:
 			heat->state.uiObjectEffectID = static_cast<UInt32>(value);
 			break;
+		case 14:
+			heat->state.fAccuracy = value;
+			break;
+		case 15:
+			heat->state.fFireRate = value;
+			break;
+		case 16:
+			heat->state.fProjectileSpeed = value;
+			break;
+		case 17:
+			heat->state.fProjectileSize = value;
+			break;
+		case 18:
+			heat->state.fHeatPerShot = value;
+			break;
 		case 19:
+			heat->state.fCooldownRate = value;
+			break;
+		case 20:
+			heat->state.fHeatVal = value;
+			break;
+		case 21:
+			heat->state.fStartingVal = value;
+			break;
+		case 22:
+			heat->state.fTargetVal = value;
+			break;
+		case 23:
 			col = static_cast<UInt32>(value);
 			col = ((col & 0xFF0000) >> 16) | (col & 0x00FF00) | ((col & 0x0000FF) << 16);
 			col = Overcharge::UInt32toRGB(col);
@@ -232,17 +256,17 @@ bool Cmd_SetHeatState_Execute(COMMAND_ARGS)
 			*result = 0;
 			return true;
 		}
-		if (type = 17 && IsConsoleOpen())
-			Console_Print("SetHeatState >> %d >> %g", type, value);
-		else if (type > 17 && IsConsoleOpen())
-			Console_Print("SetHeatState >> %d >> %X", type, (UInt32)value);
-		else if (type == 17 && IsConsoleOpen())
+		if (type == 12 && IsConsoleOpen())
 			Console_Print("SetHeatState >> %d >> %s", type, resultString.c_str());
+		else if (type == 13 && IsConsoleOpen())
+			Console_Print("SetHeatState >> %d >> %X", type, (UInt32)value);
+		else if (IsConsoleOpen())
+			Console_Print("SetHeatState >> %d >> %g", type, value);
 	}
 	return true;
 }
 
-bool Cmd_GetHeatConfig_Execute(COMMAND_ARGS)
+bool Cmd_GetOCWeaponConfig_Execute(COMMAND_ARGS)
 {
 	*result = 0;
 	TESObjectWEAP* sourceWeap;
@@ -250,7 +274,7 @@ bool Cmd_GetHeatConfig_Execute(COMMAND_ARGS)
 	UInt32 type;
 	std::string resultString;
 
-	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceWeap, &sourceAmmo, &type) && type > 0 && type <= 29)
+	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceWeap, &sourceAmmo, &type) && type > 0 && type <= 32)
 	{
 		if (!sourceWeap || !sourceAmmo) return true;
 
@@ -263,18 +287,104 @@ bool Cmd_GetHeatConfig_Execute(COMMAND_ARGS)
 		switch (type)
 		{
 		case 1:
-			*result = config.iOverchargeFlags;
-			resultString = FlagsToString(config.iOverchargeFlags, Overcharge::OCFlagNames);
+			*result = config.iMinAmmoUsed;
 			break;
 		case 2:
+			*result = config.iMaxAmmoUsed;
+			break;
+		case 3:
+			*result = config.iMinProjectiles;
+			break;
+		case 4:
+			*result = config.iMaxProjectiles;
+			break;
+		case 5:
+			*result = config.iAddAmmoThreshold;
+			break;
+		case 6:
+			*result = config.iAddProjectileThreshold;
+			break;
+		case 7:
+			*result = config.iObjectEffectThreshold;
+			break;
+		case 8:
+			*result = config.iOverchargeEffectThreshold;
+			break;
+		case 9:
 			*result = config.iOverchargeEffect;
 			resultString = FlagsToString(config.iOverchargeEffect, Overcharge::OCEffectNames);
 			break;
-		case 3:
+		case 10:
+			*result = config.iOverchargeFlags;
+			resultString = FlagsToString(config.iOverchargeFlags, Overcharge::OCFlagNames);
+			break;
+		case 11:
+			*(UInt32*)result = config.iAltProjectileID;
+			break;
+		case 12:
+			*(UInt32*)result = config.iObjectEffectID;
+			break;
+		case 13:
+			*(UInt32*)result = config.iMinColor;
+			break;
+		case 14:
+			*(UInt32*)result = config.iMaxColor;
+			break;
+		case 15:
+			*result = config.fMinDamage;
+			break;
+		case 16:
+			*result = config.fMaxDamage;
+			break;
+		case 17:
+			*result = config.fMinCritDamage;
+			break;
+		case 18:
+			*result = config.fMaxCritDamage;
+			break;
+		case 19:
+			*result = config.fMinFireRate;
+			break;
+		case 20:
+			*result = config.fMaxFireRate;
+			break;
+		case 21:
+			*result = config.fMinSpread;
+			break;
+		case 22:
+			*result = config.fMaxSpread;
+			break;
+		case 23:
+			*result = config.fMinProjectileSpeed;
+			break;
+		case 24:
+			*result = config.fMaxProjectileSpeed;
+			break;
+		case 25:
+			*result = config.fMinProjectileSize;
+			break;
+		case 26:
+			*result = config.fMaxProjectileSize;
+			break;
+		case 27:
+			*result = config.fHeatPerShot;
+			break;
+		case 28:
+			*result = config.fCooldownPerSecond;
+			break;
+		case 29:
 			resultString = config.sAnimFile.c_str();
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
-		case 4:
+		case 30:
+			resultString = config.sHeatSoundFile.c_str();
+			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
+			break;
+		case 31:
+			resultString = config.sHeatSoundFile.c_str();
+			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
+			break;
+		case 32:
 			resultString.clear();
 			resultString.reserve(config.sHeatedNodes.size() * 32);
 			for (size_t i = 0; i < config.sHeatedNodes.size(); ++i)
@@ -287,95 +397,19 @@ bool Cmd_GetHeatConfig_Execute(COMMAND_ARGS)
 			}
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
-		case 5:
-			break;
-		case 6:
-			*result = config.fCooldownPerSecond;
-			break;
-		case 7:
-			*result = config.fHeatPerShot;
-			break;
-		case 8:
-			*result = config.iMinDamage;
-			break;
-		case 9:
-			*result = config.iMaxDamage;
-			break; 
-		case 10:
-			*result = config.iMinCritDamage;
-			break;
-		case 11:
-			*result = config.iMaxCritDamage;
-			break;
-		case 12:
-			*result = config.fMinFireRate;
-			break;
-		case 13:
-			*result = config.fMaxFireRate;
-			break;
-		case 14:
-			*result = config.fMinAccuracy;
-			break;
-		case 15:
-			*result = config.fMaxAccuracy;
-			break;
-		case 16:
-			*result = config.iMinAmmoUsed;
-			break;
-		case 17:
-			*result = config.iMaxAmmoUsed;
-			break;
-		case 18:
-			*result = config.iMinProjectiles;
-			break;
-		case 19:
-			*result = config.iMaxProjectiles;
-			break;
-		case 20:
-			*result = config.iMinProjectileSizePercent;
-			break;
-		case 21:
-			*result = config.iMaxProjectileSizePercent;
-			break;
-		case 22:
-			*result = config.iMinProjectileSpeedPercent;
-			break;
-		case 23:
-			*result = config.iMaxProjectileSpeedPercent;
-			break;
-		case 24:
-			*result = config.iAddAmmoThreshold;
-			break;
-		case 25:
-			*result = config.iAddProjectileThreshold;
-			break;
-		case 26:
-			*result = config.iOverchargeEffectThreshold;
-			break;
-		case 27:
-			*result = config.iObjectEffectThreshold;
-			break;
-		case 28:
-			*(UInt32*)result = config.iObjectEffectID;
-			break;
-		case 29:
-			*(UInt32*)result = config.iMinColor;
-			break;
-		case 30:
-			*(UInt32*)result = config.iMaxColor;
-			break;
 		default:
 			*result = 0;
 			return true;
 		}
-		if (type <= 4 && IsConsoleOpen())
+		if (IsConsoleOpen())
 		{
-			Console_Print("GetHeatConfig >> %d >> %s", type, resultString.c_str());
+			if (type == 9 || type == 10 || type >= 29)
+				Console_Print("GetHeatConfig >> %d >> %s", type, resultString.c_str());
+			else if (type >= 11 && type <= 14)
+				Console_Print("GetHeatConfig >> %d >> %X", type, *(UInt32*)result);
+			else if (type <= 8 || (type >= 15 && type <= 28))
+				Console_Print("GetHeatConfig >> %d >> %g", type, *result);
 		}
-		else if (type > 27 && IsConsoleOpen())
-			Console_Print("GetHeatConfig >> %d >> %X", type, *(UInt32*)result);
-		else if (type > 4 && type <= 26 && IsConsoleOpen())
-			Console_Print("GetHeatConfig >> %d >> %g", type, *result);
 	}
 	return true;
 }

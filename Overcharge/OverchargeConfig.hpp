@@ -12,10 +12,19 @@
 
 //Other Libraries
 #include "libraries/SimpleINILibrary.h"
-
+#include <DirectXPackedVector.h>
 
 namespace Overcharge
 {
+	using float16 = DirectX::PackedVector::HALF;
+
+	constexpr UInt8 INVALID_U8 = 0xFF;
+	constexpr UInt16 INVALID_U16 = 0xFFFF;
+	constexpr UInt32 INVALID_U32 = 0xFFFFFFFF;
+	constexpr float16 INVALID_F16 = 0xFFFF;
+	constexpr float INVALID_F32 = -1.0f;
+
+
 	extern case_insensitive_set extraModels;
 	extern case_insensitive_set definedModels;
 
@@ -30,23 +39,23 @@ namespace Overcharge
 	enum OCXAddons : UInt32
 	{
 		None			  = 0,
-		OCXColor		  = 1 << 1,
-		OCXParticle		  = 1 << 2,
-		OCXOnFire		  = 1 << 3,
-		OCXOnOverheat	  = 1 << 4,
-		OCXOnOvercharge   = 1 << 5,
-		OCXOnDelay		  = 1 << 6,
-		OCXOnAltProj	  = 1 << 7,
-		OCXOnInactive     = 1 << 8,
-		OCXRotateX		  = 1 << 9,
-		OCXRotateY		  = 1 << 10,
-		OCXRotateZ		  = 1 << 11,
-		OCXSpinX		  = 1 << 12,
-		OCXSpinY		  = 1 << 13,
-		OCXSpinZ		  = 1 << 14,
-		OCXFlicker		  = 1 << 15,
-		OCXNegative		  = 1 << 16,
-		OCXCull		      = 1 << 17,
+		OCXColor		  = 1 << 0,
+		OCXParticle		  = 1 << 1,
+		OCXOnFire		  = 1 << 2,
+		OCXOnOverheat	  = 1 << 3,
+		OCXOnOvercharge   = 1 << 4,
+		OCXOnDelay		  = 1 << 5,
+		OCXOnAltProj	  = 1 << 6,
+		OCXOnHolster      = 1 << 7,
+		OCXRotateX		  = 1 << 8,
+		OCXRotateY		  = 1 << 9,
+		OCXRotateZ		  = 1 << 10,
+		OCXSpinX		  = 1 << 11,
+		OCXSpinY		  = 1 << 12,
+		OCXSpinZ		  = 1 << 13,
+		OCXFlicker		  = 1 << 14,
+		OCXNegative		  = 1 << 15,
+		OCXCull		      = 1 << 16,
 	};
 
 	enum OCFlags : UInt16
@@ -99,7 +108,7 @@ namespace Overcharge
 		{ OCXOnOvercharge,		"oncharge"	 },
 		{ OCXOnDelay,			"ondelay"	 },
 		{ OCXOnAltProj,		    "onaltproj"	 },
-		{ OCXOnInactive,		"oninactive" },
+		{ OCXOnHolster,		    "onholster"  },
 		{ OCXRotateX,			"rotateX"	 },
 		{ OCXRotateY,			"rotatey"    },
 		{ OCXRotateZ,			"rotatez"    },
@@ -189,38 +198,39 @@ namespace Overcharge
 
 	struct HeatConfiguration
 	{
-		UInt8 iMinProjectiles = 0xFF;
-		UInt8 iMaxProjectiles = 0xFF;
-		UInt8 iMinAmmoUsed = 0xFF;
-		UInt8 iMaxAmmoUsed = 0xFF;
-		UInt8 iOverchargeEffectThreshold = 0; 
-		UInt8 iAddAmmoThreshold = 0;
-		UInt8 iAddProjectileThreshold = 0;
-		UInt8 iObjectEffectThreshold = 0;
+		UInt8 iAddAmmoThreshold				= 0;
+		UInt8 iAddProjectileThreshold		= 0;
+		UInt8 iObjectEffectThreshold		= 0;
+		UInt8 iOverchargeEffectThreshold	= 0;
 
-		UInt16 iOverchargeEffect = OCEffects_None;
-		UInt16 iOverchargeFlags = OCFlags_None;
+		UInt8 iMinAmmoUsed					= INVALID_U8;
+		UInt8 iMaxAmmoUsed					= INVALID_U8;
+		UInt8 iMinProjectiles				= INVALID_U8;
+		UInt8 iMaxProjectiles				= INVALID_U8;
 
-		UInt16 iMinDamage = 0xFFFF;
-		UInt16 iMaxDamage = 0xFFFF;
-		UInt16 iMinCritDamage = 0xFFFF;
-		UInt16 iMaxCritDamage = 0xFFFF;
-		UInt16 iMinProjectileSpeedPercent = 0xFFFF;
-		UInt16 iMaxProjectileSpeedPercent = 0xFFFF;
-		UInt16 iMinProjectileSizePercent = 0xFFFF;
-		UInt16 iMaxProjectileSizePercent = 0xFFFF;
+		UInt16 iOverchargeEffect			= OCEffects_None;
+		UInt16 iOverchargeFlags				= OCFlags_None;
 
-		UInt32 iAltProjectileID = 0xFFFFFF;
-		UInt32 iObjectEffectID = 0xFFFFFF;
-		UInt32 iMinColor = 0xFFFFFF;
-		UInt32 iMaxColor = 0xFFFFFF;
+		UInt32 iAltProjectileID				= INVALID_U32;
+		UInt32 iObjectEffectID				= INVALID_U32;
+		UInt32 iMinColor					= INVALID_U32;
+		UInt32 iMaxColor					= INVALID_U32;
 
-		float fHeatPerShot = 0;
-		float fCooldownPerSecond = 0;
-		float fMinFireRate = -1;
-		float fMaxFireRate = -1;
-		float fMinAccuracy = -1;
-		float fMaxAccuracy = -1;
+		float fMinDamage					= INVALID_F32;
+		float fMaxDamage					= INVALID_F32;
+		float fMinCritDamage				= INVALID_F32;
+		float fMaxCritDamage				= INVALID_F32;
+		float fMinFireRate					= INVALID_F32;
+		float fMaxFireRate					= INVALID_F32;
+		float fMinSpread					= INVALID_F32;
+		float fMaxSpread					= INVALID_F32;
+		float fMinProjectileSpeed			= INVALID_F32;
+		float fMaxProjectileSpeed			= INVALID_F32;
+		float fMinProjectileSize			= INVALID_F32;
+		float fMaxProjectileSize			= INVALID_F32;
+
+		float fHeatPerShot					= INVALID_F32;
+		float fCooldownPerSecond			= INVALID_F32;
 
 		NiFixedString sAnimFile;
 		NiFixedString sHeatSoundFile;
@@ -233,6 +243,11 @@ namespace Overcharge
 	extern std::vector<OCXNode> OCExtraModels;
 	extern OverchargeSettings g_OCSettings;
 
+
+
+	void ParseGameData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults);
+	void ParseOverchargeData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults);
+	void ParseAssetData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, TESObjectWEAP* rWeap);
 
 	void LoadConfigMain(const std::string& filePath);
 	void InitConfigModelPaths(TESObjectWEAP* rWeap);

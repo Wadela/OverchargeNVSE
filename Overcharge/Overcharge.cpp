@@ -3,35 +3,34 @@
 namespace Overcharge
 {
     HeatState::HeatState(
-        UInt8 ammo, UInt8 numProj,
         UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
-        UInt16 dmg, UInt16 critDmg, UInt16 OCEffect, UInt32 enchID,
+        UInt8 ammo, UInt8 numProj, UInt16 dmg, UInt16 critDmg, UInt32 enchID,
         float accuracy, float rof, float projSpd, float projSize,
         float perShot, float cooldown
     ) :
-        uiAmmoUsed(ammo), uiProjectiles(numProj),
+        bIsActive(false), bCanOverheat(true),
         uiAmmoThreshold(ammoTH), uiProjThreshold(projTH), uiEnchThreshold(enchTH), uiOCEffectThreshold(effectTH),
-        uiDamage(dmg), uiCritDamage(critDmg), uiTicksPassed(0), uiOCEffect(OCEffect), uiObjectEffectID(enchID),
+        uiAmmoUsed(ammo), uiProjectiles(numProj), uiDamage(dmg), uiCritDamage(critDmg), 
+        uiTicksPassed(0), uiOCEffect(0), uiObjectEffectID(enchID),
         fAccuracy(accuracy), fFireRate(rof), fProjectileSpeed(projSpd), fProjectileSize(projSize),
-        fHeatPerShot(perShot), fCooldownRate(cooldown), fHeatVal(0.0f), fTargetVal(0.0f) {
+        fHeatPerShot(perShot), fCooldownRate(cooldown), fHeatVal(0.0f), fStartingVal(0.0f), fTargetVal(0.0f) {
     }
 
     HeatState::HeatState(const HeatConfiguration& config)
         : HeatState(
-            config.iMinAmmoUsed,
-            config.iMinProjectiles,
             config.iAddAmmoThreshold,
             config.iAddProjectileThreshold,
             config.iObjectEffectThreshold,
             config.iOverchargeEffectThreshold,
-            config.iMinDamage,
-            config.iMinCritDamage,
-            0,
+            config.iMinAmmoUsed,
+            config.iMinProjectiles,
+            config.fMinDamage,
+            config.fMinCritDamage,
             config.iObjectEffectID,
-            config.fMinAccuracy,
+            config.fMinSpread,
             config.fMinFireRate,
-            config.iMinProjectileSpeedPercent,
-            config.iMinProjectileSizePercent,
+            config.fMinProjectileSpeed,
+            config.fMinProjectileSize,
             config.fHeatPerShot,
             config.fCooldownPerSecond
         )
@@ -49,28 +48,45 @@ namespace Overcharge
 
     NiColor RGBtoHSV(const NiColor& color) //RGB -> Hue, Saturation, Value
     {
-        float r = color.r, g = color.g, b = color.b;
-        float max = (std::max)({ r, g, b });
-        float min = (std::min)({ r, g, b });
-        float delta = max - min;
+        float r = color.r;
+        float g = color.g;
+        float b = color.b;
 
+        float max = r;
+        float min = r;
+
+        if (g > max) max = g;
+        else if (g < min) min = g;
+
+        if (b > max) max = b;
+        else if (b < min) min = b;
+
+        float delta = max - min;
         NiColor out;
         out.b = max;
 
-        if (delta == 0) {
-            out.r = 0;
-            out.g = 0;
+        if (delta == 0.0f) {
+            out.r = 0.0f;  
+            out.g = 0.0f;   
+            return out;
+        }
+
+        out.g = delta / max;
+        float hue;
+
+        if (max == r) {
+            hue = (g - b) / delta;
+        }
+        else if (max == g) {
+            hue = 2.0f + (b - r) / delta;
         }
         else {
-            out.g = delta / max;
-            if (max == r)
-                out.r = 60 * (fmod(((g - b) / delta), 6.0f));
-            else if (max == g)
-                out.r = 60 * (((b - r) / delta) + 2.0f);
-            else
-                out.r = 60 * (((r - g) / delta) + 4.0f);
-            if (out.r < 0) out.r += 360;
+            hue = 4.0f + (r - g) / delta;
         }
+
+        hue *= 60.0f;
+        if (hue < 0.0f) hue += 360.0f;
+        out.r = hue;
         return out;
     }
 
@@ -123,7 +139,7 @@ namespace Overcharge
 
     NiColor SmoothColorShift(float currentHeat, UInt32 startCol, UInt32 targetCol)
     {
-        float progress = std::clamp(currentHeat / 100.0f, 0.0f, 1.0f);
+        float progress = std::clamp(currentHeat / HOT_THRESHOLD, 0.0f, 1.0f);
 
         NiColor startHSV = UInt32toHSV(startCol);
         NiColor targetHSV = UInt32toHSV(targetCol);
@@ -146,22 +162,12 @@ namespace Overcharge
 
     HeatFX::HeatFX() :
         currCol(0, 0, 0),
-        matProps(
-            NiMaterialProperty::CreateObject(), 
-            NiMaterialProperty::CreateObject(), 
-            NiMaterialProperty::CreateObject(), 
-            NiMaterialProperty::CreateObject()),
         targetBlocks() {
     }
 
     HeatFX::HeatFX(UInt32 col, std::vector<OCBlock> blocks) :
         currCol(UInt32toRGB(col)),
-        matProps(
-            NiMaterialProperty::CreateObject(), 
-            NiMaterialProperty::CreateObject(), 
-            NiMaterialProperty::CreateObject(), 
-            NiMaterialProperty::CreateObject()),
-        targetBlocks(blocks) {
+        targetBlocks(std::move(blocks)) {
     }
 
     HeatData::HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* cfg) : state(heat), fx(visuals), config(cfg) {}

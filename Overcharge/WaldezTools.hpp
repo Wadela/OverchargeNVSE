@@ -61,6 +61,16 @@ T InterpolateTowards(T minVal, T maxVal, float ratio) {
 }
 
 template<typename T>
+T InterpolateBase(T baseValue, float minPercent, float maxPercent, float ratio)
+{
+	float interpPercent = minPercent + (maxPercent - minPercent) * ratio;
+	float low = (std::min)(minPercent, maxPercent);
+	float high = (std::max)(minPercent, maxPercent);
+	interpPercent = std::clamp(interpPercent, low, high);
+	return static_cast<T>(baseValue * interpPercent);
+}
+
+template<typename T>
 T InterpolateBasePercent(T baseValue, float minPercent, float maxPercent, float ratio)
 {
 	float minVal = minPercent / 100.0f;

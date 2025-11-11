@@ -20,40 +20,42 @@ namespace Overcharge
     //Overheating Code
     struct HeatState
     {
-        bool    bIsActive           = true;
-        bool    bCanOverheat        = true;
+        bool      bIsActive           = false;
+        bool      bCanOverheat        = true;
 
-        UInt8   uiAmmoUsed          = 0xFF;
-        UInt8   uiProjectiles       = 0xFF;
-        UInt8   uiAmmoThreshold     = 0xFF;
-        UInt8   uiProjThreshold     = 0xFF;
-        UInt8   uiEnchThreshold     = 0xFF;
-        UInt8   uiOCEffectThreshold = 0xFF;
+        UInt8     uiAmmoThreshold     = INVALID_U8;
+        UInt8     uiProjThreshold     = INVALID_U8;
+        UInt8     uiEnchThreshold     = INVALID_U8;
+        UInt8     uiOCEffectThreshold = INVALID_U8;
 
-        UInt16  uiDamage            = 0xFFFF;
-        UInt16  uiCritDamage        = 0xFFFF;
+        UInt8     uiAmmoUsed          = INVALID_U8;
+        UInt8     uiProjectiles       = INVALID_U8;
 
-        UInt16  uiTicksPassed       = 0xFFFF;
-        UInt16  uiOCEffect          = 0xFFFF;
+        UInt16    uiDamage            = INVALID_U16;
+        UInt16    uiCritDamage        = INVALID_U16;
+        UInt16    uiTicksPassed       = 0;
+        UInt16    uiOCEffect          = 0;
 
-        UInt32  uiObjectEffectID    = 0xFFFFFF;
+        UInt32    uiObjectEffectID    = INVALID_U32;
 
-        float   fAccuracy           = -1;
-        float   fFireRate           = -1;
-        float   fProjectileSpeed    = -1;
-        float   fProjectileSize     = -1;
+        float   fAccuracy             = INVALID_F32;
+        float   fFireRate             = INVALID_F32;
+        float   fProjectileSpeed      = INVALID_F32;
+        float   fProjectileSize       = INVALID_F32;
 
-        float   fHeatPerShot        = -1;
-        float   fCooldownRate       = -1;
-        float   fHeatVal            = 0.0f;
-        float   fTargetVal          = 0.0f;
+        float   fHeatPerShot          = INVALID_F32;
+        float   fCooldownRate         = INVALID_F32;
+
+        float   fStartingVal          = 0.0f;
+        float   fTargetVal            = 0.0f;
+
+        float     fHeatVal            = 0.0f;
 
         HeatState() = default;
 
         HeatState(
-            UInt8 ammo, UInt8 numProj,
             UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
-            UInt16 dmg, UInt16 critDmg, UInt16 OCEffect, UInt32 enchID,
+            UInt8 ammo, UInt8 numProj, UInt16 dmg, UInt16 critDmg, UInt32 enchID,
             float accuracy, float rof, float projSpd, float projSize,
             float perShot, float cooldown);
 
@@ -89,7 +91,7 @@ namespace Overcharge
 
     struct OCBlock
     {
-        UInt32 OCXFlags                 = 0xFFFFFF;
+        UInt32 OCXFlags                 = 0x0;
         NiMaterialPropertyPtr matProp   = nullptr;
         NiAVObjectPtr target            = nullptr;
     };
@@ -99,14 +101,12 @@ namespace Overcharge
         HeatFX();
         HeatFX(UInt32 col, std::vector<OCBlock> blocks);
 
-        NiColor currCol;
+        NiColor              currCol;
 
-        //0: <0.25 Alpha, 1: <0.75 Alpha, 2: >=1.0 Alpha && <1.25 EmitMult, 3: >=1.0 Alpha && >1.25 EmitMult
-        std::array<NiMaterialPropertyPtr, 4> matProps; 
-        std::vector<OCBlock>                 targetBlocks;
+        BSSoundHandle        heatSoundHandle;
+        BSSoundHandle        chargeSoundHandle;
 
-        BSSoundHandle heatSoundHandle;
-        BSSoundHandle chargeSoundHandle;
+        std::vector<OCBlock> targetBlocks;
     };
 
     struct HeatData
@@ -114,13 +114,13 @@ namespace Overcharge
         HeatData(const HeatConfiguration* cfg);
         HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* config);
 
-        Actor* rActor = nullptr;
-        TESObjectWEAP* rWeap = nullptr;
-
         HeatFX    fx;
         HeatState state;
 
         const HeatConfiguration* config;
+
+        Actor*         rActor = nullptr;
+        TESObjectWEAP* rWeap  = nullptr;
     };
 
     UInt32  RGBtoUInt32(const NiColor& color);
