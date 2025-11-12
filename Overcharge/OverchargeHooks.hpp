@@ -454,11 +454,19 @@ namespace Overcharge
 			if (node.OCXFlags & OCXColor)
 			{
 				if (node.target->IsNiType<NiNode>())
+				{
 					TraverseNiNode<NiGeometry>(
 						static_cast<NiNode*>(node.target.m_pObject),
 						[&](NiGeometry* geom) {
 							SetEmissiveColor(geom, fx.currCol, node.matProp);
 						});
+
+					TraverseNiNode<NiLight>(
+						static_cast<NiNode*>(node.target.m_pObject),
+						[&](NiLight* light) {
+							light->SetDiffuseColor(fx.currCol);
+						});
+				}
 				else if (node.target->IsNiType<NiGeometry>())
 					SetEmissiveColor(node.target.m_pObject, fx.currCol, node.matProp);
 			}

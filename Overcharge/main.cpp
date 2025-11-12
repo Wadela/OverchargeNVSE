@@ -42,6 +42,7 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 		}
 		for (const auto& i : mainLoop) i(); // call all mainloop functions
 
+
 		static int OCFrameCounter = 0;
 		if (!Overcharge::IsGamePaused() && !MenuMode() 
 			&& !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
