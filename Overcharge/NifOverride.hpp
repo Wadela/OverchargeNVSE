@@ -15,6 +15,8 @@ namespace Overcharge
 	constexpr float NI_TWO_PI = 2.0f * NI_PI;
 	constexpr float DEG_TO_RAD = NI_PI / 180.0f;
 
+	extern NiAVObjectPtr OCTranslate;
+
 	extern std::vector<NiParticleSystemPtr> worldSpaceParticles;
 
 	template<typename T>
@@ -209,7 +211,7 @@ namespace Overcharge
 	{
 		if (filePath && (definedModels.contains(filePath)))
 		{
-			NiNode* node = model->spNode;
+			NiNodePtr node = model->spNode;
 
 			TraverseNiNode<NiParticleSystem>(node, [](NiParticleSystemPtr psys) {
 				PrepColorMod(psys);
@@ -223,6 +225,27 @@ namespace Overcharge
 		}
 		else
 		{
+			if (filePath && (CaseInsensitiveCmp(filePath, "Characters\\_1stPerson\\Skeleton.nif")))
+			{
+				NiNodePtr node = model->spNode;
+				NiFixedString attachName = "##OCTranslate";
+				NiAVObjectPtr OCTrn = node->GetObjectByName(attachName);
+				if (!OCTrn)
+				{
+					NiAVObjectPtr bipTrn = node->GetObjectByName("Bip01 Translate");
+					if (bipTrn && bipTrn->m_pkParent) 
+					{
+						NiNodePtr parent = bipTrn->m_pkParent;
+						NiNodePtr toAttach = NiNode::CreateObject();
+						toAttach->m_kName = attachName;
+						toAttach->AttachChild(bipTrn, 0);
+						parent->AttachChild(toAttach, 0);
+						parent->DetachChildAlt(bipTrn);
+					}
+				}
+				return node;
+			}
+
 			char nameBuffer[256];
 			for (auto& it : OCExtraModels)
 			{

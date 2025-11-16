@@ -17,6 +17,8 @@ namespace Overcharge
 	BGSPerk* OCPerkCoolantLeak;
 	BGSPerk* OCPerkThermicInversion;
 
+	NiAVObjectPtr OCTranslate;
+
 	bool UpdateActiveWeapons(std::shared_ptr<HeatData> instance, float frameTime, bool isPlayer = false)
 	{
 		if (!instance || !instance->rActor || !instance->rWeap) return false;

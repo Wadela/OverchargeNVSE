@@ -52,6 +52,9 @@ namespace Overcharge
 
 		blocks.reserve(data->sHeatedNodes.size());
 
+		if (isPlayer1st)
+		OCTranslate = sourceNode->GetObjectByName("##OCTranslate");
+
 		for (auto& it : data->sHeatedNodes)
 		{
 			if (!it.nodeName) continue;
@@ -254,10 +257,6 @@ namespace Overcharge
 			st.uiTicksPassed = 0;
 
 		float timePassed = st.uiTicksPassed * frameTime;
-
-		auto player = PlayerCharacter::GetSingleton();
-		auto node1st = player->GetPlayerNode(1);
-		auto trm = node1st->GetObjectByName("##trm");
 		static float shakeTime = 0.0f;
 		static float shakeBlend = 0.0f; 
 		static float currentVolume = 0.0f;
@@ -267,16 +266,19 @@ namespace Overcharge
 			if (!(st.uiOCEffect & OCEffects_Overheat))
 				st.uiOCEffect |= OCEffects_Overcharge;
 
-			shakeTime += frameTime * 8.5f;
-			shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
-			const float freq1 = 6.0f;
-			const float freq2 = 11.0f;
-			float heatFactor = std::clamp(st.fHeatVal / 100.0f, 0.0f, 1.0f);
-			float shakeAmp = 0.08f * shakeBlend * heatFactor;
-			float jitterX = (sinf(shakeTime * freq1) + 0.45f * cosf(shakeTime * freq2)) * shakeAmp;
-			float jitterY = (cosf(shakeTime * freq1) + 0.15f * sinf(shakeTime * freq2)) * shakeAmp;
-			trm->m_kLocal.m_Translate.x = jitterX;
-			trm->m_kLocal.m_Translate.z = jitterY;
+			if (OCTranslate)
+			{
+				shakeTime += frameTime * 8.5f;
+				shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
+				const float freq1 = 6.0f;
+				const float freq2 = 11.0f;
+				float heatFactor = std::clamp(st.fHeatVal / 100.0f, 0.0f, 1.0f);
+				float shakeAmp = 0.08f * shakeBlend * heatFactor;
+				float jitterX = (sinf(shakeTime * freq1) + 0.45f * cosf(shakeTime * freq2)) * shakeAmp;
+				float jitterY = (cosf(shakeTime * freq1) + 0.15f * sinf(shakeTime * freq2)) * shakeAmp;
+				OCTranslate->m_kLocal.m_Translate.x = jitterX;
+				OCTranslate->m_kLocal.m_Translate.z = jitterY;
+			}
 
 			float targetVolume = st.fHeatVal / 100.0f;
 			float rampSpeed = 2.0f;
@@ -291,10 +293,13 @@ namespace Overcharge
 			st.uiOCEffect &= ~OCEffects_Overcharge;
 			inputManager->SetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
 			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
-			trm->m_kLocal.m_Translate.x = 0.0f;
-			trm->m_kLocal.m_Translate.y = 0.0f;
 			shakeTime = 0.0f;
 			currentVolume = 0.0f;
+
+			if (OCTranslate) {
+				OCTranslate->m_kLocal.m_Translate.x = 0.0f;
+				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
+			}
 		}
 
 		if ((st.uiOCEffect & OCEffects_Overcharge)
@@ -330,9 +335,6 @@ namespace Overcharge
 			attackPressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
 		}
 
-		auto player = PlayerCharacter::GetSingleton();
-		auto node1st = player->GetPlayerNode(1);
-		auto trm = node1st->GetObjectByName("##trm");
 		static float shakeTime = 0.0f;
 		static float shakeBlend = 0.0f;
 
@@ -354,10 +356,14 @@ namespace Overcharge
 				{
 					st.uiOCEffect &= ~OCEffects_ChargeDelay;
 					FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
-					trm->m_kLocal.m_Translate.x = 0.0f;
-					trm->m_kLocal.m_Translate.y = 0.0f;
-					shakeTime = 0.0f;
 					st.fTargetVal = -1.0f;
+					shakeTime = 0.0f;
+
+					if (OCTranslate) {
+						OCTranslate->m_kLocal.m_Translate.x = 0.0f;
+						OCTranslate->m_kLocal.m_Translate.y = 0.0f;
+					}
+
 				}
 			}
 		}
@@ -365,28 +371,29 @@ namespace Overcharge
 		{
 			st.uiOCEffect &= ~OCEffects_ChargeDelay;
 			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
-			trm->m_kLocal.m_Translate.x = 0.0f;
-			trm->m_kLocal.m_Translate.y = 0.0f;
-			shakeTime = 0.0f;
 			st.fTargetVal = -1.0f;
+			shakeTime = 0.0f;
+
+			if (OCTranslate) {
+				OCTranslate->m_kLocal.m_Translate.x = 0.0f;
+				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
+			}
 		}
 
 		if ((st.uiOCEffect & OCEffects_ChargeDelay)
 			&& !(st.uiOCEffect & OCEffects_Overheat)
 			&& st.fHeatVal <= HOT_THRESHOLD)
 		{
-			shakeTime += frameTime * 8.5f;
-			shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
-
-			const float freq1 = 6.0f, freq2 = 12.0f;
-			float shakeAmp = 0.08f * shakeBlend;
-
-			float jitterX = (sinf(shakeTime * freq1) + 0.4f * cosf(shakeTime * freq2)) * shakeAmp;
-			float jitterY = (cosf(shakeTime * freq1) + 0.1f * sinf(shakeTime * freq2)) * shakeAmp;
-
-			trm->m_kLocal.m_Translate.x = jitterX;
-			trm->m_kLocal.m_Translate.y = jitterY;
-
+			if (OCTranslate) {
+				shakeTime += frameTime * 8.5f;
+				shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
+				const float freq1 = 6.0f, freq2 = 12.0f;
+				float shakeAmp = 0.08f * shakeBlend;
+				float jitterX = (sinf(shakeTime * freq1) + 0.4f * cosf(shakeTime * freq2)) * shakeAmp;
+				float jitterY = (cosf(shakeTime * freq1) + 0.1f * sinf(shakeTime * freq2)) * shakeAmp;
+				OCTranslate->m_kLocal.m_Translate.x = jitterX;
+				OCTranslate->m_kLocal.m_Translate.y = jitterY;
+			}
 			if (!inst->fx.chargeSoundHandle.IsPlaying())
 				inst->fx.chargeSoundHandle.FadeInPlay(50);
 
