@@ -147,11 +147,10 @@ namespace Overcharge
 		if (reqSkill > 0.0f) {
 			float skillRatio = actorSkLvl / reqSkill;
 			float finalMultiplier = 1.0f + percentScaling * (1.0f - skillRatio);
-
 			float minMult = 1.0f - percentScaling;
 			float maxMult = 1.0f + percentScaling;
-			float heatMultiplier = InterpolateTowards(finalMultiplier, minMult, maxMult);
-			float cooldownMultiplier = InterpolateTowards(finalMultiplier, maxMult, minMult);
+			float heatMultiplier = InterpolateTowards(minMult, maxMult, finalMultiplier);
+			float cooldownMultiplier = InterpolateTowards(minMult, maxMult, finalMultiplier);
 			heat->state.fHeatPerShot = baseHeatPerShot * heatMultiplier;
 			heat->state.fCooldownRate = baseCooldownRate * cooldownMultiplier;
 		}
@@ -177,17 +176,14 @@ namespace Overcharge
 				heatSound.data(), 0, nullptr);
 
 		std::string_view chargeSound = heat->config->sChargeSoundFile;
-		if (!chargeSound.empty())
-		{
+		if (!chargeSound.empty()) {
 			UInt32 audioFlags = 0;
-			if (chargeSound.size() >= 3)
-			{
+			if (chargeSound.size() >= 3) {
 				size_t dotPos = chargeSound.rfind('.');
 				size_t endPos = (dotPos != std::string_view::npos) ? dotPos : chargeSound.size();
 				if (chargeSound[endPos - 3] == '_' &&
 					chargeSound[endPos - 2] == 'l' &&
-					chargeSound[endPos - 1] == 'p')
-				{
+					chargeSound[endPos - 1] == 'p') {
 					audioFlags = 0x10;
 				}
 			}
@@ -239,146 +235,98 @@ namespace Overcharge
 
 	inline void UpdateOverchargeShot(std::shared_ptr<HeatData> inst, float frameTime)
 	{
-		SInt32 attackHeld = 0;
-		SInt32 attackDepressed = 0;
-		SInt32 attackPressed = 0;
 		HeatState& st = inst->state;
-		const HeatConfiguration* config = inst->config;
+		if (!(inst->config->iOverchargeEffect & OCEffects_Overcharge)) return;
 
+		SInt32 attackHeld = 0, attackPressed = 0, attackDepressed = 0;
 		auto inputManager = BSInputManager::GetSingleton();
-		if (inputManager)
-		{
+		if (inputManager) {
 			attackHeld = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Held);
-			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
 			attackPressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
+			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
 		}
 
-		if (config->iOverchargeEffect & OCEffects_Overcharge && attackPressed)
-			st.uiTicksPassed = 0;
+		if (attackPressed) st.uiTicksPassed = 0;
 
 		float timePassed = st.uiTicksPassed * frameTime;
-		static float shakeTime = 0.0f;
-		static float shakeBlend = 0.0f; 
-		static float currentVolume = 0.0f;
 
-		if (config->iOverchargeEffect & OCEffects_Overcharge && attackHeld)
+		static float shakeTime = 0.0f, shakeBlend = 0.0f, currentVol = 0.0f;
+
+		if (attackHeld)
 		{
 			if (!(st.uiOCEffect & OCEffects_Overheat))
 				st.uiOCEffect |= OCEffects_Overcharge;
 
-			if (OCTranslate)
-			{
+			if (OCTranslate) {
 				shakeTime += frameTime * 8.5f;
-				shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
-				const float freq1 = 6.0f;
-				const float freq2 = 11.0f;
-				float heatFactor = std::clamp(st.fHeatVal / 100.0f, 0.0f, 1.0f);
-				float shakeAmp = 0.08f * shakeBlend * heatFactor;
-				float jitterX = (sinf(shakeTime * freq1) + 0.45f * cosf(shakeTime * freq2)) * shakeAmp;
-				float jitterY = (cosf(shakeTime * freq1) + 0.15f * sinf(shakeTime * freq2)) * shakeAmp;
-				OCTranslate->m_kLocal.m_Translate.x = jitterX;
-				OCTranslate->m_kLocal.m_Translate.z = jitterY;
+				shakeBlend = (std::min)(shakeBlend + frameTime * 2.f, 1.f);
+				float hf = std::clamp(st.fHeatVal * 0.01f, 0.f, 1.f), amp = 0.08f * shakeBlend * hf;
+				float t1 = shakeTime * 6.f, t2 = shakeTime * 11.f;
+				OCTranslate->m_kLocal.m_Translate.x = (sinf(t1) + 0.45f * cosf(t2)) * amp;
+				OCTranslate->m_kLocal.m_Translate.z = (cosf(t1) + 0.15f * sinf(t2)) * amp;
 			}
 
-			float targetVolume = st.fHeatVal / 100.0f;
-			float rampSpeed = 2.0f;
-			currentVolume += (targetVolume - currentVolume) * std::clamp(frameTime * rampSpeed, 0.0f, 1.0f);
-
-			inst->fx.chargeSoundHandle.SetVolume(currentVolume);
+			float targetVol = std::clamp(st.fHeatVal * 0.01f, 0.f, 1.f);
+			currentVol += (targetVol - currentVol) * std::clamp(frameTime * 2.f, 0.f, 1.f);
+			inst->fx.chargeSoundHandle.SetVolume(currentVol);
 			if (!inst->fx.chargeSoundHandle.IsPlaying())
 				inst->fx.chargeSoundHandle.FadeInPlay(50);
 		}
-		else if (attackDepressed && st.uiOCEffect & OCEffects_Overcharge)
+		else if (attackDepressed)
 		{
 			st.uiOCEffect &= ~OCEffects_Overcharge;
-			inputManager->SetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
 			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
-			shakeTime = 0.0f;
-			currentVolume = 0.0f;
-
+			shakeTime = shakeBlend = currentVol = 0.f;
 			if (OCTranslate) {
 				OCTranslate->m_kLocal.m_Translate.x = 0.0f;
 				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
 			}
+			if (inputManager) inputManager->SetUserAction(
+				BSInputManager::Attack, BSInputManager::Pressed);
 		}
 
 		if ((st.uiOCEffect & OCEffects_Overcharge)
-			&& !(st.uiOCEffect & OCEffects_Overheat)
-			&& timePassed >= COOLDOWN_DELAY
-			&& st.fHeatVal <= HOT_THRESHOLD)
-		{
-			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
-
-		}
-
-		if ((st.uiOCEffect & OCEffects_Overcharge) &&
-			timePassed >= CHARGE_THRESHOLD &&
-			st.fHeatVal >= st.uiOCEffectThreshold)
-		{
-			st.uiOCEffect |= OCEffects_AltProjectile;
+		&& !(st.uiOCEffect & OCEffects_Overheat) && st.fHeatVal <= HOT_THRESHOLD) {
+			if (timePassed >= COOLDOWN_DELAY)
+				st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
+			if (timePassed >= CHARGE_THRESHOLD && st.fHeatVal >= st.uiOCEffectThreshold)
+				st.uiOCEffect |= OCEffects_AltProjectile;
 		}
 	}
 
 	inline void UpdateChargeDelay(std::shared_ptr<HeatData> inst, float frameTime)
 	{
-		SInt32 attackHeld = 0;
-		SInt32 attackDepressed = 0;
-		SInt32 attackPressed = 0;
 		HeatState& st = inst->state;
-		const HeatConfiguration* config = inst->config;
+		if (!(inst->config->iOverchargeEffect & OCEffects_ChargeDelay)) return;
 
+		SInt32 attackHeld = 0, attackPressed = 0, attackDepressed = 0;
 		auto inputManager = BSInputManager::GetSingleton();
-		if (inputManager)
-		{
+		if (inputManager) {
 			attackHeld = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Held);
-			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
 			attackPressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Pressed);
+			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
 		}
 
-		static float shakeTime = 0.0f;
-		static float shakeBlend = 0.0f;
+		static float shakeTime = 0.0f, shakeBlend = 0.0f;
 
-		if ((config->iOverchargeEffect & OCEffects_ChargeDelay) && attackPressed)
-			st.uiTicksPassed = 0;
+		if (attackPressed) st.uiTicksPassed = 0;
+		if (attackHeld && st.uiTicksPassed == 0)
+			st.fTargetVal = st.fHeatVal + st.uiOCEffectThreshold;
 
-		if ((config->iOverchargeEffect & OCEffects_ChargeDelay) && attackHeld)
-		{
-			if (!(st.uiOCEffect & OCEffects_Overheat))
-			{
-				if (st.uiTicksPassed == 0)
-					st.fTargetVal = st.fHeatVal + st.uiOCEffectThreshold;
+		bool reset = attackDepressed || (attackHeld && st.fHeatVal > st.fTargetVal);
 
-				if (st.fHeatVal <= st.fTargetVal)
-				{
-					st.uiOCEffect |= OCEffects_ChargeDelay;
-				}
-				else
-				{
-					st.uiOCEffect &= ~OCEffects_ChargeDelay;
-					FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
-					st.fTargetVal = -1.0f;
-					shakeTime = 0.0f;
-
-					if (OCTranslate) {
-						OCTranslate->m_kLocal.m_Translate.x = 0.0f;
-						OCTranslate->m_kLocal.m_Translate.y = 0.0f;
-					}
-
-				}
-			}
-		}
-		else if (attackDepressed && (st.uiOCEffect & OCEffects_ChargeDelay))
-		{
+		if (reset) {
 			st.uiOCEffect &= ~OCEffects_ChargeDelay;
 			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
-			st.fTargetVal = -1.0f;
-			shakeTime = 0.0f;
-
+			st.fTargetVal = -1.f;
+			shakeTime = 0.f;
 			if (OCTranslate) {
 				OCTranslate->m_kLocal.m_Translate.x = 0.0f;
 				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
 			}
 		}
+		else if (attackHeld)
+			st.uiOCEffect |= OCEffects_ChargeDelay;
 
 		if ((st.uiOCEffect & OCEffects_ChargeDelay)
 			&& !(st.uiOCEffect & OCEffects_Overheat)
@@ -386,18 +334,16 @@ namespace Overcharge
 		{
 			if (OCTranslate) {
 				shakeTime += frameTime * 8.5f;
-				shakeBlend = (std::min)(shakeBlend + frameTime * 2.0f, 1.0f);
-				const float freq1 = 6.0f, freq2 = 12.0f;
-				float shakeAmp = 0.08f * shakeBlend;
-				float jitterX = (sinf(shakeTime * freq1) + 0.4f * cosf(shakeTime * freq2)) * shakeAmp;
-				float jitterY = (cosf(shakeTime * freq1) + 0.1f * sinf(shakeTime * freq2)) * shakeAmp;
-				OCTranslate->m_kLocal.m_Translate.x = jitterX;
-				OCTranslate->m_kLocal.m_Translate.y = jitterY;
+				shakeBlend = (std::min)(shakeBlend + frameTime * 2.f, 1.f);
+				float amp = 0.08f * shakeBlend, t = shakeTime;
+				OCTranslate->m_kLocal.m_Translate.x = (sinf(t * 6.f) + 0.4f * cosf(t * 12.f)) * amp;
+				OCTranslate->m_kLocal.m_Translate.y = (cosf(t * 6.f) + 0.1f * sinf(t * 12.f)) * amp;
 			}
+
 			if (!inst->fx.chargeSoundHandle.IsPlaying())
 				inst->fx.chargeSoundHandle.FadeInPlay(50);
 
-			st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
+			st.fHeatVal = (std::min)(99.f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
 		}
 	}
 
@@ -406,9 +352,6 @@ namespace Overcharge
 		auto& st = heat->state;
 		auto& fx = heat->fx;
 		auto& cfg = heat->config;
-
-		if (st.fHeatVal <= 0 && st.uiTicksPassed <= 0)
-			InitializeHeatFX(heat, cfg);
 
 		fx.currCol = SmoothColorShift(st.fHeatVal, cfg->iMinColor, cfg->iMaxColor);
 
@@ -501,7 +444,6 @@ namespace Overcharge
 					node.OCXFlags & OCXSpinZ,
 					isNegative);
 			}
-
 		}
 	}
 

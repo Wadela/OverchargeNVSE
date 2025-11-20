@@ -59,7 +59,7 @@
     <OutDir>..\$(Configuration)\</OutDir>
     <IntDir>..\$(Configuration)\$(ProjectName)\</IntDir>
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>$(ProjectName)</TargetName>
+    <TargetName>Overcharge</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>..\$(Configuration)\</OutDir>

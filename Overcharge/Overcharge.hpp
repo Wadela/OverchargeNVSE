@@ -9,7 +9,7 @@
 namespace Overcharge
 {
     constexpr float HOT_THRESHOLD = 100.0f;
-    constexpr float COOL_THRESHOLD = 20.0f;
+    constexpr float COOL_THRESHOLD = 50.0f;
     constexpr float ERASE_DELAY = 5.0f;
     constexpr float COOLDOWN_DELAY = 0.5f;
     constexpr float CHARGE_THRESHOLD = 2.0f;

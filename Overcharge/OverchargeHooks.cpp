@@ -28,13 +28,21 @@ namespace Overcharge
 
 		if (instance->rActor->GetCurrentWeapon() != instance->rWeap
 			|| instance->rActor->IsDying()) st.bIsActive = false;
+
 		if (!st.bIsActive && !instance->rActor->IsDying()
 			&& instance->rActor->GetCurrentWeapon() == instance->rWeap)
 		{
-			st.bIsActive = true;
-			st.uiTicksPassed = 0;
-			InitializeHeatFX(instance, instance->config);
-			InitializeHeatData(instance, instance->config);
+			if (auto biped = instance->rActor->GetValidBip01Names()) {
+				if (auto weapNode = instance->rActor->pkBaseProcess->GetWeaponBone(biped);
+					weapNode && weapNode->m_kChildren.m_usSize != 0)
+				{
+					st.bIsActive = true;
+					st.uiTicksPassed = 0;
+					InitializeHeatData(instance, instance->config);
+					InitializeHeatFX(instance, instance->config);
+					InitializeHeatSounds(instance, instance->config);
+				}
+			}
 		}
 
 		const float timePassed = st.uiTicksPassed * frameTime;
@@ -48,7 +56,7 @@ namespace Overcharge
 		if (st.uiTicksPassed < 0xFFFF)
 			++st.uiTicksPassed;
 
-		if (isPlayer && st.bIsActive) {
+		if (isPlayer && st.bIsActive && !MenuMode()) {
 			if (!st.IsOverheating()) {
 				UpdateOverchargeShot(instance, frameTime);
 				UpdateChargeDelay(instance, frameTime);
@@ -56,6 +64,17 @@ namespace Overcharge
 			else if (!wasOverheating)
 			instance->fx.heatSoundHandle.FadeInPlay(100);
 			else DisableAiming();
+		}
+		else
+		{
+			st.uiOCEffect &= ~OCEffects_Overcharge;
+			st.uiOCEffect &= ~OCEffects_AltProjectile;
+			st.uiOCEffect &= ~OCEffects_ChargeDelay;
+			FadeOutAndStop(&instance->fx.chargeSoundHandle, 100);
+			if (OCTranslate) {
+				OCTranslate->m_kLocal.m_Translate.x = 0.0f; 
+				OCTranslate->m_kLocal.m_Translate.y = 0.0f; 
+			} 
 		}
 
 		if (!st.bIsActive && st.fHeatVal <= 0.0f && timePassed >= ERASE_DELAY) return false;
@@ -68,6 +87,8 @@ namespace Overcharge
 	void UpdateActiveOCWeapons()
 	{
 		const float frameTime = TimeGlobal::GetSingleton()->fDelta;
+		const float frameTimeAdjusted = frameTime * NPC_UPDATE_THROTTLE;
+
 		activeOCWeapons.erase(
 			std::remove_if(activeOCWeapons.begin(), activeOCWeapons.end(),
 				[&](std::shared_ptr<HeatData>& inst)
@@ -75,7 +96,7 @@ namespace Overcharge
 					if (inst->rActor == PlayerCharacter::GetSingleton())
 						return false;
 
-					else return !UpdateActiveWeapons(inst, frameTime);
+					else return !UpdateActiveWeapons(inst, frameTimeAdjusted);
 				}),
 			activeOCWeapons.end()
 		);
@@ -91,16 +112,6 @@ namespace Overcharge
 				}),
 			playerOCWeapons.end()
 		);
-	}
-
-	void RefreshPlayerOCWeapons()
-	{
-		for (auto& OCWeap : playerOCWeapons)
-		{
-			InitializeHeatData(OCWeap, OCWeap->config);
-			InitializeHeatFX(OCWeap, OCWeap->config);
-			InitializeHeatSounds(OCWeap, OCWeap->config);
-		}
 	}
 
 	void ClearOCWeapons()
@@ -590,22 +601,7 @@ namespace Overcharge
 	{
 		UInt32 weapon = ThisStdCall<UInt32>(0x8A1710, rActor);
 		if (!rActor) return weapon;
-
-		static bool wasMenuMode = 0;
-
-		//While the game is running, as long as the game isn't paused or loading 
-		if (!IsGamePaused() && !MenuMode()
-			&& !BGSSaveLoadGame::GetSingleton()->IsLoading())
-		{
-			auto heat = GetOrCreateHeat(rActor);
-			if (wasMenuMode)
-			{
-				RefreshPlayerOCWeapons();
-				wasMenuMode = 0;
-			}
-		}
-		else (wasMenuMode = 1);
-
+		auto heat = GetOrCreateHeat(rActor);
 		return weapon;
 	}
 
@@ -667,7 +663,7 @@ namespace Overcharge
 		UInt32 CreateRefAtLoc = 0x5DBD56;
 
 		UInt32 FireWeaponAnim = 0x949CF1;
-
+		UInt32 ActorFireWeaponAnim = 0x8BA7BF;
 		UInt32 readyWeapAddr = 0x888C23;
 
 
@@ -684,6 +680,7 @@ namespace Overcharge
 		WriteRelCall(CreateRefAtLoc, &CreateRefAtLocation);
 
 		WriteRelCall(FireWeaponAnim, &PlayFireAnimation);
+		WriteRelCall(ActorFireWeaponAnim, &PlayFireAnimation);
 
 		//Testing
 		WriteRelJump(0xC1ADD0, &TogglePsysWorldUpdate);

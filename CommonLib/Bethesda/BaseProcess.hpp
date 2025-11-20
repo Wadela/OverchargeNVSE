@@ -201,13 +201,13 @@ public:
 	virtual void					RemoveQueuedEquipItems();
 	virtual NiNode*					GetProjectileNode();
 	virtual void					SetProjectileNode(NiNode* apkNode);
-	virtual void					SetupWeaponNodeUnk_63();
-	virtual NiNode*					GetWeaponBone(void* bipedNames);
+	virtual bool					StoreBonePointers(NiControllerManager* apControllerManager, NiNode* apNode);
+	virtual NiNode*					GetWeaponBone(BipedAnim* apAnim) const;
 	virtual void					Unk_65();
-	virtual void					Unk_66();
+	virtual NiNode*					GetArmorBone(BipedAnim* apAnim) const;
 	virtual void					Unk_67();
-	virtual NiNode*					GetWeaponNode();
-	virtual NiNode*					GetBowNode();
+	virtual NiNode*					GetRightWeaponBone(BipedAnim* apAnim);
+	virtual NiNode*					GetLeftWeaponBone(BipedAnim* apAnim);
 	virtual bool					IsUsingOneHandGrenade();
 	virtual bool					IsUsingOneHandMine();
 	virtual bool					IsUsingThrownWeapon();

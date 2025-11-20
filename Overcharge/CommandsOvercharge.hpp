@@ -46,6 +46,8 @@ static ParamInfo kParams_2Form_1Int[3] =
 DEFINE_COMMAND_PLUGIN(GetOCWeaponState, "", 1, 2, kParams_1Form_1Int);
 DEFINE_COMMAND_PLUGIN(SetOCWeaponState, "", 1, 3, kParams_1Form_1Int_1Float);
 DEFINE_COMMAND_PLUGIN(GetOCWeaponConfig, "", 0, 3, kParams_2Form_1Int);
+DEFINE_COMMAND_PLUGIN(GetOCSettings, "", 0, 1, kParams_1Int);
+
 
 bool Cmd_GetOCWeaponState_Execute(COMMAND_ARGS)
 {
@@ -410,6 +412,70 @@ bool Cmd_GetOCWeaponConfig_Execute(COMMAND_ARGS)
 			else if (type <= 8 || (type >= 15 && type <= 28))
 				Console_Print("GetHeatConfig >> %d >> %g", type, *result);
 		}
+	}
+	return true;
+}
+
+bool Cmd_GetOCSettings_Execute(COMMAND_ARGS)
+{
+	*result = 0;
+	UInt32 type;
+	std::string resultString;
+
+	if (ExtractArgsEx(EXTRACT_ARGS_EX, &type) && type > 0 && type <= 32)
+	{
+		switch (type)
+		{
+		case 1:
+			*result = Overcharge::g_OCSettings.iGlobalCoverage;
+			break;
+		case 2:
+			*result = Overcharge::g_OCSettings.bMeshes;
+			break;
+		case 3:
+			*result = Overcharge::g_OCSettings.bAnimations;
+			break;
+		case 4:
+			*result = Overcharge::g_OCSettings.bSounds;
+			break;
+		case 5:
+			*result = Overcharge::g_OCSettings.bPerks;
+			break;
+		case 6:
+			*result = Overcharge::g_OCSettings.bStats;
+			break;
+		case 7:
+			*result = Overcharge::g_OCSettings.bMechanics;
+			break;
+		case 8:
+			*result = Overcharge::g_OCSettings.bVFX;
+			break;
+		case 9:
+			*result = Overcharge::g_OCSettings.bKillVFX;
+			break;
+		case 10:
+			*result = Overcharge::g_OCSettings.iOverheat;
+			break;
+		case 11:
+			*result = Overcharge::g_OCSettings.fSkillLevelScaling;
+			break;
+		case 12:
+			*result = Overcharge::g_OCSettings.iHUDStyle;
+			break;
+		case 13:
+			*result = Overcharge::g_OCSettings.fHUDScale;
+			break;
+		case 14:
+			*result = Overcharge::g_OCSettings.fHUDOffsetX;
+			break;
+		case 15:
+			*result = Overcharge::g_OCSettings.fHUDOffsetY;
+			break;
+		default:
+			*result = 0;
+			return true;
+		}
+		if (IsConsoleOpen()) Console_Print("GetHeatConfig >> %d >> %g", type, *result);
 	}
 	return true;
 }

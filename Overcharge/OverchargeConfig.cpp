@@ -74,15 +74,20 @@ namespace Overcharge
 		}
 
 		//Global
-		g_OCSettings.iVisualEffects = ini.GetLongValue("Global", "iEnableVisualEffects", 1);
-		g_OCSettings.iGameplayEffects = ini.GetLongValue("Global", "iEnableGameplayEffects", 1);
-		g_OCSettings.bMeshes = ini.GetBoolValue("Global", "bEnableCustomMeshes", true);
-		g_OCSettings.bAnimations = ini.GetBoolValue("Global", "bEnableCustomAnimations", true);
-		g_OCSettings.bSounds = ini.GetBoolValue("Global", "bEnableCustomSounds", true);
-		g_OCSettings.fSkillLevelScaling = static_cast<float>(ini.GetDoubleValue("User Interface", "fSkillLevelScaling", 0.35));
+		g_OCSettings.iGlobalCoverage = ini.GetLongValue("Global", "iGlobalCoverage", 1);
+		g_OCSettings.bMeshes = ini.GetBoolValue("Global", "bEnableMeshControl", true);
+		g_OCSettings.bAnimations = ini.GetBoolValue("Global", "bEnableAnimations", true);
+		g_OCSettings.bSounds = ini.GetBoolValue("Global", "bEnableSounds", true);
+		g_OCSettings.bPerks = ini.GetBoolValue("Global", "bEnablePerks", true);
+		g_OCSettings.bStats = ini.GetBoolValue("Global", "bEnableStats", true);
+		g_OCSettings.bMechanics = ini.GetBoolValue("Global", "bEnableMechanics", true);
+		g_OCSettings.bVFX = ini.GetBoolValue("Global", "bEnableVFX", true);
+		g_OCSettings.bKillVFX = ini.GetBoolValue("Global", "bEnableKillVFX", true);
+		g_OCSettings.iOverheat = ini.GetLongValue("Global", "iOverheat", 1);
+		g_OCSettings.fSkillLevelScaling = static_cast<float>(ini.GetDoubleValue("User Interface", "fSkillLevelScaling", 0.25));
 
 		//User Interface
-		g_OCSettings.iHUDIndicator = ini.GetLongValue("User Interface", "iHUDIndicator", 1);
+		g_OCSettings.iHUDStyle = ini.GetLongValue("User Interface", "iHUDStyle", 1);
 		g_OCSettings.fHUDScale = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDScale", 100.0));
 		g_OCSettings.fHUDOffsetX = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDOffsetX", 0.0));
 		g_OCSettings.fHUDOffsetY = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDOffsetY", 0.0));

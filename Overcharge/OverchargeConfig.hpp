@@ -164,20 +164,25 @@ namespace Overcharge
 
 	struct OverchargeSettings
 	{
-		UInt8  iVisualEffects = 1;
-		UInt8  iGameplayEffects = 1;
+		UInt8  iGlobalCoverage		= 1; 		//0: Disabled (Global), 1: Enabled (Global), 2: Enabled (Player Only)
 
-		bool   bMeshes = true;
-		bool   bAnimations = true;
-		bool   bSounds = true;
-		bool   bPerks = true;
+		bool   bMeshes				= true;		//Enables both custom meshes and existing weapon meshes to be controlled
+		bool   bAnimations			= true;		//Enables custom animations to be played when applicable
+		bool   bSounds				= true;		//Enables custom sounds to be played when applicable
+		bool   bPerks				= true;		//Enables custom perks and traits
+		bool   bStats				= true;		//Enables gameplay stat modification (Damage, Accuracy, Fire Rate, etc.)
+		bool   bMechanics			= true;		//Enables gameplay mechanics (Overcharge Shots, Charge Delay, Object Effects)
+		bool   bVFX					= true;		//Enables VFX (Projectiles, Particles, Muzzle Flashes, impacts) to be controlled
+		bool   bKillVFX				= true;     //Enables Kill VFX (Gooification, Goo Piles, Disintegration, etc.) to be controlled
 
-		float  fSkillLevelScaling = 0.35f;
+		UInt8  iOverheat			= 1;		//0: Disabled, 1: Enabled (No Lockout), 2: Enabled (Lockout)
 
-		UInt8  iHUDIndicator = 1;
-		float  fHUDScale = 100.0f;
-		float  fHUDOffsetX = 0.0f;
-		float  fHUDOffsetY = 0.0f;
+		float  fSkillLevelScaling	= 0.25f;	//Percent that a corresponding skill will influence OC stats (Heat per shot, cooldown rate, etc.)
+
+		UInt8  iHUDStyle			= 1;		//0: Disabled, 1: Simple Bar (Ammo Counter), 2: Simple Bar (Crosshair), 3: Icon (With Numbers), 4: Icon (No Numbers) 
+		float  fHUDScale			= 1.0f;		//Percent Scaling; 1.0 = 100% size
+		float  fHUDOffsetX			= 0.0f;		//Offset from original x position
+		float  fHUDOffsetY			= 0.0f;		//Offset from original y position
 	};
 
 	struct HeatedNode

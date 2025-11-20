@@ -57,7 +57,7 @@ T InterpolateTowards(T minVal, T maxVal, float ratio) {
 	float interp = minVal + (maxVal - minVal) * ratio;
 	float low = (std::min)(minVal, maxVal);
 	float high = (std::max)(minVal, maxVal);
-	return static_cast<T>(std::round(std::clamp(interp, low, high)));
+	return static_cast<T>(std::clamp(interp, low, high));
 }
 
 template<typename T>

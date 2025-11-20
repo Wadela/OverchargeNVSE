@@ -44,8 +44,8 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 
 
 		static int OCFrameCounter = 0;
-		if (!Overcharge::IsGamePaused() && !MenuMode() 
-			&& !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
+		if (!Overcharge::IsGamePaused() 
+		&& !BGSSaveLoadGame::GetSingleton()->IsLoading())	//While the game is running, as long as the game isn't paused or loading 
 		{
 			Overcharge::UpdatePlayerOCWeapons();										//Cooldown system runs in gameloop
 			if (++OCFrameCounter >= Overcharge::NPC_UPDATE_THROTTLE) {
@@ -149,6 +149,7 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 	g_seInterface->RegisterCommand(&kCommandInfo_GetOCWeaponState);
 	g_seInterface->RegisterCommand(&kCommandInfo_SetOCWeaponState);
 	g_seInterface->RegisterCommand(&kCommandInfo_GetOCWeaponConfig);
+	g_seInterface->RegisterCommand(&kCommandInfo_GetOCSettings);
 
 	return true;
 }

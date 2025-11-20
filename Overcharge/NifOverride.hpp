@@ -299,7 +299,7 @@ namespace Overcharge
 	{
 		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, abAssignShaders, abKeepUV);
 
-		if (thisPtr && g_OCSettings.iVisualEffects > 0)
+		if (thisPtr)
 		ModelLoaderLoadFile(thisPtr, modelPath); 
 	}
 
