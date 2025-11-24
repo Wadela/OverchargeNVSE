@@ -64,6 +64,8 @@ namespace Overcharge
 		//Overcharge and charge delay are only allowed for players because the NPCs are not equipped to perform tasks like these.  
 		if (isPlayer && st.bIsActive && !MenuMode()) {
 			if (!st.IsOverheating()) {
+				if (st.iCanOverheat == 1)
+				st.iCanOverheat = 2;
 				UpdateOverchargeShot(instance, frameTime);
 				UpdateChargeDelay(instance, frameTime);
 			}
@@ -71,8 +73,7 @@ namespace Overcharge
 			instance->fx.heatSoundHandle.FadeInPlay(100);
 			else if (g_OCSettings.bOverheatLockout) OverheatLockout();
 		}
-		else
-		{
+		else if (isPlayer) {
 			//Clear the effect states so that they don't get stored from within a menu.
 			st.uiOCEffect &= ~OCEffects_Overcharge;
 			st.uiOCEffect &= ~OCEffects_AltProjectile;
@@ -264,6 +265,8 @@ namespace Overcharge
 	//Controls the bulk of basic stat changes and increments heat.
 	static inline void __fastcall FireWeaponWrapper(TESObjectWEAP* rWeap, void* edx, Actor* rActor)
 	{
+		auto player = PlayerCharacter::GetSingleton();
+		auto vats = VATS::GetSingleton();
 		auto heat = GetOrCreateHeat(rActor);
 		if (!rWeap || !rActor || !heat)
 		{
@@ -272,6 +275,9 @@ namespace Overcharge
 		}
 
 		heat->state.HeatOnFire();
+
+		if (rActor == player && heat->state.IsHot() && vats->IsPlaying())
+			player->EndVatsKillCam(2, 0);
 
 		//Backup Weapon Values - Backup needed since we're editing the baseform.
 		const UInt8 ogAmmoUse = rWeap->ammoUse;
@@ -304,6 +310,13 @@ namespace Overcharge
 		}
 
 		ThisStdCall(0x523150, rWeap, rActor);
+
+		auto equippedAmmo = rActor->pkBaseProcess->GetAmmo();
+		if (rActor == player && equippedAmmo 
+			&& equippedAmmo->iCountDelta == 0
+			&& !rActor->GetPerkRank(OCPerkCriticalMass, 0))
+			heat->state.iCanOverheat = 1;
+
 
 		//Restore Weapon Values - Need to restore so only the current weapon is altered.
 		rWeap->ammoUse = ogAmmoUse;

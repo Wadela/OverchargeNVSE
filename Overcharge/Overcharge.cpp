@@ -8,7 +8,7 @@ namespace Overcharge
         float accuracy, float rof, float projSpd, float projSize,
         float perShot, float cooldown
     ) :
-        bIsActive(false), bCanOverheat(true),
+        bIsActive(false), iCanOverheat(2),
         uiAmmoThreshold(ammoTH), uiProjThreshold(projTH), uiEnchThreshold(enchTH), uiOCEffectThreshold(effectTH),
         uiAmmoUsed(ammo), uiProjectiles(numProj), uiDamage(dmg), uiCritDamage(critDmg), 
         uiTicksPassed(0), uiOCEffect(0), uiObjectEffectID(enchID),

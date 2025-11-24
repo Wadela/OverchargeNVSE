@@ -93,11 +93,12 @@ T ScaleByPercentRange(T baseVal, T min, T max, float ratio)
 	float minPercent = static_cast<float>(min) / static_cast<float>(baseVal);
 	float maxPercent = static_cast<float>(max) / static_cast<float>(baseVal);
 	float totalPercent = minPercent + (maxPercent - minPercent) * ratio;
+
 	float low = (std::min)(minPercent, maxPercent);
 	float high = (std::max)(minPercent, maxPercent);
 	totalPercent = std::clamp(totalPercent, low, high);
 
-	return static_cast<T>(baseVal * totalPercent);
+	return static_cast<T>(std::round(baseVal * totalPercent));
 }
 
 inline float ParseDelimitedData(std::string_view sv, char openDelimiter = '\0', char closeDelimiter = '\0')

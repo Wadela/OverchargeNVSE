@@ -1,5 +1,10 @@
 #include "PlayerCharacter.hpp"
 
+void PlayerCharacter::EndVatsKillCam(int a2, bool a3)
+{
+	ThisStdCall(0x93E770, this, a2, a3);
+}
+
 bool PlayerCharacter::HasPipBoyOpen() const {
 	return ThisStdCall(0x967AE0, this);
 }

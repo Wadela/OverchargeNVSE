@@ -357,6 +357,8 @@ public:
 
 	QuestObjectiveTargets* GetCurrentQuestObjectiveTargets();
 
+	void EndVatsKillCam(int a2, bool a3);
+
 	bool HasPipBoyOpen() const;
 
 	static NiNode* GetCamera1st();

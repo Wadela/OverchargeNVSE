@@ -527,7 +527,7 @@ namespace Overcharge
 				st.uiOCEffect |= OCEffects_SelfDamage;
 				TESForm* effect = TESForm::GetByID("EnchFlamerEffect");
 				if (effect) data->rActor->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, data->rActor, 1, 0);
-				st.bCanOverheat = false;
+				st.iCanOverheat = 0;
 			}
 			else if (!st.IsHot() && st.uiOCEffect & OCEffects_SelfDamage)
 			{

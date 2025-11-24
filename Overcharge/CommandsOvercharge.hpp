@@ -71,7 +71,7 @@ bool Cmd_GetOCWeaponState_Execute(COMMAND_ARGS)
 			*result = heat->state.bIsActive;
 			break;
 		case 2:
-			*result = heat->state.bCanOverheat;
+			*result = heat->state.iCanOverheat;
 			break;
 		case 3:
 			*result = heat->state.uiAmmoUsed;
@@ -185,7 +185,7 @@ bool Cmd_SetOCWeaponState_Execute(COMMAND_ARGS)
 			heat->state.bIsActive = static_cast<bool>(value);
 			break;
 		case 2:
-			heat->state.bCanOverheat = static_cast<bool>(value);
+			heat->state.iCanOverheat = static_cast<UInt8>(value);
 			break;
 		case 3:
 			heat->state.uiAmmoUsed = static_cast<UInt8>(value);

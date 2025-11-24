@@ -22,7 +22,9 @@ namespace Overcharge
     {
         //bIsActive is essentially a flag to queue either initialization and cleanup.
         bool    bIsActive             = false;       
-        bool    bCanOverheat          = true;               
+
+        //0: Disabled, 1: Can Overheat (No Animation), 2: Can Overheat
+        UInt8   iCanOverheat          = 2;               
 
         //When the heat value meets or exceeds a threshold, their respective effect is applied.
         UInt8   uiAmmoThreshold       = INVALID_U8;         
@@ -38,16 +40,15 @@ namespace Overcharge
 
         //uiTicksPassed serves as a generic progress counter for any time dependent features.
         UInt16  uiTicksPassed         = 0;
+
         //uiOCEffect represents the a state's currently *active* and applied OCEffects.
         UInt16  uiOCEffect            = 0;
-
         UInt32  uiObjectEffectID      = INVALID_U32;
 
         float   fAccuracy             = INVALID_F32;
         float   fFireRate             = INVALID_F32;
         float   fProjectileSpeed      = INVALID_F32;
         float   fProjectileSize       = INVALID_F32;
-
         float   fHeatPerShot          = INVALID_F32;
         float   fCooldownRate         = INVALID_F32;
 
@@ -81,17 +82,13 @@ namespace Overcharge
 
         inline void UpdateOverheat()
         {
-            if (bCanOverheat == true)
-            {
+            if (iCanOverheat > 0) {
                 const bool overheating = IsOverheating();
-
                 if (!overheating && IsHot())
-                {
                     uiOCEffect = OCEffects_Overheat;
-                }
                 else if (overheating && IsCool())
                     uiOCEffect &= ~OCEffects_Overheat;
-            } 
+            }
             else uiOCEffect &= ~OCEffects_Overheat;
         }
     };
