@@ -22,43 +22,6 @@ class ImageSpaceModifierInstanceForm;
 class TESProjectile;
 class TESIdleForm;
 
-enum VATS_MODE_ENUM {
-	VATS_MODE_NONE = 0x0,
-	VATS_TARGET_SELECT = 0x1,
-	VATS_LIMB_SELECT = 0x2,
-	VATS_PLAYBACK = 0x4,
-	VATS_MODE_COUNT = 0x5,
-};
-
-struct VATSCameraData {
-	BSSimpleList<UInt32>			kTargetsList; // BSSimpleList<VATSQueuedAction>
-	VATS_MODE_ENUM					eMode;
-	UInt32							unk0C;
-	BGSCameraShot*					pCamShot;
-	float							flt14;
-	float							flt18;
-	TESProjectile*					pProjectile;
-	TESProjectile*					pProjectile20;
-	TESIdleForm*					pAttackAnim;
-	ImageSpaceModifierInstanceForm* pISModInstForm;
-	ImageSpaceModifierInstanceForm*	pISModInstRB;
-	UInt32							unk30;
-	ShadowSceneLightPtr				spLight;
-	bool							byte38;
-	UInt32							uiNumKills;
-	UInt32							unk40;
-	UInt32							unk44;
-
-	bool IsPlaying() const { return eMode == VATS_PLAYBACK; }
-	bool HasMode() const { return eMode != VATS_MODE_NONE; };
-
-	void SetMode(VATS_MODE_ENUM aeMode, bool abForce);
-	void SetLight(NiPointLight* apLight, bool abRemove);
-	ShadowSceneLight* GetLight() const { return spLight; };
-	void RemoveLight();
-};
-
-
 class TESMain {
 public:
 	bool					bOneMore;
@@ -108,7 +71,6 @@ public:
 
 	static std::stack<ShadowSceneLightPtr> kLightsToRender;
 
-	static __forceinline VATSCameraData* GetVATSCameraData() { return (VATSCameraData*)0x11F2250; };
 	static __forceinline BSMultiBoundNode* GetSkyRoot() { return *(BSMultiBoundNode**)0x11DEB34; };
 	static __forceinline NiNode* GetObjectLODRoot() { return *(NiNode**)0x11DEA18; };
 	static __forceinline BSClearZNode* GetLODRoot() { return *(BSClearZNode**)0x11DEA14; };

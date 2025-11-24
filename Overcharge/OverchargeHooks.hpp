@@ -18,6 +18,7 @@
 #include "PlayerCharacter.hpp"
 #include "MiddleHighProcess.hpp"
 #include "BGSSaveLoadGame.hpp"
+#include "VATS.hpp"
 
 //NVSE
 #include <SafeWrite.hpp>
@@ -42,6 +43,7 @@ namespace Overcharge
 
 	extern std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
 
+	//Initializes 3D for all tagged nodes every time a weapon is equipped, refreshed or loaded.
 	inline std::vector<OCBlock> ObjsFromStrings(
 		const HeatConfiguration* data,
 		const NiAVObjectPtr& sourceNode,
@@ -108,6 +110,7 @@ namespace Overcharge
 		return (it != vec.end()) ? *it : nullptr;
 	}
 
+	//Gets all blocks that are tagged in config
 	inline void InitializeHeatFX(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
 	{
 		auto player = PlayerCharacter::GetSingleton();
@@ -225,14 +228,17 @@ namespace Overcharge
 		return heat;
 	}
 
-	inline void DisableAiming()
+	//Locking out certain actions helps prevent any bugs that may arise such as broken animations or being unable to fire in VATS.
+	inline void OverheatLockout()
 	{
 		auto inputManager = BSInputManager::GetSingleton();
+		inputManager->SetUserAction(BSInputManager::VATS_, BSInputManager::None);
 		inputManager->SetUserAction(BSInputManager::Aim, BSInputManager::None);
 		inputManager->SetUserAction(BSInputManager::ReadyItem, BSInputManager::None);
-		inputManager->SetUserAction(BSInputManager::VATS_, BSInputManager::None);
+		inputManager->SetUserAction(BSInputManager::AmmoSwap, BSInputManager::None);
 	}
 
+	//We update the state, translate the weapon erratically to simulate a shake animation and play sound whenever the attack button is held. 
 	inline void UpdateOverchargeShot(std::shared_ptr<HeatData> inst, float frameTime)
 	{
 		HeatState& st = inst->state;
@@ -272,7 +278,7 @@ namespace Overcharge
 			if (!inst->fx.chargeSoundHandle.IsPlaying())
 				inst->fx.chargeSoundHandle.FadeInPlay(50);
 		}
-		else if (attackDepressed)
+		else if (attackDepressed && st.uiOCEffect & OCEffects_Overcharge)
 		{
 			st.uiOCEffect &= ~OCEffects_Overcharge;
 			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
@@ -294,6 +300,7 @@ namespace Overcharge
 		}
 	}
 
+	//We update the state, translate the weapon erratically to simulate a shake animation and play sound whenever the attack button is held. 
 	inline void UpdateChargeDelay(std::shared_ptr<HeatData> inst, float frameTime)
 	{
 		HeatState& st = inst->state;
@@ -347,6 +354,7 @@ namespace Overcharge
 		}
 	}
 
+	//Update all colors on a gun. it is updated every frame for every affected gun. 
 	inline void UpdateHeatFX(std::shared_ptr<HeatData>& heat, float frameTime)
 	{
 		auto& st = heat->state;
@@ -363,6 +371,7 @@ namespace Overcharge
 		{
 			if (!node.target) continue;
 
+			//If there are any conditional flags checked in the weapon config, then this only runs when triggered. 
 			UInt32 effectFlags = 0;
 			if (node.OCXFlags & OCXOnOverheat)   effectFlags |= OCEffects_Overheat;
 			if (node.OCXFlags & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
@@ -387,6 +396,7 @@ namespace Overcharge
 					});
 			}
 
+			//Mainly needed for handle weapons were they are generally culled on holster. 
 			if ((node.OCXFlags & OCXCull))
 			{
 				bool isCulled = node.target->GetAppCulled();
@@ -420,7 +430,6 @@ namespace Overcharge
 				else if (node.target->IsNiType<NiGeometry>())
 					SetEmissiveColor(node.target.m_pObject, fx.currCol, node.matProp);
 			}
-
 			if ((node.OCXFlags & OCXFlicker))
 			{
 				if (st.fHeatVal <= 0 && st.uiTicksPassed <= 0)

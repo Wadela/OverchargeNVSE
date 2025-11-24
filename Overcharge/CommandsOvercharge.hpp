@@ -144,11 +144,11 @@ bool Cmd_GetOCWeaponState_Execute(COMMAND_ARGS)
 			return true;
 		}
 		if (type == 12 && IsConsoleOpen())
-			Console_Print("GetHeatState >> %d >> %g >> %s", type, *result, resultString.c_str());
+			Console_Print("GetOCWeaponState >> %d >> %g >> %s", type, *result, resultString.c_str());
 		else if (type == 13 && IsConsoleOpen())
-			Console_Print("GetHeatState >> %d >> %X", type, *(UInt32*)result);
+			Console_Print("GetOCWeaponState >> %d >> %X", type, *(UInt32*)result);
 		else if (IsConsoleOpen())
-			Console_Print("GetHeatState >> %d >> %g", type, *result);
+			Console_Print("GetOCWeaponState >> %d >> %g", type, *result);
 	}
 	return true;
 }
@@ -259,11 +259,11 @@ bool Cmd_SetOCWeaponState_Execute(COMMAND_ARGS)
 			return true;
 		}
 		if (type == 12 && IsConsoleOpen())
-			Console_Print("SetHeatState >> %d >> %s", type, resultString.c_str());
+			Console_Print("SetOCWeaponState >> %d >> %s", type, resultString.c_str());
 		else if (type == 13 && IsConsoleOpen())
-			Console_Print("SetHeatState >> %d >> %X", type, (UInt32)value);
+			Console_Print("SetOCWeaponState >> %d >> %X", type, (UInt32)value);
 		else if (IsConsoleOpen())
-			Console_Print("SetHeatState >> %d >> %g", type, value);
+			Console_Print("SetOCWeaponState >> %d >> %g", type, value);
 	}
 	return true;
 }
@@ -406,11 +406,11 @@ bool Cmd_GetOCWeaponConfig_Execute(COMMAND_ARGS)
 		if (IsConsoleOpen())
 		{
 			if (type == 9 || type == 10 || type >= 29)
-				Console_Print("GetHeatConfig >> %d >> %s", type, resultString.c_str());
+				Console_Print("GetOCWeaponConfig >> %d >> %s", type, resultString.c_str());
 			else if (type >= 11 && type <= 14)
-				Console_Print("GetHeatConfig >> %d >> %X", type, *(UInt32*)result);
+				Console_Print("GetOCWeaponConfig >> %d >> %X", type, *(UInt32*)result);
 			else if (type <= 8 || (type >= 15 && type <= 28))
-				Console_Print("GetHeatConfig >> %d >> %g", type, *result);
+				Console_Print("GetOCWeaponConfig >> %d >> %g", type, *result);
 		}
 	}
 	return true;
@@ -422,60 +422,51 @@ bool Cmd_GetOCSettings_Execute(COMMAND_ARGS)
 	UInt32 type;
 	std::string resultString;
 
-	if (ExtractArgsEx(EXTRACT_ARGS_EX, &type) && type > 0 && type <= 32)
+	if (ExtractArgsEx(EXTRACT_ARGS_EX, &type) && type > 0 && type <= 12)
 	{
 		switch (type)
 		{
 		case 1:
-			*result = Overcharge::g_OCSettings.iGlobalCoverage;
-			break;
-		case 2:
 			*result = Overcharge::g_OCSettings.bMeshes;
 			break;
-		case 3:
+		case 2:
 			*result = Overcharge::g_OCSettings.bAnimations;
 			break;
-		case 4:
+		case 3:
 			*result = Overcharge::g_OCSettings.bSounds;
 			break;
-		case 5:
-			*result = Overcharge::g_OCSettings.bPerks;
-			break;
-		case 6:
+		case 4:
 			*result = Overcharge::g_OCSettings.bStats;
 			break;
-		case 7:
+		case 5:
 			*result = Overcharge::g_OCSettings.bMechanics;
 			break;
-		case 8:
+		case 6:
 			*result = Overcharge::g_OCSettings.bVFX;
 			break;
-		case 9:
-			*result = Overcharge::g_OCSettings.bKillVFX;
+		case 7:
+			*result = Overcharge::g_OCSettings.bOverheatLockout;
 			break;
-		case 10:
-			*result = Overcharge::g_OCSettings.iOverheat;
-			break;
-		case 11:
+		case 8:
 			*result = Overcharge::g_OCSettings.fSkillLevelScaling;
 			break;
-		case 12:
+		case 9:
 			*result = Overcharge::g_OCSettings.iHUDStyle;
 			break;
-		case 13:
+		case 10:
 			*result = Overcharge::g_OCSettings.fHUDScale;
 			break;
-		case 14:
+		case 11:
 			*result = Overcharge::g_OCSettings.fHUDOffsetX;
 			break;
-		case 15:
+		case 12:
 			*result = Overcharge::g_OCSettings.fHUDOffsetY;
 			break;
 		default:
 			*result = 0;
 			return true;
 		}
-		if (IsConsoleOpen()) Console_Print("GetHeatConfig >> %d >> %g", type, *result);
+		if (IsConsoleOpen()) Console_Print("GetOCSettings >> %d >> %g", type, *result);
 	}
 	return true;
 }

@@ -17,26 +17,31 @@ namespace Overcharge
     constexpr UInt16 STOP_COOLDOWN_FLAGS = OCEffects_Overcharge | OCEffects_ChargeDelay;
     constexpr UInt16 STOP_FIRING_FLAGS = OCEffects_Overheat | OCEffects_Overcharge | OCEffects_ChargeDelay;
 
-    //Overheating Code
+    //Active state of a weapon instance. These are live, hot and have their values updated regularly. 
     struct HeatState
     {
-        bool      bIsActive           = false;
-        bool      bCanOverheat        = true;
+        //bIsActive is essentially a flag to queue either initialization and cleanup.
+        bool    bIsActive             = false;       
+        bool    bCanOverheat          = true;               
 
-        UInt8     uiAmmoThreshold     = INVALID_U8;
-        UInt8     uiProjThreshold     = INVALID_U8;
-        UInt8     uiEnchThreshold     = INVALID_U8;
-        UInt8     uiOCEffectThreshold = INVALID_U8;
+        //When the heat value meets or exceeds a threshold, their respective effect is applied.
+        UInt8   uiAmmoThreshold       = INVALID_U8;         
+        UInt8   uiProjThreshold       = INVALID_U8;
+        UInt8   uiEnchThreshold       = INVALID_U8;
+        UInt8   uiOCEffectThreshold   = INVALID_U8;
 
-        UInt8     uiAmmoUsed          = INVALID_U8;
-        UInt8     uiProjectiles       = INVALID_U8;
+        UInt8   uiAmmoUsed            = INVALID_U8;
+        UInt8   uiProjectiles         = INVALID_U8;
 
-        UInt16    uiDamage            = INVALID_U16;
-        UInt16    uiCritDamage        = INVALID_U16;
-        UInt16    uiTicksPassed       = 0;
-        UInt16    uiOCEffect          = 0;
+        UInt16  uiDamage              = INVALID_U16;
+        UInt16  uiCritDamage          = INVALID_U16;
 
-        UInt32    uiObjectEffectID    = INVALID_U32;
+        //uiTicksPassed serves as a generic progress counter for any time dependent features.
+        UInt16  uiTicksPassed         = 0;
+        //uiOCEffect represents the a state's currently *active* and applied OCEffects.
+        UInt16  uiOCEffect            = 0;
+
+        UInt32  uiObjectEffectID      = INVALID_U32;
 
         float   fAccuracy             = INVALID_F32;
         float   fFireRate             = INVALID_F32;
@@ -46,10 +51,12 @@ namespace Overcharge
         float   fHeatPerShot          = INVALID_F32;
         float   fCooldownRate         = INVALID_F32;
 
+        //Starting and Target Values are used for certain progress based mechanics such as flickering and charge delay. 
         float   fStartingVal          = 0.0f;
         float   fTargetVal            = 0.0f;
 
-        float     fHeatVal            = 0.0f;
+        //fHeatVal is the currently measured amount of heat (out of 100).
+        float   fHeatVal              = 0.0f;
 
         HeatState() = default;
 
@@ -106,6 +113,7 @@ namespace Overcharge
         BSSoundHandle        heatSoundHandle;
         BSSoundHandle        chargeSoundHandle;
 
+        //targetBlocks contains all of the blocks on a weapon mesh that are controlled.
         std::vector<OCBlock> targetBlocks;
     };
 

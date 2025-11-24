@@ -164,18 +164,13 @@ namespace Overcharge
 
 	struct OverchargeSettings
 	{
-		UInt8  iGlobalCoverage		= 1; 		//0: Disabled (Global), 1: Enabled (Global), 2: Enabled (Player Only)
-
 		bool   bMeshes				= true;		//Enables both custom meshes and existing weapon meshes to be controlled
 		bool   bAnimations			= true;		//Enables custom animations to be played when applicable
 		bool   bSounds				= true;		//Enables custom sounds to be played when applicable
-		bool   bPerks				= true;		//Enables custom perks and traits
 		bool   bStats				= true;		//Enables gameplay stat modification (Damage, Accuracy, Fire Rate, etc.)
 		bool   bMechanics			= true;		//Enables gameplay mechanics (Overcharge Shots, Charge Delay, Object Effects)
-		bool   bVFX					= true;		//Enables VFX (Projectiles, Particles, Muzzle Flashes, impacts) to be controlled
-		bool   bKillVFX				= true;     //Enables Kill VFX (Gooification, Goo Piles, Disintegration, etc.) to be controlled
-
-		UInt8  iOverheat			= 1;		//0: Disabled, 1: Enabled (No Lockout), 2: Enabled (Lockout)
+		bool   bVFX					= true;		//Enables VFX (Projectiles, Particles, Muzzle Flashes, impacts, Kill Effects) to be controlled
+		bool   bOverheatLockout		= true;		//Enables Lockout on Overheat, which disables ADS, Reloading, Holstering, etc. Helpful when using custom animations
 
 		float  fSkillLevelScaling	= 0.25f;	//Percent that a corresponding skill will influence OC stats (Heat per shot, cooldown rate, etc.)
 
@@ -203,43 +198,43 @@ namespace Overcharge
 
 	struct HeatConfiguration
 	{
-		UInt8 iAddAmmoThreshold				= 0;
-		UInt8 iAddProjectileThreshold		= 0;
-		UInt8 iObjectEffectThreshold		= 0;
-		UInt8 iOverchargeEffectThreshold	= 0;
+		UInt8 iAddAmmoThreshold					= 0;
+		UInt8 iAddProjectileThreshold			= 0;
+		UInt8 iObjectEffectThreshold			= 0;
+		UInt8 iOverchargeEffectThreshold		= 0;
 
-		UInt8 iMinAmmoUsed					= INVALID_U8;
-		UInt8 iMaxAmmoUsed					= INVALID_U8;
-		UInt8 iMinProjectiles				= INVALID_U8;
-		UInt8 iMaxProjectiles				= INVALID_U8;
+		UInt8 iMinAmmoUsed						= INVALID_U8;
+		UInt8 iMaxAmmoUsed						= INVALID_U8;
+		UInt8 iMinProjectiles					= INVALID_U8;
+		UInt8 iMaxProjectiles					= INVALID_U8;
 
-		UInt16 iOverchargeEffect			= OCEffects_None;
-		UInt16 iOverchargeFlags				= OCFlags_None;
+		UInt16 iOverchargeEffect				= OCEffects_None;
+		UInt16 iOverchargeFlags					= OCFlags_None;
 
-		UInt32 iAltProjectileID				= INVALID_U32;
-		UInt32 iObjectEffectID				= INVALID_U32;
-		UInt32 iMinColor					= INVALID_U32;
-		UInt32 iMaxColor					= INVALID_U32;
+		UInt32 iAltProjectileID					= INVALID_U32;
+		UInt32 iObjectEffectID					= INVALID_U32;
+		UInt32 iMinColor						= INVALID_U32;
+		UInt32 iMaxColor						= INVALID_U32;
 
-		float fMinDamage					= INVALID_F32;
-		float fMaxDamage					= INVALID_F32;
-		float fMinCritDamage				= INVALID_F32;
-		float fMaxCritDamage				= INVALID_F32;
-		float fMinFireRate					= INVALID_F32;
-		float fMaxFireRate					= INVALID_F32;
-		float fMinSpread					= INVALID_F32;
-		float fMaxSpread					= INVALID_F32;
-		float fMinProjectileSpeed			= INVALID_F32;
-		float fMaxProjectileSpeed			= INVALID_F32;
-		float fMinProjectileSize			= INVALID_F32;
-		float fMaxProjectileSize			= INVALID_F32;
+		float fMinDamage						= INVALID_F32;
+		float fMaxDamage						= INVALID_F32;
+		float fMinCritDamage					= INVALID_F32;
+		float fMaxCritDamage					= INVALID_F32;
+		float fMinFireRate						= INVALID_F32;
+		float fMaxFireRate						= INVALID_F32;
+		float fMinSpread						= INVALID_F32;
+		float fMaxSpread						= INVALID_F32;
+		float fMinProjectileSpeed				= INVALID_F32;
+		float fMaxProjectileSpeed				= INVALID_F32;
+		float fMinProjectileSize				= INVALID_F32;
+		float fMaxProjectileSize				= INVALID_F32;
 
-		float fHeatPerShot					= INVALID_F32;
-		float fCooldownPerSecond			= INVALID_F32;
+		float fHeatPerShot						= INVALID_F32;
+		float fCooldownPerSecond				= INVALID_F32;
 
-		NiFixedString sAnimFile;
-		NiFixedString sHeatSoundFile;
-		NiFixedString sChargeSoundFile;
+		NiFixedString sAnimFile					= "";
+		NiFixedString sHeatSoundFile			= "";
+		NiFixedString sChargeSoundFile			= "";
 
 		std::vector<HeatedNode> sHeatedNodes;
 	};

@@ -43,6 +43,7 @@ namespace Overcharge
 		}
 	}
 
+	//Material Properties are applied in this way as to not remove the original, but to edit the dummy instance matprop instead. 
 	static void SetEmissiveColor(NiAVObjectPtr obj, const NiColor& color, NiMaterialPropertyPtr newMatProp = nullptr)
 	{
 		if (!obj) return;
@@ -69,6 +70,7 @@ namespace Overcharge
 		matProp->m_emit = color;
 	}
 
+	//New material property smart pointers are created because if a matprop were to be shared anywhere, then one edit will edit all instances of it. 
 	static void CreateEmissiveColor(NiGeometryPtr geom, const NiColor& color)
 	{
 		if (!geom) return;
@@ -204,27 +206,33 @@ namespace Overcharge
 				NiColorA grayScale = DesaturateRGBA(OGCol, 1.0f);
 				modelData->m_pkColor[i] = grayScale;
 			}
+
+			NiDX9Renderer::GetSingleton()->LockPrecacheCriticalSection();
+			NiDX9Renderer::GetSingleton()->PurgeGeometryData(modelData);
+			NiDX9Renderer::GetSingleton()->UnlockPrecacheCriticalSection();
 		}
 	}
 
+	//Loads extra meshes and processes existing ones before they are loaded so refreshing geometry cache is not needed. 
 	static NiNode* __fastcall ModelLoaderLoadFile(const Model* model, const char* filePath) 
 	{
 		if (filePath && (definedModels.contains(filePath)))
 		{
 			NiNodePtr node = model->spNode;
 
-			TraverseNiNode<NiParticleSystem>(node, [](NiParticleSystemPtr psys) {
-				PrepColorMod(psys);
-				});
-
 			TraverseNiNode<NiGeometry>(node, [](NiGeometryPtr geom) {
 				PrepVertexColor(geom);
+				});
+
+			TraverseNiNode<NiParticleSystem>(node, [](NiParticleSystemPtr psys) {
+				PrepColorMod(psys);
 				});
 
 			return node;
 		}
 		else
 		{
+			//This node is added as a safe bone to translate for effects such as the shake on charging a weapon.
 			if (filePath && (CaseInsensitiveCmp(filePath, "Characters\\_1stPerson\\Skeleton.nif")))
 			{
 				NiNodePtr node = model->spNode;
@@ -254,6 +262,7 @@ namespace Overcharge
 				NiNode* node = model->spNode;
 				if (!node) continue;
 
+				//The specified extra nodes are now loaded via ModelLoader and attached to their targets as they are processed in the scene during load. 
 				if (it.extraNode.index == INVALID_U32 && it.extraNode.flags & OCXColor) {
 					if (NiAVObjectPtr hNode = node->GetObjectByName(it.extraNode.nodeName)) {
 						if (NiGeometryPtr geom = hNode->NiDynamicCast<NiGeometry>())
@@ -300,7 +309,7 @@ namespace Overcharge
 		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, abAssignShaders, abKeepUV);
 
 		if (thisPtr)
-		ModelLoaderLoadFile(thisPtr, modelPath); 
+			ModelLoaderLoadFile(thisPtr, modelPath); 
 	}
 
 	inline void Hook()

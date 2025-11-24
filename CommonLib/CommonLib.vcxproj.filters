@@ -123,6 +123,7 @@
     <ClCompile Include="Bethesda\Projectile.cpp" />
     <ClCompile Include="Bethesda\BSAudioManager.cpp" />
     <ClCompile Include="Bethesda\BSWin32Audio.cpp" />
+    <ClCompile Include="Bethesda\VATS.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp">
@@ -3930,6 +3931,7 @@
       <Filter>Types</Filter>
     </ClInclude>
     <ClInclude Include="Bethesda\MissileProjectile.hpp" />
+    <ClInclude Include="Bethesda\VATS.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Types">

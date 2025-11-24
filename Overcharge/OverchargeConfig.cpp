@@ -74,16 +74,13 @@ namespace Overcharge
 		}
 
 		//Global
-		g_OCSettings.iGlobalCoverage = ini.GetLongValue("Global", "iGlobalCoverage", 1);
-		g_OCSettings.bMeshes = ini.GetBoolValue("Global", "bEnableMeshControl", true);
+		g_OCSettings.bMeshes = ini.GetBoolValue("Global", "bEnableMeshes", true);
 		g_OCSettings.bAnimations = ini.GetBoolValue("Global", "bEnableAnimations", true);
 		g_OCSettings.bSounds = ini.GetBoolValue("Global", "bEnableSounds", true);
-		g_OCSettings.bPerks = ini.GetBoolValue("Global", "bEnablePerks", true);
 		g_OCSettings.bStats = ini.GetBoolValue("Global", "bEnableStats", true);
 		g_OCSettings.bMechanics = ini.GetBoolValue("Global", "bEnableMechanics", true);
 		g_OCSettings.bVFX = ini.GetBoolValue("Global", "bEnableVFX", true);
-		g_OCSettings.bKillVFX = ini.GetBoolValue("Global", "bEnableKillVFX", true);
-		g_OCSettings.iOverheat = ini.GetLongValue("Global", "iOverheat", 1);
+		g_OCSettings.bOverheatLockout = ini.GetBoolValue("Global", "bOverheatLockout", true);
 		g_OCSettings.fSkillLevelScaling = static_cast<float>(ini.GetDoubleValue("User Interface", "fSkillLevelScaling", 0.25));
 
 		//User Interface
@@ -98,59 +95,62 @@ namespace Overcharge
 		for (auto& xMesh : extraMeshes)
 		{
 			std::string_view xMeshPath = xMesh.pItem;
-			if (!xMeshPath.empty())
+			if (!xMeshPath.empty() && g_OCSettings.bVFX)
 				definedModels.emplace(xMeshPath);
 		}
 	}
 
 	void InitConfigModelPaths(TESObjectWEAP* rWeap)
 	{
-		if (!rWeap || !rWeap->projectile || !rWeap->impactDataSet) return;
+		if (!rWeap || !rWeap->projectile || !rWeap->impactDataSet || !g_OCSettings.bVFX) return;
 
 		definedModels.insert(rWeap->projectile->kMuzzleFlash.kModel.StdStr());
 		definedModels.insert(rWeap->projectile->kModel.StdStr());
 
-		for (auto& impact : rWeap->impactDataSet->impactDatas)
-		{
+		for (auto& impact : rWeap->impactDataSet->impactDatas) {
 			if (impact) definedModels.insert(impact->kModel.StdStr());
 		}
 	}
 
 	void ParseGameData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults)
 	{
-		ParseRangeFromINI(ini, secItem, "iAmmoConsumption",
-			defaults.iMinAmmoUsed, defaults.iMaxAmmoUsed,
-			config.iMinAmmoUsed, config.iMaxAmmoUsed,
-			&defaults.iAddAmmoThreshold, &config.iAddAmmoThreshold);
+		if (g_OCSettings.bStats) {
+			ParseRangeFromINI(ini, secItem, "iAmmoConsumption",
+				defaults.iMinAmmoUsed, defaults.iMaxAmmoUsed,
+				config.iMinAmmoUsed, config.iMaxAmmoUsed,
+				&defaults.iAddAmmoThreshold, &config.iAddAmmoThreshold);
 
-		ParseRangeFromINI(ini, secItem, "iProjectileCount",
-			defaults.iMinProjectiles, defaults.iMaxProjectiles,
-			config.iMinProjectiles, config.iMaxProjectiles,
-			&defaults.iAddProjectileThreshold, &config.iAddProjectileThreshold);
+			ParseRangeFromINI(ini, secItem, "iProjectileCount",
+				defaults.iMinProjectiles, defaults.iMaxProjectiles,
+				config.iMinProjectiles, config.iMaxProjectiles,
+				&defaults.iAddProjectileThreshold, &config.iAddProjectileThreshold);
 
-		ParseRangeFromINI(ini, secItem, "fDamage",
-			defaults.fMinDamage, defaults.fMaxDamage,
-			config.fMinDamage, config.fMaxDamage);
+			ParseRangeFromINI(ini, secItem, "fDamage",
+				defaults.fMinDamage, defaults.fMaxDamage,
+				config.fMinDamage, config.fMaxDamage);
 
-		ParseRangeFromINI(ini, secItem, "fCriticalDamage",
-			defaults.fMinCritDamage, defaults.fMaxCritDamage,
-			config.fMinCritDamage, config.fMaxCritDamage);
+			ParseRangeFromINI(ini, secItem, "fCriticalDamage",
+				defaults.fMinCritDamage, defaults.fMaxCritDamage,
+				config.fMinCritDamage, config.fMaxCritDamage);
 
-		ParseRangeFromINI(ini, secItem, "fProjectileSpeed",
-			defaults.fMinProjectileSpeed, defaults.fMaxProjectileSpeed,
-			config.fMinProjectileSpeed, config.fMaxProjectileSpeed);
+			ParseRangeFromINI(ini, secItem, "fProjectileSpeed",
+				defaults.fMinProjectileSpeed, defaults.fMaxProjectileSpeed,
+				config.fMinProjectileSpeed, config.fMaxProjectileSpeed);
 
-		ParseRangeFromINI(ini, secItem, "fProjectileSize",
-			defaults.fMinProjectileSize, defaults.fMaxProjectileSize,
-			config.fMinProjectileSize, config.fMaxProjectileSize);
+			ParseRangeFromINI(ini, secItem, "fProjectileSize",
+				defaults.fMinProjectileSize, defaults.fMaxProjectileSize,
+				config.fMinProjectileSize, config.fMaxProjectileSize);
 
-		ParseRangeFromINI(ini, secItem, "fFireRate",
-			defaults.fMinFireRate, defaults.fMaxFireRate,
-			config.fMinFireRate, config.fMaxFireRate);
+			ParseRangeFromINI(ini, secItem, "fFireRate",
+				defaults.fMinFireRate, defaults.fMaxFireRate,
+				config.fMinFireRate, config.fMaxFireRate);
 
-		ParseRangeFromINI(ini, secItem, "fSpread",
-			defaults.fMinSpread, defaults.fMaxSpread,
-			config.fMinSpread, config.fMaxSpread);
+			ParseRangeFromINI(ini, secItem, "fSpread",
+				defaults.fMinSpread, defaults.fMaxSpread,
+				config.fMinSpread, config.fMaxSpread);
+		}
+
+		if (!g_OCSettings.bMechanics) return;
 
 		if (std::string_view objEffect = ini.GetValue(secItem, "sObjectEffect", ""); !objEffect.empty())
 		{
@@ -184,16 +184,19 @@ namespace Overcharge
 		config.fHeatPerShot = ini.GetDoubleValue(secItem, "fHeatPerShot", defaults.fHeatPerShot);
 		config.fCooldownPerSecond = ini.GetDoubleValue(secItem, "fCooldownPerSecond", defaults.fCooldownPerSecond);
 
-		if (std::string_view OCEffectString = ini.GetValue(secItem, "sOverchargeEffects", ""); !OCEffectString.empty())
+		if (g_OCSettings.bMechanics)
 		{
-			auto parts = SplitByDelimiter(OCEffectString, '(');
-			if (!parts.empty())
+			if (std::string_view OCEffectString = ini.GetValue(secItem, "sOverchargeEffects", ""); !OCEffectString.empty())
 			{
-				auto flags = StringToFlags(parts[0], ' ', OCEffectNames);
-				config.iOverchargeEffect = flags;
+				auto parts = SplitByDelimiter(OCEffectString, '(');
+				if (!parts.empty())
+				{
+					auto flags = StringToFlags(parts[0], ' ', OCEffectNames);
+					config.iOverchargeEffect = flags;
+				}
+				if (parts.size() >= 2)
+					config.iOverchargeEffectThreshold = static_cast<UInt8>(ParseDelimitedData(parts[1], '\0', ')'));
 			}
-			if (parts.size() >= 2)
-				config.iOverchargeEffectThreshold = static_cast<UInt8>(ParseDelimitedData(parts[1], '\0', ')'));
 		}
 
 		std::string_view colorVal = ini.GetValue(secItem, "iColor", "");
@@ -222,16 +225,16 @@ namespace Overcharge
 		char keyBuffer[32];
 		char nodeBuffer[128];
 
-		if (std::string_view hSound = ini.GetValue(secItem, "sOverheatSFX", ""); !hSound.empty()) {
-			std::snprintf(buffer, sizeof(buffer), "Sound\\OCSounds\\%.*s", (int)hSound.size(), hSound.data());
-			config.sHeatSoundFile = buffer;
+		if (g_OCSettings.bSounds) {
+			if (std::string_view hSound = ini.GetValue(secItem, "sOverheatSFX", ""); !hSound.empty()) {
+				std::snprintf(buffer, sizeof(buffer), "Sound\\OCSounds\\%.*s", (int)hSound.size(), hSound.data());
+				config.sHeatSoundFile = buffer;
+			}
+			if (std::string_view cSound = ini.GetValue(secItem, "sChargeSFX", ""); !cSound.empty()) {
+				std::snprintf(buffer, sizeof(buffer), "Sound\\OCSounds\\%.*s", (int)cSound.size(), cSound.data());
+				config.sChargeSoundFile = buffer;
+			}
 		}
-
-		if (std::string_view cSound = ini.GetValue(secItem, "sChargeSFX", ""); !cSound.empty()) {
-			std::snprintf(buffer, sizeof(buffer), "Sound\\OCSounds\\%.*s", (int)cSound.size(), cSound.data());
-			config.sChargeSoundFile = buffer;
-		}
-
 		std::string_view animFile = ini.GetValue(secItem, "sOverheatAnimation", "");
 		std::string_view weapType = EnumToString(rWeap->eWeaponType, OCWeapTypeNames);
 		if (animFile.empty()) {
@@ -240,8 +243,9 @@ namespace Overcharge
 		else {
 			std::snprintf(buffer, sizeof(buffer), "OCAnims\\%.*s", (int)animFile.size(), animFile.data());
 		}
-		config.sAnimFile = buffer;
 
+		if (g_OCSettings.bAnimations) config.sAnimFile = buffer;
+		if (!g_OCSettings.bMeshes) return;
 		CSimpleIniA::TNamesDepend nodeValues;
 		ini.GetAllValues(secItem, "OCNode", nodeValues);
 
@@ -308,18 +312,18 @@ namespace Overcharge
 			NiFixedString fixed(rWeap->kModel.c_str());
 			OCExtraModels.push_back({ fixed, hNode, scale, translate, rotate });
 
-			for (auto& modModel : rWeap->kModModels)
-			{
-				if (NiFixedString modFixed = modModel.kModel.c_str())
+			for (auto& modModel : rWeap->kModModels) {
+				if (!(modModel.kModel.GetLength() == 0)) {
+					NiFixedString modFixed = modModel.kModel.c_str();
 					OCExtraModels.push_back({ modFixed, hNode, scale, translate, rotate });
+				}
 			}
-
-			if (isAttachment)
-			{
+			if (isAttachment) {
 				const char* dot = std::strrchr(nodeBuffer, '.');
 				size_t len = dot ? static_cast<size_t>(dot - nodeBuffer) : strlen(nodeBuffer);
 				std::snprintf(nodeBuffer, sizeof(nodeBuffer), "%.*s%d", (int)len, nodeBuffer, i);
 			}
+
 			config.sHeatedNodes.push_back({ static_cast<UInt32>(i), flags, nodeBuffer });
 		}
 	}

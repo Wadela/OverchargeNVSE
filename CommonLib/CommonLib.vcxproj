@@ -198,6 +198,7 @@
     <ClCompile Include="Bethesda\BSSemaphore.cpp" />
     <ClCompile Include="Bethesda\BSSpinLock.cpp" />
     <ClCompile Include="Bethesda\BSStream.cpp" />
+    <ClCompile Include="Bethesda\VATS.cpp" />
     <ClCompile Include="Gamebryo\NiMemManager.cpp" />
     <ClCompile Include="Gamebryo\NiMemory.cpp" />
     <ClCompile Include="Bethesda\BSWin32TaskletManager.cpp" />
@@ -1091,6 +1092,7 @@
     <ClInclude Include="Bethesda\ValueModifierEffect.hpp" />
     <ClInclude Include="Bethesda\VampirismEffect.hpp" />
     <ClInclude Include="Bethesda\VariableInfo.hpp" />
+    <ClInclude Include="Bethesda\VATS.hpp" />
     <ClInclude Include="Bethesda\VATSMenu.hpp" />
     <ClInclude Include="Bethesda\ViewCaster.hpp" />
     <ClInclude Include="Bethesda\VolumetricFogShader.hpp" />
