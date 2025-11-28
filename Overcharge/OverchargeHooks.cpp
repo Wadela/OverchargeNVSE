@@ -6,10 +6,7 @@ namespace Overcharge
 	std::vector<std::shared_ptr<HeatData>>		activeOCWeapons;
 	std::vector<NiParticleSystemPtr>			worldSpaceParticles;
 
-	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>				activeInstances;
-	std::unordered_map<BSPSysSimpleColorModifier*, std::weak_ptr<HeatData>>	colorModifiers;
-
-	std::unordered_map<BSPSysSimpleColorModifier*, ParticleInstance> colorMods;
+	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	 activeEmitters;
 	std::unordered_map<NiPSysData*, std::unordered_set<UInt16>>  activeParticles;
 
 	BGSPerk* OCPerkOverclocker;
@@ -128,14 +125,6 @@ namespace Overcharge
 		);
 	}
 
-	void ParticleCleanup()
-	{
-		std::erase_if(activeInstances, [](const auto& inst) {
-			auto heat = inst.second;
-			return !heat || !heat->state.bIsActive;
-			});
-	}
-
 	void ClearOCWeapons()
 	{
 		std::vector<std::shared_ptr<HeatData>>().swap(playerOCWeapons);
@@ -144,12 +133,8 @@ namespace Overcharge
 		activeOCWeapons.reserve(12);
 		std::vector<NiParticleSystemPtr>().swap(worldSpaceParticles);
 		worldSpaceParticles.reserve(24);
-		std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>().swap(activeInstances);
-		activeInstances.reserve(32);
-		std::unordered_map<BSPSysSimpleColorModifier*, std::weak_ptr<HeatData>>().swap(colorModifiers);
-		colorModifiers.reserve(32);
-		std::unordered_map<BSPSysSimpleColorModifier*, ParticleInstance>().swap(colorMods);
-		colorMods.reserve(32);
+		std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>().swap(activeEmitters);
+		activeEmitters.reserve(32);
 	}
 
 	//Grabs OCWeapons from any currently active actors, initializes them, and stores for use.
@@ -245,7 +230,6 @@ namespace Overcharge
 		const auto player = PlayerCharacter::GetSingleton();
 		const UInt8 ogBurst = GetAmmoRequiredForVats(a1, a2);
 		if (!player || !vats || !g_OCSettings.bStats) return ogBurst;
-
 		auto rWeap = player->GetCurrentWeapon();
 		if (!rWeap) return ogBurst;
 
@@ -281,8 +265,7 @@ namespace Overcharge
 		auto player = PlayerCharacter::GetSingleton();
 		auto vats = VATS::GetSingleton();
 		auto heat = GetOrCreateHeat(rActor);
-		if (!rWeap || !rActor || !heat)
-		{
+		if (!rWeap || !rActor || !heat) {
 			ThisStdCall(0x523150, rWeap, rActor);
 			return;
 		}
@@ -310,8 +293,7 @@ namespace Overcharge
 
 		UpdatePerks(heat);
 
-		if (g_OCSettings.bStats)
-		{
+		if (g_OCSettings.bStats) {
 			rWeap->ammoUse = heat->state.uiAmmoUsed;
 			if (heat->state.uiOCEffect & OCEffects_AltProjectile)
 				rWeap->ammoUse *= 3;
@@ -330,7 +312,6 @@ namespace Overcharge
 			&& !rActor->GetPerkRank(OCPerkCriticalMass, 0))
 			heat->state.iCanOverheat = 1;
 
-
 		//Restore Weapon Values - Need to restore so only the current weapon is altered.
 		rWeap->ammoUse = ogAmmoUse;
 		rWeap->numProjectiles = ogProjectiles;
@@ -342,7 +323,7 @@ namespace Overcharge
 	//Controls the color of affected muzzle flashes
 	static inline void __fastcall MuzzleFlashWrapper(MuzzleFlash* flash)
 	{
-		if (!flash || !flash->pSourceActor || !flash->pSourceWeapon || !g_OCSettings.bVFX)
+		if (!flash || !flash->pSourceActor || !flash->pSourceWeapon || !flash->spNode || !g_OCSettings.bVFX)
 		{
 			ThisStdCall(0x9BB690, flash);
 			return;
@@ -350,21 +331,20 @@ namespace Overcharge
 		const NiNodePtr muzzleNode = flash->spNode;
 		UInt32 sourceID = flash->pSourceActor->uiFormID;
 		UInt32 weapID = flash->pSourceWeapon->uiFormID;
-		if (auto heat = GetActiveHeat(sourceID, weapID))
-		{
+		auto heat = GetActiveHeat(sourceID, weapID);
+
+		TraverseNiNode<BSValueNode>(muzzleNode, [&heat](BSValueNodePtr valueNode) {
+			activeEmitters[valueNode] = heat;
+			});
+		TraverseNiNode<NiParticleSystem>(muzzleNode, [&heat](NiParticleSystemPtr psys) {
+			activeEmitters[psys] = heat;
+			});
+
+		if (heat) {
 			if (flash->spLight) flash->spLight->SetDiffuseColor(heat->fx.currCol);
-			if (muzzleNode)
-			{
-				TraverseNiNode<BSValueNode>(muzzleNode, [&heat](BSValueNodePtr valueNode) {
-					activeInstances[valueNode] = heat;
-					});
-				TraverseNiNode<NiGeometry>(muzzleNode, [&heat](NiGeometryPtr geom) {
-					CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
-					});
-				TraverseNiNode<NiParticleSystem>(muzzleNode, [&heat](NiParticleSystemPtr psys) {
-					activeInstances[psys] = heat;
-					});
-			}
+			TraverseNiNode<NiGeometry>(muzzleNode, [&heat](NiGeometryPtr geom) {
+				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+				});
 		}
 		ThisStdCall(0x9BB690, flash);
 	}
@@ -399,12 +379,32 @@ namespace Overcharge
 
 		apBGSProjectile = ogProj;
 		const NiNodePtr projNode = proj ? proj->Get3D() : nullptr;
-		if (!heat || !projNode) return proj;
+		if (!projNode) return proj;
+
+		if (g_OCSettings.bVFX) {
+			//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
+			TraverseNiNode<BSValueNode>(projNode, [&heat](BSValueNodePtr valueNode) {
+				activeEmitters[valueNode] = heat;
+				});
+			TraverseNiNode<NiParticleSystem>(projNode, [&heat](NiParticleSystemPtr psys) {
+				activeEmitters[psys] = heat;
+				});
+
+			if (heat) {
+				heat->fx.currCol = SmoothColorShift(
+					heat->state.fHeatVal,
+					heat->config->iMinColor,
+					heat->config->iMaxColor
+				);
+
+				TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometryPtr geom) {
+					CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+					});
+			}
+		}
 
 		//Update Projectile Values - Don't need to backup because they're references.
-
-		if (g_OCSettings.bStats)
-		{
+		if (heat && g_OCSettings.bStats) {
 			const float heatRatio = heat->state.fHeatVal / 100.0f;
 			projNode->m_kLocal.m_fScale =
 				InterpolateBase(
@@ -425,22 +425,6 @@ namespace Overcharge
 			heat->state.fProjectileSpeed = proj->fSpeedMult;
 		}
 
-		if (g_OCSettings.bVFX)
-		{
-			//Update Current Color - Need to update early since it races UpdateHeatFX() for current color.
-			heat->fx.currCol = SmoothColorShift(heat->state.fHeatVal, heat->config->iMinColor, heat->config->iMaxColor);
-
-			//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
-			TraverseNiNode<BSValueNode>(projNode, [&heat](BSValueNodePtr valueNode) {
-				activeInstances[valueNode] = heat;
-				});
-			TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometryPtr geom) {
-				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
-				});
-			TraverseNiNode<NiParticleSystem>(projNode, [&heat](NiParticleSystemPtr psys) {
-				activeInstances[psys] = heat;
-				});
-		}
 		return proj;
 	}
 
@@ -460,19 +444,21 @@ namespace Overcharge
 
 		UInt32 sourceID = pProjectile->pSourceRef->uiFormID;
 		UInt32 weapID = pProjectile->pSourceWeapon->uiFormID;
-		if (auto heat = GetActiveHeat(sourceID, weapID))
-		{
-			//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
-			TraverseNiNode<BSValueNode>(impactNode, [&heat](BSValueNodePtr valueNode) {
-				activeInstances[valueNode] = heat;
-				});
-			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
-				});
-			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
-				activeInstances[psys] = heat;
-				});
-		}
+		auto heat = GetActiveHeat(sourceID, weapID);
+
+		//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
+		TraverseNiNode<BSValueNode>(impactNode, [&heat](BSValueNodePtr valueNode) {
+			activeEmitters[valueNode] = heat;
+			});
+		TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
+			activeEmitters[psys] = heat;
+			});
+
+		if (!heat) return impact;
+		TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
+			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+			});
+
 		return impact;
 	}
 
@@ -494,27 +480,30 @@ namespace Overcharge
 
 		UInt32 sourceID = hitData->pkSource->uiFormID;
 		UInt32 weapID = hitData->pWeapon->uiFormID;
-		if (auto heat = GetActiveHeat(sourceID, weapID))
-		{
-			if (hitData->pkTarget && heat->config->iObjectEffectID
-				&& heat->state.fHeatVal >= heat->config->iObjectEffectThreshold) {
-				TESForm* effect = TESForm::GetByID(heat->config->iObjectEffectID);
-				if (effect) hitData->pkTarget->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, hitData->pkTarget, 1, 0);
-			}
+		auto heat = GetActiveHeat(sourceID, weapID);
 
-			if (!g_OCSettings.bVFX) return impact;
-
-			//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
-			TraverseNiNode<BSValueNode>(impactNode, [&heat](BSValueNodePtr valueNode) {
-				activeInstances[valueNode] = heat;
-				});
-			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
-				});
-			TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
-				activeInstances[psys] = heat;
-				});
+		if (hitData->pkTarget && heat && heat->config->iObjectEffectID
+			&& heat->state.fHeatVal >= heat->config->iObjectEffectThreshold) {
+			TESForm* effect = TESForm::GetByID(heat->config->iObjectEffectID);
+			if (effect) hitData->pkTarget->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, hitData->pkTarget, 1, 0);
 		}
+
+		if (!g_OCSettings.bVFX) return impact;
+
+		//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
+		TraverseNiNode<BSValueNode>(impactNode, [&heat](BSValueNodePtr valueNode) {
+			activeEmitters[valueNode] = heat;
+			});
+		TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
+			activeEmitters[psys] = heat;
+			});
+
+		if (!heat) return impact;
+
+		TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
+			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+			});
+
 		return impact;
 	}
 
@@ -530,20 +519,27 @@ namespace Overcharge
 		NiNodePtr explNode = thisPtr->Get3D();
 		if (!explNode || !g_OCSettings.bVFX) return;
 
-		if (auto heat = GetActiveHeat(owner->uiFormID, weapID))
-		{
-			heat->fx.currCol = SmoothColorShift(heat->state.fHeatVal, heat->config->iMinColor, heat->config->iMaxColor);
-			if (thisPtr->spLight) thisPtr->spLight->SetDiffuseColor(heat->fx.currCol);
-			TraverseNiNode<BSValueNode>(explNode, [&heat](BSValueNodePtr valueNode) {
-				activeInstances[valueNode] = heat;
-				});
-			TraverseNiNode<NiGeometry>(explNode, [&heat](NiGeometryPtr geom) {
-				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
-				});
-			TraverseNiNode<NiParticleSystem>(explNode, [&heat](NiParticleSystemPtr psys) {
-				activeInstances[psys] = heat;
-				});
-		}
+		auto heat = GetActiveHeat(owner->uiFormID, weapID);
+		TraverseNiNode<BSValueNode>(explNode, [&heat](BSValueNodePtr valueNode) {
+			activeEmitters[valueNode] = heat;
+			});
+		TraverseNiNode<NiParticleSystem>(explNode, [&heat](NiParticleSystemPtr psys) {
+			activeEmitters[psys] = heat;
+			});
+
+		if (!heat) return;
+
+		heat->fx.currCol = SmoothColorShift(
+			heat->state.fHeatVal, 
+			heat->config->iMinColor, 
+			heat->config->iMaxColor
+		);
+
+		if (thisPtr->spLight) thisPtr->spLight->SetDiffuseColor(heat->fx.currCol);
+		TraverseNiNode<NiGeometry>(explNode, [&heat](NiGeometryPtr geom) {
+			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+			});
+
 	}
 
 	//Controls Kill Effect Shader VFX
@@ -596,76 +592,70 @@ namespace Overcharge
 		UInt32 killerID = killer->uiFormID;
 		UInt32 killerWeapID = killer->GetCurrentWeaponID();
 
+		//LoadGraphics() is called earlier than the game usually would so we can control the pile's color.
+		NiNodePtr node = pObject->LoadGraphics(expl);
+		if (!node) return expl;
+
+		auto heat = GetActiveHeat(killerID, killerWeapID);
+		TraverseNiNode<BSValueNode>(node, [&heat](BSValueNodePtr valueNode) {
+			activeEmitters[valueNode] = heat;
+			});
+		TraverseNiNode<NiParticleSystem>(node, [&heat](NiParticleSystemPtr psys) {
+			activeEmitters[psys] = heat;
+			});
+
+		if (!heat) return expl;
+
 		//Ash/Goo piles have their vertex colors desaturated earlier in the process and now use emissive colors. 
-		if (auto heat = GetActiveHeat(killerID, killerWeapID))
-		{
-			//LoadGraphics() is called earlier than the game usually would so we can control the pile's color.
-			if (NiNodePtr node = pObject->LoadGraphics(expl))
-			{
-				TraverseNiNode<BSValueNode>(node, [&heat](BSValueNodePtr valueNode) {
-					activeInstances[valueNode] = heat;
-					});
-				TraverseNiNode<NiGeometry>(node, [&heat](NiGeometryPtr geom) {
-					CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
-					});
-				TraverseNiNode<NiParticleSystem>(node, [&heat](NiParticleSystemPtr psys) {
-					activeInstances[psys] = heat;
-					});
-			}
-		}
+		TraverseNiNode<NiGeometry>(node, [&heat](NiGeometryPtr geom) {
+			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+			});
+
 		return expl;
 	}
 
-
-	__declspec(naked) void __fastcall EmitterEmitParticles(NiPSysEmitter* thisPtr, void* edx, float fTime, UInt16 usNumParticles, const float* pfAges)
+	//New particles are added to NiPSysData by active indices.
+	//We detour to record a live index of particle emitted by a tracked emitter. 
+	static void __fastcall InitializeParticleWrapper(NiParticleSystem* thisPtr, void*, UInt16 usNewParticle)
 	{
-		__asm
-		{
-			sub     esp, 0x50
-			push    ebx
-			push    esi
-			push    0xC220C5
-			retn
-		}
-	}
+		uintptr_t esiVal;
+		__asm mov esiVal, ESI;
 
-	//Controls active color modifiers, so they don't break either vertex or emissive colors. 
-	static void __fastcall ReplaceColorModifiers(NiPSysEmitter* thisPtr, void* edx, float fTime, UInt16 usNumParticles, const float* pfAges)
-	{
-		if (!thisPtr || !thisPtr->m_pkTarget || !g_OCSettings.bVFX)
-		{
-			EmitterEmitParticles(thisPtr, edx, fTime, usNumParticles, pfAges);
+		auto* emitter = reinterpret_cast<NiPSysEmitter*>(esiVal);
+		auto volEmit = emitter ? emitter->NiDynamicCast<NiPSysVolumeEmitter>() : nullptr;
+		NiAVObjectPtr key = volEmit ? volEmit->m_pkEmitterObj : thisPtr;
+		auto it = activeEmitters.find(key);
+		if (it == activeEmitters.end()) {
+			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
 			return;
 		}
+		auto alpha = thisPtr->GetAlphaProperty();
 
-		//Finding the emitter type this way as to cover both volume emitters as well as other general emitters. This is primarily for explosions. 
-		NiPSysVolumeEmitterPtr volEmit = thisPtr->IsNiType<NiPSysVolumeEmitter>()
-			? static_cast<NiPSysVolumeEmitter*>(thisPtr)
-			: nullptr;
+		//Bright/opaque particles use DstBlendMode 'One'. This check filters out things like smoke or dust.
+		if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::ALPHA_ONE)) {
+			activeEmitters.erase(it);
+			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
+			return;
+		}
+		ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
 
-		NiAVObjectPtr key = volEmit ? volEmit->m_pkEmitterObj : thisPtr->m_pkTarget;
+		NiPSysDataPtr psysData = (NiPSysData*)thisPtr->GetModelData();
+		auto& activeSet = activeParticles[psysData];
+		activeSet.insert(usNewParticle);
 
-		if (auto it = activeInstances.find(key); it != activeInstances.end())
-		{
-			//Bright or more opaque particles should typically use a DstBlendMode of 'One' so checking it filters particles like smoke or dust.
-			NiAlphaPropertyPtr alpha = thisPtr->m_pkTarget->GetAlphaProperty();
-			if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::ALPHA_ONE))
-				activeInstances.erase(it);
-			else if (!it->second)
-			{
-				thisPtr->m_kInitialColor = it->second->fx.currCol;
-				for (const auto& modifier : thisPtr->m_pkTarget->m_kModifierList)
-				{
-					//Adding the active color modifier to target it for a later detour of its update.
-					if (BSPSysSimpleColorModifierPtr scm = modifier->NiDynamicCast<BSPSysSimpleColorModifier>())
-						colorModifiers[scm] = it->second;
+		if (it->second) {
+			psysData->m_pkColor[usNewParticle] = it->second->fx.currCol;
+			SetEmissiveColor(thisPtr, NiColor(1, 1, 1));
+		}
+		else {
+			//Fallback state: Use kColor2 because that is generally the target color for SCMs
+			for (const auto& modifier : thisPtr->m_kModifierList) {
+				if (auto* scm = modifier->NiDynamicCast<BSPSysSimpleColorModifier>()) {
+					psysData->m_pkColor[usNewParticle] = scm->kColor2;
+					break;
 				}
-				//Disabling emissive colors so the vertex colors control the appearance.
-				if (thisPtr->m_pkTarget->GetMaterialProperty())
-					SetEmissiveColor(thisPtr->m_pkTarget, NiColor(1, 1, 1));
 			}
 		}
-		EmitterEmitParticles(thisPtr, edx, fTime, usNumParticles, pfAges);
 	}
 
 	__declspec(naked) void __fastcall OriginalColorModifierUpdate(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData)
@@ -690,63 +680,14 @@ namespace Overcharge
 
 		if (auto it = activeParticles.find(apData); it != activeParticles.end())
 		{
+			NiColorA* pColor = apData->m_pkColor;
 			float timeColor2 = apThis->fColor2Start - apThis->fColor1End;
 			float timeColor3 = apThis->fColor3Start - apThis->fColor2End;
 			for (int i = 0; i < apData->m_usActiveVertices; ++i)
 			{
-				NiColorA* pColor = apData->m_pkColor;
 				NiParticleInfo* pInfo = &apData->m_pkParticleInfo[i];
 				float lifePercent = pInfo->m_fAge / pInfo->m_fLifeSpan;
 
-				NiColor color1(apThis->kColor1.r, apThis->kColor1.g, apThis->kColor1.b);
-				NiColor color2(apThis->kColor2.r, apThis->kColor2.g, apThis->kColor2.b);
-				NiColor color3(apThis->kColor3.r, apThis->kColor3.g, apThis->kColor3.b);
-
-				if (it->second.contains(i)) {
-
-					if (apThis->fFadeOut != 0.0 && apThis->fFadeOut < lifePercent) {
-						float fadeOutPercent = (lifePercent - apThis->fFadeOut) / (1.0 - apThis->fFadeOut);
-						pColor[i].a = (apThis->kColor3.a - apThis->kColor2.a) * fadeOutPercent + apThis->kColor2.a;
-					}
-					else if (apThis->fFadeIn == 0.0 || apThis->fFadeIn <= lifePercent) {
-						pColor[i].a = apThis->kColor2.a;
-					}
-					else {
-						float fadeInPercent = lifePercent / apThis->fFadeIn;
-						pColor[i].a = (apThis->kColor2.a - apThis->kColor1.a) * fadeInPercent + apThis->kColor1.a;
-					}
-					continue; 
-				}
-
-				if (timeColor2 != 0 && apThis->fColor2Start > lifePercent) {
-					if (apThis->fColor1End <= lifePercent) {
-						float timeLeft1 = (lifePercent - apThis->fColor1End) / timeColor2;
-						pColor[i].r = (color2.r - color1.r) * timeLeft1 + color1.r;
-						pColor[i].g = (color2.g - color1.g) * timeLeft1 + color1.g;
-						pColor[i].b = (color2.b - color1.b) * timeLeft1 + color1.b;
-					}
-					else {
-						pColor[i].r = color1.r;
-						pColor[i].g = color1.g;
-						pColor[i].b = color1.b;
-					}
-				}
-				else if (timeColor3 == 0.0 || apThis->fColor2End >= lifePercent) {
-					pColor[i].r = color2.r;
-					pColor[i].g = color2.g;
-					pColor[i].b = color2.b;
-				}
-				else if (apThis->fColor3Start < lifePercent) {
-					pColor[i].r = color3.r;
-					pColor[i].g = color3.g;
-					pColor[i].b = color3.b;
-				}
-				else {
-					float timeLeft2 = (lifePercent - apThis->fColor2End) / timeColor3;
-					pColor[i].r = (color3.r - color2.r) * timeLeft2 + color2.r;
-					pColor[i].g = (color3.g - color2.g) * timeLeft2 + color2.g;
-					pColor[i].b = (color3.b - color2.b) * timeLeft2 + color2.b;
-				}
 				if (apThis->fFadeOut != 0.0 && apThis->fFadeOut < lifePercent) {
 					float fadeOutPercent = (lifePercent - apThis->fFadeOut) / (1.0 - apThis->fFadeOut);
 					pColor[i].a = (apThis->kColor3.a - apThis->kColor2.a) * fadeOutPercent + apThis->kColor2.a;
@@ -757,6 +698,38 @@ namespace Overcharge
 				else {
 					float fadeInPercent = lifePercent / apThis->fFadeIn;
 					pColor[i].a = (apThis->kColor2.a - apThis->kColor1.a) * fadeInPercent + apThis->kColor1.a;
+				}
+
+				if (it->second.contains(i)) continue; 
+
+				if (timeColor2 != 0 && apThis->fColor2Start > lifePercent) {
+					if (apThis->fColor1End <= lifePercent) {
+						float timeLeft1 = (lifePercent - apThis->fColor1End) / timeColor2;
+						pColor[i].r = (apThis->kColor2.r - apThis->kColor1.r) * timeLeft1 + apThis->kColor1.r;
+						pColor[i].g = (apThis->kColor2.g - apThis->kColor1.g) * timeLeft1 + apThis->kColor1.g;
+						pColor[i].b = (apThis->kColor2.b - apThis->kColor1.b) * timeLeft1 + apThis->kColor1.b;
+					}
+					else {
+						pColor[i].r = apThis->kColor1.r;
+						pColor[i].g = apThis->kColor1.g;
+						pColor[i].b = apThis->kColor1.b;
+					}
+				}
+				else if (timeColor3 == 0.0 || apThis->fColor2End >= lifePercent) {
+					pColor[i].r = apThis->kColor2.r;
+					pColor[i].g = apThis->kColor2.g;
+					pColor[i].b = apThis->kColor2.b;
+				}
+				else if (apThis->fColor3Start < lifePercent) {
+					pColor[i].r = apThis->kColor3.r;
+					pColor[i].g = apThis->kColor3.g;
+					pColor[i].b = apThis->kColor3.b;
+				}
+				else {
+					float timeLeft2 = (lifePercent - apThis->fColor2End) / timeColor3;
+					pColor[i].r = (apThis->kColor3.r - apThis->kColor2.r) * timeLeft2 + apThis->kColor2.r;
+					pColor[i].g = (apThis->kColor3.g - apThis->kColor2.g) * timeLeft2 + apThis->kColor2.g;
+					pColor[i].b = (apThis->kColor3.b - apThis->kColor2.b) * timeLeft2 + apThis->kColor2.b;
 				}
 			}
 		}
@@ -769,7 +742,7 @@ namespace Overcharge
 
 	__declspec(naked) void __fastcall UpdatePsysWorldData(NiParticleSystem* thisPtr, void* edx, NiUpdateData* apData)
 	{
-		__asm
+		__asm 
 		{
 			mov     eax, [esp + 0x4]
 			push    ebx
@@ -797,88 +770,6 @@ namespace Overcharge
 		}
 	}
 
-	//Clear out any tracked color modifiers and color controlled objects. 
-	static void __stdcall ClearTrackedEmitters(NiAVObject* toDelete)
-	{
-		activeInstances.erase(toDelete);
-	}
-
-	__declspec(naked) void ClearUnrefEmittersHook()
-	{
-		static const UInt32 returnAddr = 0xC5E169;
-
-		__asm
-		{
-			mov        eax, [ebp - 0x20]
-			push	   eax
-			call	   ClearTrackedEmitters
-
-			mov        ecx, [ebp - 0x20]
-			mov        edx, [ecx]
-			jmp        returnAddr
-		}
-	}
-
-	static void __fastcall InitializeParticleWrapper(NiParticleSystem* thisPtr, void*, UInt16 usNewParticle)
-	{
-		uintptr_t esiVal = 0;
-		__asm mov esiVal, ESI;
-
-		auto* emitter = reinterpret_cast<NiPSysEmitter*>(esiVal);
-		if (!emitter) {
-			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
-			return;
-		}
-		auto volEmit = emitter->NiDynamicCast<NiPSysVolumeEmitter>();
-		if (!volEmit || !volEmit->m_pkEmitterObj) {
-			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
-			return;
-		}
-		auto it = activeInstances.find(volEmit->m_pkEmitterObj);
-		if (it == activeInstances.end()) {
-			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
-			return;
-		}
-		auto alpha = thisPtr->GetAlphaProperty();
-		if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::ALPHA_ONE)) {
-			activeInstances.erase(it);
-			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
-			return;
-		}
-
-		auto instPtr = it->second;
-		if (!instPtr) {
-			activeInstances.erase(it);
-		}
-		else {
-			NiPSysDataPtr psysData = (NiPSysData*)thisPtr->GetModelData();
-			auto mapIt = activeParticles.find(psysData);
-			if (mapIt == activeParticles.end()) {
-				mapIt = activeParticles.emplace(psysData, std::unordered_set<UInt16>{}).first;
-			}
-			mapIt->second.insert(usNewParticle);
-			psysData->m_pkColor[usNewParticle] = instPtr->fx.currCol;
-			SetEmissiveColor(thisPtr, NiColor(1, 1, 1));
-		}
-		ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
-	}
-
-	static inline void __fastcall RemoveParticleWrapper(NiPSysData* thisPtr, void* edx, UInt16 usParticle)
-	{
-		if (auto it = activeParticles.find(thisPtr); it != activeParticles.end())
-		{
-			UInt16 removalSlot = thisPtr->m_usActiveVertices - 1;
-
-			if (usParticle == removalSlot) {
-				it->second.erase(usParticle);
-			}
-			else {
-				it->second.erase(removalSlot);
-			}
-		}
-		ThisStdCall(0xA964C0, thisPtr, usParticle);
-	}
-
 	void InitHooks()
 	{
 		WriteRelCall(0x888C23, &GetEquippedOCWeapon);				//0x888C23 - Actor::GetEquippedWeapon() (via Actor::Update())
@@ -893,15 +784,12 @@ namespace Overcharge
 		WriteRelCall(0x9AD024, &ExplosionWrapper);					//0x9AD024 - Explosion::CreateLight() (via Explosion::CheckInit3D())
 		WriteRelCall(0x5D1C90, &MagicShaderVFXWrapper);				//0x5D1C90 - MagicShaderHitEffect::MagicShaderHitEffect_() (via Cmd_PlayMagicShaderVisuals_Execute())
 		WriteRelCall(0x5DBD56, &GooPileWrapper);					//0x5DBD56 - TESDataHandler::CreateReferenceAtLocation() (via Script::AttachAshPileFunction())
+		WriteRelCall(0xC2237A, &InitializeParticleWrapper);
 
 		WriteRelJump(0x7F5050, &CalcOCAmmoRequired);
-
-		//WriteRelJump(0xC220C0, &ReplaceColorModifiers);				//0xC220C0 - From NiPSysEmitter::EmitParticles()
 		WriteRelJump(0xC602E0, &ColorModifierUpdateWrapper);		//0xC602E0 - From BSPSysSimpleColorModifier::Update()
 		WriteRelJump(0xC1ADD0, &FirstPersonPsysWorldUpdate);		//0xC1ADD0 - From NiParticleSystem::UpdateWorldData()
-		WriteRelJump(0xC5E164, &ClearUnrefEmittersHook);			//0xC5E164 - From BSMasterParticleSystem::ClearUnreferencedEmitters()
 
-		WriteRelCall(0xC2237A, &InitializeParticleWrapper);
-		WriteRelCall(0xC24CD3, &RemoveParticleWrapper);
+
 	}
 }
