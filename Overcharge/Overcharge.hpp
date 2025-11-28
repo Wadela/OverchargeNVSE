@@ -128,6 +128,11 @@ namespace Overcharge
         TESObjectWEAP* rWeap  = nullptr;
     };
 
+    struct ParticleInstance
+    {
+        std::unordered_set<UInt16> indices; 
+    };
+
     UInt32  RGBtoUInt32(const NiColor& color);
     NiColor UInt32toRGB(const UInt32 color);
     NiColor UInt32toHSV(const UInt32 color);

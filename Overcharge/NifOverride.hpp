@@ -49,10 +49,10 @@ namespace Overcharge
 		if (!obj) return;
 		auto geom = obj->NiDynamicCast<NiGeometry>();
 		if (!geom) return;
+		auto matProp = geom->GetMaterialProperty();
+		if (!matProp) return;
 
-		auto& matProp = geom->m_kProperties.m_spMaterialProperty;
-		if (newMatProp)
-		{
+		if (newMatProp) {
 			geom->RemoveProperty(NiProperty::MATERIAL);
 			geom->DetachProperty(matProp);
 			geom->AddProperty(newMatProp);
@@ -63,11 +63,8 @@ namespace Overcharge
 			newMatProp->m_spec = matProp->m_spec;
 			newMatProp->m_emit = color;
 			geom->UpdateProperties();
-			return;
 		}
-
-		if (matProp)
-		matProp->m_emit = color;
+		else matProp->m_emit = color;
 	}
 
 	//New material property smart pointers are created because if a matprop were to be shared anywhere, then one edit will edit all instances of it. 

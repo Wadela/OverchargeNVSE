@@ -4,10 +4,13 @@ namespace Overcharge
 {
 	std::vector<std::shared_ptr<HeatData>>		playerOCWeapons;
 	std::vector<std::shared_ptr<HeatData>>		activeOCWeapons;
-	std::vector<BSPSysSimpleColorModifierPtr>	colorModifiers;
 	std::vector<NiParticleSystemPtr>			worldSpaceParticles;
 
-	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
+	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>				activeInstances;
+	std::unordered_map<BSPSysSimpleColorModifier*, std::weak_ptr<HeatData>>	colorModifiers;
+
+	std::unordered_map<BSPSysSimpleColorModifier*, ParticleInstance> colorMods;
+	std::unordered_map<NiPSysData*, std::unordered_set<UInt16>>  activeParticles;
 
 	BGSPerk* OCPerkOverclocker;
 	BGSPerk* OCPerkVoltageRegulator;
@@ -50,7 +53,7 @@ namespace Overcharge
 		const float timePassed = st.uiTicksPassed * frameTime;
 
 		//Store the previous state so that we can compare that to the current state.
-		const bool wasOverheating = st.IsOverheating();	
+		const bool wasOverheating = st.IsOverheating();
 
 		if (instance->config->iOverchargeEffect & OCEffects_Overheat)
 			st.UpdateOverheat();
@@ -65,12 +68,12 @@ namespace Overcharge
 		if (isPlayer && st.bIsActive && !MenuMode()) {
 			if (!st.IsOverheating()) {
 				if (st.iCanOverheat == 1)
-				st.iCanOverheat = 2;
+					st.iCanOverheat = 2;
 				UpdateOverchargeShot(instance, frameTime);
 				UpdateChargeDelay(instance, frameTime);
 			}
 			else if (!wasOverheating)
-			instance->fx.heatSoundHandle.FadeInPlay(100);
+				instance->fx.heatSoundHandle.FadeInPlay(100);
 			else if (g_OCSettings.bOverheatLockout) OverheatLockout();
 		}
 		else if (isPlayer) {
@@ -80,9 +83,9 @@ namespace Overcharge
 			st.uiOCEffect &= ~OCEffects_ChargeDelay;
 			FadeOutAndStop(&instance->fx.chargeSoundHandle, 100);
 			if (OCTranslate) {
-				OCTranslate->m_kLocal.m_Translate.x = 0.0f; 
-				OCTranslate->m_kLocal.m_Translate.y = 0.0f; 
-			} 
+				OCTranslate->m_kLocal.m_Translate.x = 0.0f;
+				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
+			}
 		}
 		//We only clear memory whenever a weapon is inactive and a certain amount of time is passed. 
 		if (!st.bIsActive && st.fHeatVal <= 0.0f && timePassed >= ERASE_DELAY) return false;
@@ -125,18 +128,28 @@ namespace Overcharge
 		);
 	}
 
+	void ParticleCleanup()
+	{
+		std::erase_if(activeInstances, [](const auto& inst) {
+			auto heat = inst.second;
+			return !heat || !heat->state.bIsActive;
+			});
+	}
+
 	void ClearOCWeapons()
 	{
 		std::vector<std::shared_ptr<HeatData>>().swap(playerOCWeapons);
 		playerOCWeapons.reserve(8);
 		std::vector<std::shared_ptr<HeatData>>().swap(activeOCWeapons);
 		activeOCWeapons.reserve(12);
-		std::vector<BSPSysSimpleColorModifierPtr>().swap(colorModifiers);
-		colorModifiers.reserve(24);
 		std::vector<NiParticleSystemPtr>().swap(worldSpaceParticles);
 		worldSpaceParticles.reserve(24);
 		std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>().swap(activeInstances);
 		activeInstances.reserve(32);
+		std::unordered_map<BSPSysSimpleColorModifier*, std::weak_ptr<HeatData>>().swap(colorModifiers);
+		colorModifiers.reserve(32);
+		std::unordered_map<BSPSysSimpleColorModifier*, ParticleInstance>().swap(colorMods);
+		colorMods.reserve(32);
 	}
 
 	//Grabs OCWeapons from any currently active actors, initializes them, and stores for use.
@@ -175,9 +188,9 @@ namespace Overcharge
 
 			if (heat->state.uiOCEffect & STOP_FIRING_FLAGS)
 			{
-				rActor->pkBaseProcess->SetIsNextAttackLoopQueued(0);	
-				rActor->pkBaseProcess->SetForceFireWeapon(0);			
-				rActor->pkBaseProcess->SetIsFiringAutomaticWeapon(0);	
+				rActor->pkBaseProcess->SetIsNextAttackLoopQueued(0);
+				rActor->pkBaseProcess->SetForceFireWeapon(0);
+				rActor->pkBaseProcess->SetIsFiringAutomaticWeapon(0);
 				result = ThisStdCall<bool>(0x893A40, rActor, 0xFF);
 				rWeap->animAttackMult = ogFireRate;
 				return result;;
@@ -199,13 +212,13 @@ namespace Overcharge
 		if (!thisPtr || !rActor || !rActor->GetCurrentWeapon() || !g_OCSettings.bStats)
 			return ThisStdCall<double>(0x646020, thisPtr, a2);
 
-		const auto ogAnimAttackMult = thisPtr->animAttackMult;					
-		if (auto heat = GetActiveHeat(rActor->uiFormID, thisPtr->uiFormID))		
-		{																		
+		const auto ogAnimAttackMult = thisPtr->animAttackMult;
+		if (auto heat = GetActiveHeat(rActor->uiFormID, thisPtr->uiFormID))
+		{
 			const float heatRatio = heat->state.fHeatVal / 100.0f;
-			thisPtr->animAttackMult = InterpolateBase(							
-				thisPtr->animAttackMult,										
-				heat->config->fMinFireRate, heat->config->fMaxFireRate,			
+			thisPtr->animAttackMult = InterpolateBase(
+				thisPtr->animAttackMult,
+				heat->config->fMinFireRate, heat->config->fMaxFireRate,
 				heatRatio
 			);
 		}
@@ -213,10 +226,10 @@ namespace Overcharge
 		thisPtr->animAttackMult = ogAnimAttackMult;
 		return result;
 	}
-		
+
 	__declspec(naked) UInt8 __cdecl GetAmmoRequiredForVats(int a1, char a2)
 	{
-		__asm 
+		__asm
 		{
 			push	ebp
 			mov		ebp, esp
@@ -312,7 +325,7 @@ namespace Overcharge
 		ThisStdCall(0x523150, rWeap, rActor);
 
 		auto equippedAmmo = rActor->pkBaseProcess->GetAmmo();
-		if (rActor == player && equippedAmmo 
+		if (rActor == player && equippedAmmo
 			&& equippedAmmo->iCountDelta == 0
 			&& !rActor->GetPerkRank(OCPerkCriticalMass, 0))
 			heat->state.iCanOverheat = 1;
@@ -433,7 +446,7 @@ namespace Overcharge
 
 	//Modifies spawned temporary impact effect before they are spawned.
 	static BSTempEffectParticle* __cdecl ImpactWrapper(
-		TESObjectCELL* cell, float lifetime, const char* fileName, 
+		TESObjectCELL* cell, float lifetime, const char* fileName,
 		NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
@@ -465,7 +478,7 @@ namespace Overcharge
 
 	//Controls spawned temporary impact effect before they are spawned and applies applicable object effects
 	static BSTempEffectParticle* __cdecl ImpactActorWrapper(
-		TESObjectCELL* cell, float lifetime, const char* fileName, 
+		TESObjectCELL* cell, float lifetime, const char* fileName,
 		NiPoint3 a4, NiPoint3 impactPos, float a6, char a7, NiRefObject* parent)
 	{
 		uintptr_t ebxVal;
@@ -535,7 +548,7 @@ namespace Overcharge
 
 	//Controls Kill Effect Shader VFX
 	static MagicShaderHitEffect* __fastcall MagicShaderVFXWrapper(
-		MagicShaderHitEffect* thisPtr, void* edx, TESObjectREFR* target, 
+		MagicShaderHitEffect* thisPtr, void* edx, TESObjectREFR* target,
 		TESEffectShader* a3, float duration)
 	{
 		MagicShaderHitEffect* mshe = ThisStdCall<MagicShaderHitEffect*>(0x81F580, thisPtr, target, a3, duration);
@@ -564,17 +577,17 @@ namespace Overcharge
 
 	//Controls the color of ash/goo piles. 
 	static TESObjectREFR* __fastcall GooPileWrapper(
-		TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject, 
-		NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior, 
-		TESWorldSpace* pWorld, TESObjectREFR* pReference, 
+		TESDataHandler* thisPtr, void* edx, TESBoundObject* pObject,
+		NiPoint3* apLocation, NiPoint3* apDirection, TESObjectCELL* pInterior,
+		TESWorldSpace* pWorld, TESObjectREFR* pReference,
 		void* pAddPrimitive, void* pAdditionalData)
 	{
 		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
 		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
 
 		TESObjectREFR* expl = ThisStdCall<TESObjectREFR*>(
-			0x4698A0, thisPtr, pObject, apLocation, 
-			apDirection, pInterior, pWorld, pReference, 
+			0x4698A0, thisPtr, pObject, apLocation,
+			apDirection, pInterior, pWorld, pReference,
 			pAddPrimitive, pAdditionalData);
 
 		if (!targetActor || !targetActor->pKiller || !g_OCSettings.bVFX) return expl;
@@ -638,14 +651,14 @@ namespace Overcharge
 			NiAlphaPropertyPtr alpha = thisPtr->m_pkTarget->GetAlphaProperty();
 			if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::ALPHA_ONE))
 				activeInstances.erase(it);
-			else
+			else if (!it->second)
 			{
 				thisPtr->m_kInitialColor = it->second->fx.currCol;
 				for (const auto& modifier : thisPtr->m_pkTarget->m_kModifierList)
 				{
 					//Adding the active color modifier to target it for a later detour of its update.
 					if (BSPSysSimpleColorModifierPtr scm = modifier->NiDynamicCast<BSPSysSimpleColorModifier>())
-						colorModifiers.emplace_back(scm);
+						colorModifiers[scm] = it->second;
 				}
 				//Disabling emissive colors so the vertex colors control the appearance.
 				if (thisPtr->m_pkTarget->GetMaterialProperty())
@@ -670,26 +683,87 @@ namespace Overcharge
 	//Detour Original Function - We ONLY update alphas otherwise the color modifiers will reset vertex colors every time Update() is called.
 	static inline void __fastcall ColorModifierUpdateWrapper(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData)
 	{
-		if (!apData->m_pkColor || !ContainsValue(colorModifiers, apThis) || !g_OCSettings.bVFX)
-		{
+		if (!apData->m_pkColor || !g_OCSettings.bVFX) {
 			OriginalColorModifierUpdate(apThis, edx, afTime, apData);
 			return;
 		}
-		for (int i = 0; i < apData->m_usActiveVertices; ++i)
+
+		if (auto it = activeParticles.find(apData); it != activeParticles.end())
 		{
-			NiParticleInfo* pInfo = &apData->m_pkParticleInfo[i];
-			float lifePercent = pInfo->m_fAge / pInfo->m_fLifeSpan;
-			if (apThis->fFadeOut != 0.0f && lifePercent > apThis->fFadeOut) {
-				float fadeOutPercent = (lifePercent - apThis->fFadeOut) / (1.0f - apThis->fFadeOut);
-				apData->m_pkColor[i].a = (apThis->kColor3.a - apThis->kColor2.a) * fadeOutPercent + apThis->kColor2.a;
+			float timeColor2 = apThis->fColor2Start - apThis->fColor1End;
+			float timeColor3 = apThis->fColor3Start - apThis->fColor2End;
+			for (int i = 0; i < apData->m_usActiveVertices; ++i)
+			{
+				NiColorA* pColor = apData->m_pkColor;
+				NiParticleInfo* pInfo = &apData->m_pkParticleInfo[i];
+				float lifePercent = pInfo->m_fAge / pInfo->m_fLifeSpan;
+
+				NiColor color1(apThis->kColor1.r, apThis->kColor1.g, apThis->kColor1.b);
+				NiColor color2(apThis->kColor2.r, apThis->kColor2.g, apThis->kColor2.b);
+				NiColor color3(apThis->kColor3.r, apThis->kColor3.g, apThis->kColor3.b);
+
+				if (it->second.contains(i)) {
+
+					if (apThis->fFadeOut != 0.0 && apThis->fFadeOut < lifePercent) {
+						float fadeOutPercent = (lifePercent - apThis->fFadeOut) / (1.0 - apThis->fFadeOut);
+						pColor[i].a = (apThis->kColor3.a - apThis->kColor2.a) * fadeOutPercent + apThis->kColor2.a;
+					}
+					else if (apThis->fFadeIn == 0.0 || apThis->fFadeIn <= lifePercent) {
+						pColor[i].a = apThis->kColor2.a;
+					}
+					else {
+						float fadeInPercent = lifePercent / apThis->fFadeIn;
+						pColor[i].a = (apThis->kColor2.a - apThis->kColor1.a) * fadeInPercent + apThis->kColor1.a;
+					}
+					continue; 
+				}
+
+				if (timeColor2 != 0 && apThis->fColor2Start > lifePercent) {
+					if (apThis->fColor1End <= lifePercent) {
+						float timeLeft1 = (lifePercent - apThis->fColor1End) / timeColor2;
+						pColor[i].r = (color2.r - color1.r) * timeLeft1 + color1.r;
+						pColor[i].g = (color2.g - color1.g) * timeLeft1 + color1.g;
+						pColor[i].b = (color2.b - color1.b) * timeLeft1 + color1.b;
+					}
+					else {
+						pColor[i].r = color1.r;
+						pColor[i].g = color1.g;
+						pColor[i].b = color1.b;
+					}
+				}
+				else if (timeColor3 == 0.0 || apThis->fColor2End >= lifePercent) {
+					pColor[i].r = color2.r;
+					pColor[i].g = color2.g;
+					pColor[i].b = color2.b;
+				}
+				else if (apThis->fColor3Start < lifePercent) {
+					pColor[i].r = color3.r;
+					pColor[i].g = color3.g;
+					pColor[i].b = color3.b;
+				}
+				else {
+					float timeLeft2 = (lifePercent - apThis->fColor2End) / timeColor3;
+					pColor[i].r = (color3.r - color2.r) * timeLeft2 + color2.r;
+					pColor[i].g = (color3.g - color2.g) * timeLeft2 + color2.g;
+					pColor[i].b = (color3.b - color2.b) * timeLeft2 + color2.b;
+				}
+				if (apThis->fFadeOut != 0.0 && apThis->fFadeOut < lifePercent) {
+					float fadeOutPercent = (lifePercent - apThis->fFadeOut) / (1.0 - apThis->fFadeOut);
+					pColor[i].a = (apThis->kColor3.a - apThis->kColor2.a) * fadeOutPercent + apThis->kColor2.a;
+				}
+				else if (apThis->fFadeIn == 0.0 || apThis->fFadeIn <= lifePercent) {
+					pColor[i].a = apThis->kColor2.a;
+				}
+				else {
+					float fadeInPercent = lifePercent / apThis->fFadeIn;
+					pColor[i].a = (apThis->kColor2.a - apThis->kColor1.a) * fadeInPercent + apThis->kColor1.a;
+				}
 			}
-			else if (apThis->fFadeIn == 0.0f || lifePercent >= apThis->fFadeIn) {
-				apData->m_pkColor[i].a = apThis->kColor2.a;
-			}
-			else {
-				float fadeInPercent = lifePercent / apThis->fFadeIn;
-				apData->m_pkColor[i].a = (apThis->kColor2.a - apThis->kColor1.a) * fadeInPercent + apThis->kColor1.a;
-			}
+		}
+		else
+		{
+			OriginalColorModifierUpdate(apThis, edx, afTime, apData);
+			return;
 		}
 	}
 
@@ -727,10 +801,6 @@ namespace Overcharge
 	static void __stdcall ClearTrackedEmitters(NiAVObject* toDelete)
 	{
 		activeInstances.erase(toDelete);
-
-		std::erase_if(colorModifiers, [](BSPSysSimpleColorModifier* mod) {
-			return mod == nullptr;
-			});
 	}
 
 	__declspec(naked) void ClearUnrefEmittersHook()
@@ -749,6 +819,65 @@ namespace Overcharge
 		}
 	}
 
+	static void __fastcall InitializeParticleWrapper(NiParticleSystem* thisPtr, void*, UInt16 usNewParticle)
+	{
+		uintptr_t esiVal = 0;
+		__asm mov esiVal, ESI;
+
+		auto* emitter = reinterpret_cast<NiPSysEmitter*>(esiVal);
+		if (!emitter) {
+			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
+			return;
+		}
+		auto volEmit = emitter->NiDynamicCast<NiPSysVolumeEmitter>();
+		if (!volEmit || !volEmit->m_pkEmitterObj) {
+			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
+			return;
+		}
+		auto it = activeInstances.find(volEmit->m_pkEmitterObj);
+		if (it == activeInstances.end()) {
+			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
+			return;
+		}
+		auto alpha = thisPtr->GetAlphaProperty();
+		if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::ALPHA_ONE)) {
+			activeInstances.erase(it);
+			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
+			return;
+		}
+
+		auto instPtr = it->second;
+		if (!instPtr) {
+			activeInstances.erase(it);
+		}
+		else {
+			NiPSysDataPtr psysData = (NiPSysData*)thisPtr->GetModelData();
+			auto mapIt = activeParticles.find(psysData);
+			if (mapIt == activeParticles.end()) {
+				mapIt = activeParticles.emplace(psysData, std::unordered_set<UInt16>{}).first;
+			}
+			mapIt->second.insert(usNewParticle);
+			psysData->m_pkColor[usNewParticle] = instPtr->fx.currCol;
+			SetEmissiveColor(thisPtr, NiColor(1, 1, 1));
+		}
+		ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
+	}
+
+	static inline void __fastcall RemoveParticleWrapper(NiPSysData* thisPtr, void* edx, UInt16 usParticle)
+	{
+		if (auto it = activeParticles.find(thisPtr); it != activeParticles.end())
+		{
+			UInt16 removalSlot = thisPtr->m_usActiveVertices - 1;
+
+			if (usParticle == removalSlot) {
+				it->second.erase(usParticle);
+			}
+			else {
+				it->second.erase(removalSlot);
+			}
+		}
+		ThisStdCall(0xA964C0, thisPtr, usParticle);
+	}
 
 	void InitHooks()
 	{
@@ -767,9 +896,12 @@ namespace Overcharge
 
 		WriteRelJump(0x7F5050, &CalcOCAmmoRequired);
 
-		WriteRelJump(0xC220C0, &ReplaceColorModifiers);				//0xC220C0 - From NiPSysEmitter::EmitParticles()
+		//WriteRelJump(0xC220C0, &ReplaceColorModifiers);				//0xC220C0 - From NiPSysEmitter::EmitParticles()
 		WriteRelJump(0xC602E0, &ColorModifierUpdateWrapper);		//0xC602E0 - From BSPSysSimpleColorModifier::Update()
 		WriteRelJump(0xC1ADD0, &FirstPersonPsysWorldUpdate);		//0xC1ADD0 - From NiParticleSystem::UpdateWorldData()
 		WriteRelJump(0xC5E164, &ClearUnrefEmittersHook);			//0xC5E164 - From BSMasterParticleSystem::ClearUnreferencedEmitters()
+
+		WriteRelCall(0xC2237A, &InitializeParticleWrapper);
+		WriteRelCall(0xC24CD3, &RemoveParticleWrapper);
 	}
 }

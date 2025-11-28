@@ -12,6 +12,7 @@
 //Bethesda
 #include <BSInputManager.hpp>
 #include <BSTempEffectParticle.hpp>
+#include <BSMasterParticleSystem.hpp>
 #include <TESEffectShader.hpp>
 #include <MuzzleFlash.hpp>
 #include <MagicItemForm.hpp>
@@ -19,6 +20,7 @@
 #include "MiddleHighProcess.hpp"
 #include "BGSSaveLoadGame.hpp"
 #include "VATS.hpp"
+#include "NiRefObject.hpp"
 
 //NVSE
 #include <SafeWrite.hpp>
@@ -39,9 +41,11 @@ namespace Overcharge
 
 	extern std::vector<std::shared_ptr<HeatData>>		playerOCWeapons;
 	extern std::vector<std::shared_ptr<HeatData>>		activeOCWeapons;
-	extern std::vector<BSPSysSimpleColorModifierPtr>	colorModifiers;
 
-	extern std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	activeInstances;
+	extern std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>					activeInstances;
+	extern std::unordered_map<BSPSysSimpleColorModifier*, std::weak_ptr<HeatData>>		colorModifiers;
+
+	extern std::unordered_map<BSPSysSimpleColorModifier*, ParticleInstance> colorMods;
 
 	//Initializes 3D for all tagged nodes every time a weapon is equipped, refreshed or loaded.
 	inline std::vector<OCBlock> ObjsFromStrings(
@@ -544,6 +548,7 @@ namespace Overcharge
 	}
 
 	void InitHooks();
+	void ParticleCleanup();
 	void ClearOCWeapons();
 	void RefreshPlayerOCWeapons();
 	void UpdateActiveOCWeapons();
