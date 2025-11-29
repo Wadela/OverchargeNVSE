@@ -5,6 +5,7 @@ namespace Overcharge
 	std::vector<std::shared_ptr<HeatData>>		playerOCWeapons;
 	std::vector<std::shared_ptr<HeatData>>		activeOCWeapons;
 	std::vector<NiParticleSystemPtr>			worldSpaceParticles;
+	std::vector<TempEffectGeometry>				activeTempEffects;
 
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	 activeEmitters;
 	std::unordered_map<NiPSysData*, std::unordered_set<UInt16>>  activeParticles;
@@ -128,13 +129,23 @@ namespace Overcharge
 	void ClearOCWeapons()
 	{
 		std::vector<std::shared_ptr<HeatData>>().swap(playerOCWeapons);
-		playerOCWeapons.reserve(8);
+		playerOCWeapons.reserve(4);
 		std::vector<std::shared_ptr<HeatData>>().swap(activeOCWeapons);
 		activeOCWeapons.reserve(12);
 		std::vector<NiParticleSystemPtr>().swap(worldSpaceParticles);
 		worldSpaceParticles.reserve(24);
+
+		for (auto& geom : activeTempEffects) {
+			if (geom.pTempEffectGeom && geom.ogMatProp)
+				SwapMaterialProperty(geom.pTempEffectGeom.m_pObject, geom.ogMatProp);
+		}
+		std::vector<TempEffectGeometry>().swap(activeTempEffects);
+		activeTempEffects.reserve(16);
+
 		std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>().swap(activeEmitters);
-		activeEmitters.reserve(32);
+		activeEmitters.reserve(64);
+		std::unordered_map<NiPSysData*, std::unordered_set<UInt16>>().swap(activeParticles);
+		activeParticles.reserve(8);
 	}
 
 	//Grabs OCWeapons from any currently active actors, initializes them, and stores for use.
@@ -343,7 +354,8 @@ namespace Overcharge
 		if (heat) {
 			if (flash->spLight) flash->spLight->SetDiffuseColor(heat->fx.currCol);
 			TraverseNiNode<NiGeometry>(muzzleNode, [&heat](NiGeometryPtr geom) {
-				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+				auto nextMat = heat->fx.NextMaterial();
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
 				});
 		}
 		ThisStdCall(0x9BB690, flash);
@@ -398,7 +410,8 @@ namespace Overcharge
 				);
 
 				TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometryPtr geom) {
-					CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+					auto nextMat = heat->fx.NextMaterial();
+					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
 					});
 			}
 		}
@@ -454,11 +467,32 @@ namespace Overcharge
 			activeEmitters[psys] = heat;
 			});
 
-		if (!heat) return impact;
-		TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
-			});
-
+		if (heat) {
+			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
+				bool match = false;
+				auto matProp = geom->GetMaterialProperty();
+				for (auto& tempGeom : activeTempEffects) {
+					if (geom == tempGeom.pTempEffectGeom) {
+						match = true;
+						break; 
+					}
+				}
+				if (!match && matProp) {
+					activeTempEffects.emplace_back(geom, matProp);
+				}
+				auto nextMat = heat->fx.NextMaterial();
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
+				});
+		}
+		else {
+			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
+				for (auto& tempGeom : activeTempEffects) {
+					if (geom != tempGeom.pTempEffectGeom || !tempGeom.ogMatProp) continue;
+					SwapMaterialProperty(geom.m_pObject, tempGeom.ogMatProp);
+					break;
+				}
+				});
+		}
 		return impact;
 	}
 
@@ -498,11 +532,32 @@ namespace Overcharge
 			activeEmitters[psys] = heat;
 			});
 
-		if (!heat) return impact;
-
-		TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
-			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
-			});
+		if (heat) {
+			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
+				bool match = false;
+				auto matProp = geom->GetMaterialProperty();
+				for (auto& tempGeom : activeTempEffects) {
+					if (geom == tempGeom.pTempEffectGeom) {
+						match = true;
+						break;
+					}
+				}
+				if (!match && matProp) {
+					activeTempEffects.emplace_back(geom, matProp);
+				}
+				auto nextMat = heat->fx.NextMaterial();
+				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
+				});
+		}
+		else {
+			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
+				for (auto& tempGeom : activeTempEffects) {
+					if (geom != tempGeom.pTempEffectGeom || !tempGeom.ogMatProp) continue;
+					SwapMaterialProperty(geom.m_pObject, tempGeom.ogMatProp);
+					break;
+				}
+				});
+		}
 
 		return impact;
 	}
@@ -537,7 +592,8 @@ namespace Overcharge
 
 		if (thisPtr->spLight) thisPtr->spLight->SetDiffuseColor(heat->fx.currCol);
 		TraverseNiNode<NiGeometry>(explNode, [&heat](NiGeometryPtr geom) {
-			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+			auto nextMat = heat->fx.NextMaterial();
+			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
 			});
 
 	}
@@ -608,7 +664,8 @@ namespace Overcharge
 
 		//Ash/Goo piles have their vertex colors desaturated earlier in the process and now use emissive colors. 
 		TraverseNiNode<NiGeometry>(node, [&heat](NiGeometryPtr geom) {
-			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
+			auto nextMat = heat->fx.NextMaterial();
+			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
 			});
 
 		return expl;
@@ -637,7 +694,6 @@ namespace Overcharge
 			ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
 			return;
 		}
-		ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
 
 		NiPSysDataPtr psysData = (NiPSysData*)thisPtr->GetModelData();
 		auto& activeSet = activeParticles[psysData];
@@ -656,7 +712,10 @@ namespace Overcharge
 				}
 			}
 		}
+
+		ThisStdCall(0xC1AEE0, thisPtr, usNewParticle);
 	}
+
 
 	__declspec(naked) void __fastcall OriginalColorModifierUpdate(BSPSysSimpleColorModifier* apThis, void* edx, float afTime, NiPSysData* apData)
 	{
@@ -700,7 +759,7 @@ namespace Overcharge
 					pColor[i].a = (apThis->kColor2.a - apThis->kColor1.a) * fadeInPercent + apThis->kColor1.a;
 				}
 
-				if (it->second.contains(i)) continue; 
+				if (it->second.contains(i)) continue;
 
 				if (timeColor2 != 0 && apThis->fColor2Start > lifePercent) {
 					if (apThis->fColor1End <= lifePercent) {

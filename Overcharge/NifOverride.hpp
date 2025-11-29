@@ -43,6 +43,24 @@ namespace Overcharge
 		}
 	}
 
+	static void SwapMaterialProperty(NiAVObjectPtr obj, NiMaterialPropertyPtr newMatProp) 
+	{
+		if (!obj) return;
+		auto geom = obj->NiDynamicCast<NiGeometry>();
+		if (!geom) return;
+		auto matProp = geom->GetMaterialProperty();
+		if (!matProp) return;
+
+		geom->RemoveProperty(NiProperty::MATERIAL);
+		geom->DetachProperty(matProp);
+		geom->AddProperty(newMatProp);
+		geom->AttachProperty(newMatProp);
+		if (matProp->m_spControllers) {
+			matProp->m_spControllers->SetTarget(newMatProp);
+		}
+		geom->UpdateProperties();
+	}
+
 	//Material Properties are applied in this way as to not remove the original, but to edit the dummy instance matprop instead. 
 	static void SetEmissiveColor(NiAVObjectPtr obj, const NiColor& color, NiMaterialPropertyPtr newMatProp = nullptr)
 	{
@@ -62,6 +80,9 @@ namespace Overcharge
 			newMatProp->m_fShine = matProp->m_fShine;
 			newMatProp->m_spec = matProp->m_spec;
 			newMatProp->m_emit = color;
+			if (matProp->m_spControllers) {
+				matProp->m_spControllers->SetTarget(newMatProp);
+			}
 			geom->UpdateProperties();
 		}
 		else matProp->m_emit = color;
@@ -85,10 +106,8 @@ namespace Overcharge
 			newMatProp->m_fShine = matProp->m_fShine;
 			newMatProp->m_spec = matProp->m_spec;
 			newMatProp->m_emit = color;
-
-			if (auto& ctlr = matProp->m_spControllers) {
-				auto newCtlr = ctlr->Clone()->NiDynamicCast<NiTimeController>();
-				newCtlr->SetTarget(newMatProp);
+			if (matProp->m_spControllers) {
+				matProp->m_spControllers->SetTarget(newMatProp);
 			}
 			geom->UpdateProperties();
 		}

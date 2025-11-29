@@ -105,13 +105,21 @@ namespace Overcharge
         HeatFX();
         HeatFX(UInt32 col, std::vector<OCBlock> blocks);
 
+        size_t               poolIDX;
         NiColor              currCol;
-
         BSSoundHandle        heatSoundHandle;
         BSSoundHandle        chargeSoundHandle;
 
         //targetBlocks contains all of the blocks on a weapon mesh that are controlled.
         std::vector<OCBlock> targetBlocks;
+
+        //materialPool co
+        std::array<NiMaterialPropertyPtr, 32> materialPool; 
+
+        inline NiMaterialPropertyPtr NextMaterial() { 
+            if (poolIDX >= materialPool.size()) 
+                poolIDX = 0; return materialPool[poolIDX++]; 
+        }
     };
 
     struct HeatData
@@ -128,9 +136,10 @@ namespace Overcharge
         TESObjectWEAP* rWeap  = nullptr;
     };
 
-    struct ParticleInstance
+    struct TempEffectGeometry
     {
-        std::unordered_set<UInt16> indices; 
+        NiGeometryPtr pTempEffectGeom = nullptr;
+        NiMaterialPropertyPtr ogMatProp = nullptr;
     };
 
     UInt32  RGBtoUInt32(const NiColor& color);

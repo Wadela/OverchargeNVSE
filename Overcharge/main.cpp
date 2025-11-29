@@ -53,8 +53,6 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 				OCFrameCounter = 0;
 			}
 		}
-
-		//Overcharge::ParticleCleanup();
 	}
 	else if (msg->type == NVSEMessagingInterface::kMessage_PostLoadGame)
 	{
