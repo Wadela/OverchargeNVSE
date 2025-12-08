@@ -2,6 +2,7 @@
 
 //Overcharge
 #include "NifOverride.hpp"
+#include "OCLightExtraData.hpp"
 
 //Gamebryo
 #include <NiPoint3.hpp>
@@ -10,6 +11,7 @@
 #include <NiPSysMeshEmitter.hpp>
 
 //Bethesda
+#include "TESDataHandler.hpp"
 #include <BSInputManager.hpp>
 #include <BSTempEffectParticle.hpp>
 #include <BSMasterParticleSystem.hpp>
@@ -21,6 +23,8 @@
 #include "BGSSaveLoadGame.hpp"
 #include "VATS.hpp"
 #include "NiRefObject.hpp"
+#include "MagicShaderHitEffect.hpp"
+#include "BGSExplosion.hpp"
 
 //NVSE
 #include <SafeWrite.hpp>

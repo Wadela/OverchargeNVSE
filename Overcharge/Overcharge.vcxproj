@@ -191,6 +191,7 @@
     <ClCompile Include="Overcharge.cpp" />
     <ClCompile Include="OverchargeConfig.cpp" />
     <ClCompile Include="OverchargeHooks.cpp" />
+    <ClCompile Include="OCLightExtraData.cpp" />
     <ClCompile Include="tracy\public\TracyClient.cpp">
       <ForcedIncludeFiles Condition="'$(Configuration)|$(Platform)'=='Release - Tracy|Win32'">
       </ForcedIncludeFiles>
@@ -214,6 +215,7 @@
     <ClInclude Include="OverchargeConfig.hpp" />
     <ClInclude Include="Overcharge.hpp" />
     <ClInclude Include="OverchargeHooks.hpp" />
+    <ClInclude Include="OCLightExtraData.hpp" />
     <ClInclude Include="WaldezTools.hpp" />
   </ItemGroup>
   <ItemGroup>

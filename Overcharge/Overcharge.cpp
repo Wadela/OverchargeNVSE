@@ -161,23 +161,14 @@ namespace Overcharge
     }
 
     HeatFX::HeatFX() :
-        poolIDX(0),
         currCol(0, 0, 0),
-        targetBlocks()
-    {
-        for (auto& mat : materialPool)
-            mat = NiMaterialProperty::CreateObject();
+        targetBlocks() {
     }
 
     HeatFX::HeatFX(UInt32 col, std::vector<OCBlock> blocks) :
-        poolIDX(0),
         currCol(UInt32toRGB(col)),
-        targetBlocks(std::move(blocks))
-    {
-        for (auto& mat : materialPool)
-            mat = NiMaterialProperty::CreateObject();
+        targetBlocks(std::move(blocks)) {
     }
-
 
     HeatData::HeatData(HeatState heat, HeatFX visuals, const HeatConfiguration* cfg) : state(heat), fx(visuals), config(cfg) {}
 

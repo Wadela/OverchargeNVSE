@@ -80,9 +80,6 @@ namespace Overcharge
 			newMatProp->m_fShine = matProp->m_fShine;
 			newMatProp->m_spec = matProp->m_spec;
 			newMatProp->m_emit = color;
-			if (matProp->m_spControllers) {
-				matProp->m_spControllers->SetTarget(newMatProp);
-			}
 			geom->UpdateProperties();
 		}
 		else matProp->m_emit = color;

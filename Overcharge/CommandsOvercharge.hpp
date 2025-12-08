@@ -4,7 +4,6 @@
 #include "Overcharge.hpp"
 #include "OverchargeHooks.hpp"
 #include "OverchargeConfig.hpp"
-#include "main.hpp"
 
 void Console_Print(const char* fmt, ...) 
 {
@@ -29,6 +28,12 @@ static ParamInfo kParams_1Form_1Int[2] =
 	{"Integer", kParamType_Integer, 0}
 };
 
+static ParamInfo kParams_2Form[2] =
+{
+	{"Form 1",  kParamType_AnyForm, 0},
+	{"Form 2",  kParamType_AnyForm, 0}
+};
+
 static ParamInfo kParams_1Form_1Int_1Float[3] =
 {
 	{"Form",    kParamType_AnyForm, 0},
@@ -47,7 +52,30 @@ DEFINE_COMMAND_PLUGIN(GetOCWeaponState, "", 1, 2, kParams_1Form_1Int);
 DEFINE_COMMAND_PLUGIN(SetOCWeaponState, "", 1, 3, kParams_1Form_1Int_1Float);
 DEFINE_COMMAND_PLUGIN(GetOCWeaponConfig, "", 0, 3, kParams_2Form_1Int);
 DEFINE_COMMAND_PLUGIN(GetOCSettings, "", 0, 1, kParams_1Int);
+DEFINE_COMMAND_PLUGIN(CreateOCLightClone, "", 0, 2, kParams_2Form);
 
+bool Cmd_CreateOCLightClone_Execute(COMMAND_ARGS)
+{
+	TESObjectLIGH* sourceLight;
+	Actor* rActor;
+	if (ExtractArgsEx(EXTRACT_ARGS_EX, &sourceLight, &rActor))
+	{
+		std::shared_ptr<Overcharge::HeatData> heat =
+			Overcharge::GetOrCreateHeat(
+				rActor
+			);
+
+		if (heat && sourceLight) {
+			if (TESForm* lightForm = sourceLight->CloneForm()) {
+				OCLightExtraData::Add(lightForm);
+				TESObjectLIGH* extraLight = reinterpret_cast<TESObjectLIGH*>(lightForm);
+				extraLight->kData.uiColor = Overcharge::RGBtoUInt32(heat->fx.currCol);
+				*(UInt32*)result = extraLight->uiFormID;
+			}
+		}
+	}
+	return true;
+}
 
 bool Cmd_GetOCWeaponState_Execute(COMMAND_ARGS)
 {

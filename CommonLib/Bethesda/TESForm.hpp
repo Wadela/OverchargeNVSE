@@ -327,7 +327,6 @@ public:
 	const char*					RefToString();
 	TESLeveledList*				GetLvlList();
 	void						SetJIPFlag(UInt8 jipFlag, bool bSet);
-	static void					DoAddForm(TESForm* newForm, bool bPersist = true, bool record = true);
 	TESForm*					CloneForm(bool bPersist = true) const;
 
 
@@ -412,7 +411,6 @@ public:
 	static BSTCaseInsensitiveStringMap<TESForm*>** const pAllFormsByEditorID;
 	static NiTLargePrimitiveArray<TESForm*>* const pAlteredForms;
 
-	TESForm*	CloneForm(bool bPersist = true);
 	bool		FormMatches(TESForm* toMatch) const;
 	void		SetTemporary();
 	TESFile*	GetFile(UInt32 idx) const;

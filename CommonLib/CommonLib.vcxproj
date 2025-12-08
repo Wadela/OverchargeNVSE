@@ -192,6 +192,7 @@
     <ClCompile Include="Bethesda\ModelLoader.cpp" />
     <ClCompile Include="Bethesda\PlayerCharacter.cpp" />
     <ClCompile Include="Bethesda\Projectile.cpp" />
+    <ClCompile Include="Bethesda\TESDataHandler.cpp" />
     <ClCompile Include="Bethesda\TESForm.cpp" />
     <ClCompile Include="Bethesda\TLSData.cpp" />
     <ClCompile Include="Bethesda\BSRenderedTexture.cpp" />

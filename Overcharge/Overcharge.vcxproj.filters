@@ -27,6 +27,9 @@
     <ClCompile Include="..\nvse\Logging.cpp">
       <Filter>NVSE</Filter>
     </ClCompile>
+    <ClCompile Include="OCLightExtraData.cpp">
+      <Filter>Wadel</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="main.hpp" />
@@ -80,6 +83,9 @@
     </ClInclude>
     <ClInclude Include="..\nvse\prefix.hpp">
       <Filter>NVSE</Filter>
+    </ClInclude>
+    <ClInclude Include="OCLightExtraData.hpp">
+      <Filter>Wadel</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

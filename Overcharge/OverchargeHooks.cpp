@@ -354,8 +354,7 @@ namespace Overcharge
 		if (heat) {
 			if (flash->spLight) flash->spLight->SetDiffuseColor(heat->fx.currCol);
 			TraverseNiNode<NiGeometry>(muzzleNode, [&heat](NiGeometryPtr geom) {
-				auto nextMat = heat->fx.NextMaterial();
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
+				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 		}
 		ThisStdCall(0x9BB690, flash);
@@ -374,7 +373,7 @@ namespace Overcharge
 
 		if (heat && apActor == PlayerCharacter::GetSingleton()
 			&& heat->state.uiOCEffect & OCEffects_AltProjectile
-			&& heat->config->iAltProjectileID != 0xFFFFFF) {
+			&& heat->config->iAltProjectileID != INVALID_U32) {
 			heat->state.uiOCEffect &= ~OCEffects_AltProjectile;
 			TESForm* altForm = TESForm::GetByID(heat->config->iAltProjectileID);
 			BGSProjectile* altProj = reinterpret_cast<BGSProjectile*>(altForm);
@@ -382,7 +381,6 @@ namespace Overcharge
 		}
 		else if (heat && heat->state.uiOCEffect & OCEffects_AltProjectile)
 			heat->state.uiOCEffect &= ~OCEffects_AltProjectile;
-
 
 		Projectile* proj = CdeclCall<Projectile*>(0x9BCA60,
 			apBGSProjectile, apActor, apCombatController, apWeap,
@@ -403,6 +401,7 @@ namespace Overcharge
 				});
 
 			if (heat) {
+
 				heat->fx.currCol = SmoothColorShift(
 					heat->state.fHeatVal,
 					heat->config->iMinColor,
@@ -410,9 +409,16 @@ namespace Overcharge
 				);
 
 				TraverseNiNode<NiGeometry>(projNode, [&heat](NiGeometryPtr geom) {
-					auto nextMat = heat->fx.NextMaterial();
-					SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
+					CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 					});
+				if (proj->spLight && proj->spLight->pLightForm) {
+					if (TESForm* lightForm = proj->spLight->pLightForm->CloneForm()) {
+						OCLightExtraData::Add(lightForm);
+						TESObjectLIGH* extraLight = reinterpret_cast<TESObjectLIGH*>(lightForm);
+						extraLight->kData.uiColor = RGBtoUInt32(heat->fx.currCol);
+						proj->spLight->pLightForm = extraLight;
+					}
+				}
 			}
 		}
 
@@ -480,8 +486,7 @@ namespace Overcharge
 				if (!match && matProp) {
 					activeTempEffects.emplace_back(geom, matProp);
 				}
-				auto nextMat = heat->fx.NextMaterial();
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
+				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 		}
 		else {
@@ -545,8 +550,7 @@ namespace Overcharge
 				if (!match && matProp) {
 					activeTempEffects.emplace_back(geom, matProp);
 				}
-				auto nextMat = heat->fx.NextMaterial();
-				SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
+				CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 				});
 		}
 		else {
@@ -558,23 +562,77 @@ namespace Overcharge
 				}
 				});
 		}
-
 		return impact;
+	}
+
+	//Hook needed for EVP explosion lights
+	static TESForm* __fastcall CreateExplLightClone(BGSExplosion* baseExpl, Explosion* expl)
+	{
+		TESForm* placedRef = ThisStdCall<TESForm*>(0x4FD380, baseExpl);
+		if (!g_OCSettings.bVFX || !baseExpl || !expl || !expl->pOwnerRef || !placedRef
+			|| !(placedRef->eTypeID & TESForm::kType_TESObjectLIGH)) {
+			return placedRef;
+		}
+
+		Actor* owner = reinterpret_cast<Actor*>(expl->pOwnerRef);
+		UInt32 weapID = owner->GetCurrentWeaponID();
+		if (auto heat = GetActiveHeat(owner->uiFormID, weapID)) {
+			heat->fx.currCol = SmoothColorShift(
+				heat->state.fHeatVal,
+				heat->config->iMinColor,
+				heat->config->iMaxColor
+			);
+
+			if (TESForm* lightForm = placedRef->CloneForm()) {
+				OCLightExtraData::Add(lightForm);
+				TESObjectLIGH* extraLight = reinterpret_cast<TESObjectLIGH*>(lightForm);
+				extraLight->kData.uiColor = RGBtoUInt32(heat->fx.currCol);
+				placedRef = extraLight;
+			}
+		}
+		return placedRef;
+	}
+
+	//ECX = BGSExplosion* base, [EBP-0xB4] = Explosion* ref
+	__declspec(naked) void CreateExplObjectHook()
+	{
+		static UInt32 retnAddr = 0x9ACF7E;
+		__asm
+		{
+			mov edx, [ebp - 0xB4]
+			call CreateExplLightClone
+			push eax
+			jmp retnAddr
+		}
 	}
 
 	//Controls Explosion VFX as they are spawning in.
 	static void __fastcall ExplosionWrapper(Explosion* thisPtr)
 	{
-		ThisStdCall(0x9B1260, thisPtr);
-		if (!thisPtr || !thisPtr->pOwnerRef || !thisPtr->pOwnerRef->IsActor()) return;
+		if (!thisPtr || !thisPtr->pOwnerRef || !thisPtr->pOwnerRef->IsActor() || !g_OCSettings.bVFX) {
+			ThisStdCall(0x9B1260, thisPtr);
+			return;
+		}
 
 		Actor* owner = reinterpret_cast<Actor*>(thisPtr->pOwnerRef);
 		UInt32 weapID = owner->GetCurrentWeaponID();
+		auto heat = GetActiveHeat(owner->uiFormID, weapID);
+		if (heat && thisPtr->spLight) {
+			heat->fx.currCol = SmoothColorShift(
+				heat->state.fHeatVal,
+				heat->config->iMinColor,
+				heat->config->iMaxColor
+			);
+
+			thisPtr->spLight->SetDiffuseColor(heat->fx.currCol); 
+		}
 
 		NiNodePtr explNode = thisPtr->Get3D();
-		if (!explNode || !g_OCSettings.bVFX) return;
+		if (!explNode) {
+			ThisStdCall(0x9B1260, thisPtr);
+			return;
+		}
 
-		auto heat = GetActiveHeat(owner->uiFormID, weapID);
 		TraverseNiNode<BSValueNode>(explNode, [&heat](BSValueNodePtr valueNode) {
 			activeEmitters[valueNode] = heat;
 			});
@@ -582,20 +640,17 @@ namespace Overcharge
 			activeEmitters[psys] = heat;
 			});
 
-		if (!heat) return;
+		if (!heat) {
+			ThisStdCall(0x9B1260, thisPtr);
+			return;
+		}
 
-		heat->fx.currCol = SmoothColorShift(
-			heat->state.fHeatVal, 
-			heat->config->iMinColor, 
-			heat->config->iMaxColor
-		);
-
-		if (thisPtr->spLight) thisPtr->spLight->SetDiffuseColor(heat->fx.currCol);
 		TraverseNiNode<NiGeometry>(explNode, [&heat](NiGeometryPtr geom) {
-			auto nextMat = heat->fx.NextMaterial();
-			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
+			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 			});
 
+		ThisStdCall(0x9B1260, thisPtr);
+		return;
 	}
 
 	//Controls Kill Effect Shader VFX
@@ -664,9 +719,19 @@ namespace Overcharge
 
 		//Ash/Goo piles have their vertex colors desaturated earlier in the process and now use emissive colors. 
 		TraverseNiNode<NiGeometry>(node, [&heat](NiGeometryPtr geom) {
-			auto nextMat = heat->fx.NextMaterial();
-			SetEmissiveColor(geom.m_pObject, heat->fx.currCol, nextMat);
+			CreateEmissiveColor(geom.m_pObject, heat->fx.currCol);
 			});
+		TraverseNiNode<NiLight>(node, [&heat](NiLightPtr light) {
+			if (light->pLightForm) {
+				if (TESForm* lightForm = light->pLightForm->CloneForm()) {
+					OCLightExtraData::Add(lightForm);
+					TESObjectLIGH* extraLight = reinterpret_cast<TESObjectLIGH*>(lightForm);
+					extraLight->kData.uiColor = RGBtoUInt32(heat->fx.currCol);
+					light->pLightForm = extraLight;
+				}
+			}
+			});
+
 
 		return expl;
 	}
@@ -843,12 +908,12 @@ namespace Overcharge
 		WriteRelCall(0x9AD024, &ExplosionWrapper);					//0x9AD024 - Explosion::CreateLight() (via Explosion::CheckInit3D())
 		WriteRelCall(0x5D1C90, &MagicShaderVFXWrapper);				//0x5D1C90 - MagicShaderHitEffect::MagicShaderHitEffect_() (via Cmd_PlayMagicShaderVisuals_Execute())
 		WriteRelCall(0x5DBD56, &GooPileWrapper);					//0x5DBD56 - TESDataHandler::CreateReferenceAtLocation() (via Script::AttachAshPileFunction())
-		WriteRelCall(0xC2237A, &InitializeParticleWrapper);
+		WriteRelCall(0xC2237A, &InitializeParticleWrapper);			//0xC2237A - NiParticleSystem::InitializeNewParticle() (via NiPSysEmitter::EmitParticles())
 
-		WriteRelJump(0x7F5050, &CalcOCAmmoRequired);
+		WriteRelJump(0x9ACF78, &CreateExplObjectHook);				//0x9ACF78 - BGSExplosion::GetImpactPlacedObject() (via Explosion::CheckInit3D())
+
+		WriteRelJump(0x7F5050, &CalcOCAmmoRequired);				//0x7F5050 - From VATSMenu::GetAmmoRequiredForAction()
 		WriteRelJump(0xC602E0, &ColorModifierUpdateWrapper);		//0xC602E0 - From BSPSysSimpleColorModifier::Update()
 		WriteRelJump(0xC1ADD0, &FirstPersonPsysWorldUpdate);		//0xC1ADD0 - From NiParticleSystem::UpdateWorldData()
-
-
 	}
 }

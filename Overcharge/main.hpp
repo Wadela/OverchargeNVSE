@@ -5,7 +5,7 @@ class DIHookControl;
 
 inline PluginHandle					g_pluginHandle			= kPluginHandle_Invalid;
 
-inline SEInterface*					g_seInterface			= nullptr;
+inline NVSEInterface*				g_nvseInterface			= nullptr;
 inline NVSEStringVarInterface*		g_stringInterface		= nullptr;
 inline NVSEArrayVarInterface*		g_arrayInterface		= nullptr;
 inline NVSEMessagingInterface*		g_messagingInterface	= nullptr;
@@ -14,6 +14,7 @@ inline NVSECommandTableInterface*	g_commandInterface		= nullptr;
 inline NVSEDataInterface*			g_dataInterface			= nullptr;
 inline NVSEEventManagerInterface*	g_eventInterface		= nullptr;
 inline NVSELoggingInterface*		g_loggingInterface		= nullptr;
+inline NVSEConsoleInterface*		g_consoleInterface = nullptr;
 
 inline DIHookControl*				g_DIHook				= nullptr;
 inline PlayerCharacter*				g_player				= nullptr;
