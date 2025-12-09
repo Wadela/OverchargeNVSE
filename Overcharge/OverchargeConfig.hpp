@@ -62,16 +62,14 @@ namespace Overcharge
 	{
 		OCFlags_None		  = 0,
 
-		OCFlags_Meshes		  = 1 << 0,
-		OCFlags_Animations	  = 1 << 1,
-		OCFlags_Sounds		  = 1 << 2,
-		OCFlags_Gameplay	  = 1 << 3,
-		OCFlags_MuzzleFlash	  = 1 << 4,
-		OCFlags_Projectile	  = 1 << 5,
-		OCFlags_Impacts		  = 1 << 6,
-		OCFlags_KillEffects	  = 1 << 7,
-		OCFlags_AshPiles	  = 1 << 8,
-		OCFlags_Perks		  = 1 << 9,
+		OCFlags_Lockout		  = 1 << 0,
+		OCFlags_NoAnimation	  = 1 << 1,
+		OCFlags_NoMuzzleFlash = 1 << 2,
+		OCFlags_NoProjectile  = 1 << 3,
+		OCFlags_NoImpact	  = 1 << 4,
+		OCFlags_NoKillEffects = 1 << 5,
+		OCFlags_NoAshPiles	  = 1 << 6,
+		OCFlags_NoDescope	  = 1 << 7,
 
 		OCFlags_All			  = 0xFFFF
 	};
@@ -120,18 +118,16 @@ namespace Overcharge
 		{ OCXCull,				"cull"		 }
 	} };
 
-	constexpr std::array<std::pair<UInt16, std::string_view>, 10> OCFlagNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 8> OCFlagNames
 	{ {
-		{ OCFlags_Meshes,        "meshes"		 },
-		{ OCFlags_Animations,    "animations"	 },
-		{ OCFlags_Sounds,        "Sounds"		 },
-		{ OCFlags_Gameplay,      "gameplay"		 },
-		{ OCFlags_MuzzleFlash,	 "muzzleflash"   },
-		{ OCFlags_Projectile,    "Projectiles"   },
-		{ OCFlags_Impacts,       "Impacts"		 },
-		{ OCFlags_KillEffects,   "KillEffects"	 },
-		{ OCFlags_AshPiles,      "piles"		 },
-		{ OCFlags_Perks,		 "perks"		 }
+		{ OCFlags_Lockout,       "lockout"		 },
+		{ OCFlags_NoAnimation,	 "noanim"		 },
+		{ OCFlags_NoMuzzleFlash, "noflash"		 },
+		{ OCFlags_NoProjectile,  "noproj"		 },
+		{ OCFlags_NoImpact,      "noimpacts"	 },
+		{ OCFlags_NoKillEffects, "nokillFX"		 },
+		{ OCFlags_NoAshPiles,    "nopiles"		 },
+		{ OCFlags_NoDescope,	 "nodescope"	 },
 	} };
 
 	constexpr std::array<std::pair<UInt16, std::string_view>, 5> OCEffectNames

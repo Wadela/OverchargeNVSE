@@ -65,14 +65,21 @@ namespace Overcharge
 		//Overcharge and charge delay are only allowed for players because the NPCs are not equipped to perform tasks like these.  
 		if (isPlayer && st.bIsActive && !MenuMode()) {
 			if (!st.IsOverheating()) {
-				if (st.iCanOverheat == 1)
-					st.iCanOverheat = 2;
+				if (st.iCanOverheat == 1) st.iCanOverheat = 2;
+				if (wasOverheating) OverheatSightToggle(true);
 				UpdateOverchargeShot(instance, frameTime);
 				UpdateChargeDelay(instance, frameTime);
 			}
-			else if (!wasOverheating)
+			else if (!wasOverheating) {
 				instance->fx.heatSoundHandle.FadeInPlay(100);
-			else if (g_OCSettings.bOverheatLockout) OverheatLockout();
+			}
+			else {
+				bool lockout = g_OCSettings.bOverheatLockout ||
+				(instance->config->iOverchargeFlags & OCFlags_Lockout);
+				bool descope = !(instance->config->iOverchargeFlags & OCFlags_NoDescope);
+				OverheatSightToggle(false);
+				OverheatLockout(lockout, descope);
+			}
 		}
 		else if (isPlayer) {
 			//Clear the effect states so that they don't get stored from within a menu.
@@ -296,7 +303,10 @@ namespace Overcharge
 		//Using ScaleByPercentRange() just in case a user has altered the base values at all.
 		const HeatConfiguration* config = heat->config;
 		const float hRatio = heat->state.fHeatVal / 100.0f;
+
+		if (heat->state.fHeatVal >= heat->config->iAddAmmoThreshold)
 		heat->state.uiAmmoUsed = ScaleByPercentRange(rWeap->ammoUse, config->iMinAmmoUsed, config->iMaxAmmoUsed, hRatio);
+		if (heat->state.fHeatVal >= heat->config->iAddProjectileThreshold)
 		heat->state.uiProjectiles = ScaleByPercentRange(rWeap->numProjectiles, config->iMinProjectiles, config->iMaxProjectiles, hRatio);
 		heat->state.uiDamage = InterpolateBase(rWeap->usAttackDamage, config->fMinDamage, config->fMaxDamage, hRatio);
 		heat->state.uiCritDamage = InterpolateBase(rWeap->criticalDamage, config->fMinCritDamage, config->fMaxCritDamage, hRatio);

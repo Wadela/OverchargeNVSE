@@ -26,12 +26,6 @@ namespace Overcharge
         //0: Disabled, 1: Can Overheat (No Animation), 2: Can Overheat
         UInt8   iCanOverheat          = 2;               
 
-        //When the heat value meets or exceeds a threshold, their respective effect is applied.
-        UInt8   uiAmmoThreshold       = INVALID_U8;         
-        UInt8   uiProjThreshold       = INVALID_U8;
-        UInt8   uiEnchThreshold       = INVALID_U8;
-        UInt8   uiOCEffectThreshold   = INVALID_U8;
-
         UInt8   uiAmmoUsed            = INVALID_U8;
         UInt8   uiProjectiles         = INVALID_U8;
 
@@ -62,7 +56,6 @@ namespace Overcharge
         HeatState() = default;
 
         HeatState(
-            UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
             UInt8 ammo, UInt8 numProj, UInt16 dmg, UInt16 critDmg, UInt32 enchID,
             float accuracy, float rof, float projSpd, float projSize,
             float perShot, float cooldown);

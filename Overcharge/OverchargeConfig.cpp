@@ -179,7 +179,11 @@ namespace Overcharge
 
 	void ParseOverchargeData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults)
 	{
-		ini.GetLongValue(secItem, "iWeaponSettings", 0);
+		if (std::string_view OCFlagString = ini.GetValue(secItem, "sOverchargeFlags", ""); !OCFlagString.empty()) 
+		{
+			auto OCFlags = StringToFlags(OCFlagString, ' ', OCFlagNames);
+			config.iOverchargeFlags = OCFlags;
+		}
 
 		config.fHeatPerShot = ini.GetDoubleValue(secItem, "fHeatPerShot", defaults.fHeatPerShot);
 		config.fCooldownPerSecond = ini.GetDoubleValue(secItem, "fCooldownPerSecond", defaults.fCooldownPerSecond);
@@ -189,8 +193,7 @@ namespace Overcharge
 			if (std::string_view OCEffectString = ini.GetValue(secItem, "sOverchargeEffects", ""); !OCEffectString.empty())
 			{
 				auto parts = SplitByDelimiter(OCEffectString, '(');
-				if (!parts.empty())
-				{
+				if (!parts.empty()) {
 					auto flags = StringToFlags(parts[0], ' ', OCEffectNames);
 					config.iOverchargeEffect = flags;
 				}

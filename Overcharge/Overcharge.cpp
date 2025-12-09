@@ -3,13 +3,11 @@
 namespace Overcharge
 {
     HeatState::HeatState(
-        UInt8 ammoTH, UInt8 projTH, UInt8 enchTH, UInt8 effectTH,
         UInt8 ammo, UInt8 numProj, UInt16 dmg, UInt16 critDmg, UInt32 enchID,
         float accuracy, float rof, float projSpd, float projSize,
         float perShot, float cooldown
     ) :
         bIsActive(false), iCanOverheat(2),
-        uiAmmoThreshold(ammoTH), uiProjThreshold(projTH), uiEnchThreshold(enchTH), uiOCEffectThreshold(effectTH),
         uiAmmoUsed(ammo), uiProjectiles(numProj), uiDamage(dmg), uiCritDamage(critDmg), 
         uiTicksPassed(0), uiOCEffect(0), uiObjectEffectID(enchID),
         fAccuracy(accuracy), fFireRate(rof), fProjectileSpeed(projSpd), fProjectileSize(projSize),
@@ -18,10 +16,6 @@ namespace Overcharge
 
     HeatState::HeatState(const HeatConfiguration& config)
         : HeatState(
-            config.iAddAmmoThreshold,
-            config.iAddProjectileThreshold,
-            config.iObjectEffectThreshold,
-            config.iOverchargeEffectThreshold,
             config.iMinAmmoUsed,
             config.iMinProjectiles,
             config.fMinDamage,
@@ -34,8 +28,7 @@ namespace Overcharge
             config.fHeatPerShot,
             config.fCooldownPerSecond
         )
-    {
-    }
+    {}
 
     UInt32 RGBtoUInt32(const NiColor& color)
     {

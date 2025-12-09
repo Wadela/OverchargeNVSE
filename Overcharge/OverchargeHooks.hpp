@@ -144,23 +144,24 @@ namespace Overcharge
 	{
 		float actorSkLvl = heat->rActor->GetActorValueF(ActorValue::Index(heat->rWeap->weaponSkill));
 		float reqSkill = heat->rWeap->skillRequirement;
-		float percentScaling = g_OCSettings.fSkillLevelScaling ? g_OCSettings.fSkillLevelScaling : 0.25f; //default 25% if not in config
+		float percentScaling = g_OCSettings.fSkillLevelScaling ? g_OCSettings.fSkillLevelScaling : 0.25f;
 		float baseHeatPerShot = heat->config->fHeatPerShot;
 		float baseCooldownRate = heat->config->fCooldownPerSecond;
 
-		if (!actorSkLvl || !reqSkill || !percentScaling || !baseHeatPerShot || !baseCooldownRate) return;
+		if (!baseHeatPerShot || !baseCooldownRate) return;
 
-		if (reqSkill > 0.0f) {
-			float skillRatio = actorSkLvl / reqSkill;
-			float finalMultiplier = 1.0f + percentScaling * (1.0f - skillRatio);
-			float minMult = 1.0f - percentScaling;
-			float maxMult = 1.0f + percentScaling;
-			float heatMultiplier = InterpolateTowards(minMult, maxMult, finalMultiplier);
-			float cooldownMultiplier = InterpolateTowards(minMult, maxMult, finalMultiplier);
-			heat->state.fHeatPerShot = baseHeatPerShot * heatMultiplier;
-			heat->state.fCooldownRate = baseCooldownRate * cooldownMultiplier;
-		}
+		float diff = actorSkLvl - reqSkill;
+		float maxDiff = 40.0f;
+		float t = std::clamp(diff / maxDiff, -1.0f, 1.0f);
+		float sign = (t >= 0.0f) ? 1.0f : -1.0f;
+		float absT = std::fabs(t);
+		float curve = percentScaling * sign * (1.0f - std::sqrt(1.0f - absT * absT));
+
+		heat->state.fHeatPerShot = baseHeatPerShot * (1.0f - curve);
+		heat->state.fCooldownRate = baseCooldownRate * (1.0f + curve);
 	}
+
+
 
 	inline bool FadeOutAndStop(BSSoundHandle* handle, uint32_t auiMilliseconds)
 	{
@@ -231,14 +232,36 @@ namespace Overcharge
 		return heat;
 	}
 
+	inline void OverheatSightToggle(bool bTrueIronSightsOn)
+	{
+		auto player = PlayerCharacter::GetSingleton();
+		if (player->pkBaseProcess->IsAiming())
+		{
+			if (!bTrueIronSightsOn && player->pIronSightNode) {
+				player->pIronSightNode = nullptr;
+			}
+			else if (bTrueIronSightsOn && !player->pIronSightNode) {
+				auto playerNode = player->GetPlayerNode(1);
+				if (!playerNode) return;
+				auto sightingNode = playerNode->GetObjectByName("##SightingNode");
+				if (!sightingNode) return;
+				player->pIronSightNode = sightingNode->NiDynamicCast<NiNode>();
+			}
+		}
+	}
+
 	//Locking out certain actions helps prevent any bugs that may arise such as broken animations or being unable to fire in VATS.
-	inline void OverheatLockout()
+	inline void OverheatLockout(bool bEnableLockout, bool bDescope = false)
 	{
 		auto inputManager = BSInputManager::GetSingleton();
 		inputManager->SetUserAction(BSInputManager::VATS_, BSInputManager::None);
-		inputManager->SetUserAction(BSInputManager::Aim, BSInputManager::None);
-		inputManager->SetUserAction(BSInputManager::ReadyItem, BSInputManager::None);
-		inputManager->SetUserAction(BSInputManager::AmmoSwap, BSInputManager::None);
+		if (bEnableLockout) {
+			if (bDescope) {
+				inputManager->SetUserAction(BSInputManager::Aim, BSInputManager::None);
+			}
+			inputManager->SetUserAction(BSInputManager::ReadyItem, BSInputManager::None);
+			inputManager->SetUserAction(BSInputManager::AmmoSwap, BSInputManager::None);
+		}
 	}
 
 	//We update the state, translate the weapon erratically to simulate a shake animation and play sound whenever the attack button is held. 
@@ -298,7 +321,7 @@ namespace Overcharge
 		&& !(st.uiOCEffect & OCEffects_Overheat) && st.fHeatVal <= HOT_THRESHOLD) {
 			if (timePassed >= COOLDOWN_DELAY)
 				st.fHeatVal = (std::min)(99.0f, st.fHeatVal + frameTime * (2 * st.fHeatPerShot));
-			if (timePassed >= CHARGE_THRESHOLD && st.fHeatVal >= st.uiOCEffectThreshold)
+			if (timePassed >= CHARGE_THRESHOLD && st.fHeatVal >= inst->config->iOverchargeEffectThreshold)
 				st.uiOCEffect |= OCEffects_AltProjectile;
 		}
 	}
@@ -321,7 +344,7 @@ namespace Overcharge
 
 		if (attackPressed) st.uiTicksPassed = 0;
 		if (attackHeld && st.uiTicksPassed == 0)
-			st.fTargetVal = st.fHeatVal + st.uiOCEffectThreshold;
+			st.fTargetVal = st.fHeatVal + inst->config->iOverchargeEffectThreshold;
 
 		bool reset = attackDepressed || (attackHeld && st.fHeatVal > st.fTargetVal);
 
