@@ -2,10 +2,9 @@
 
 namespace Overcharge
 {
-	case_insensitive_set extraModels{};
 	case_insensitive_set definedModels{};
 	std::vector<OCXNode> OCExtraModels;
-
+	std::vector<std::pair<NiFixedString, NiFixedString>> OCDeferredModels;
 	std::unordered_map<UInt64, const HeatConfiguration>	weaponDataMap;
 	OverchargeSettings g_OCSettings;
 

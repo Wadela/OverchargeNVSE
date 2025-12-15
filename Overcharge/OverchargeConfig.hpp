@@ -24,8 +24,6 @@ namespace Overcharge
 	constexpr float16 INVALID_F16 = 0xFFFF;
 	constexpr float INVALID_F32 = -1.0f;
 
-
-	extern case_insensitive_set extraModels;
 	extern case_insensitive_set definedModels;
 
 	extern BGSPerk* OCPerkOverclocker;
@@ -236,10 +234,9 @@ namespace Overcharge
 	};
 
 	extern std::unordered_map<UInt64, const HeatConfiguration> weaponDataMap;
+	extern std::vector<std::pair<NiFixedString, NiFixedString>> OCDeferredModels;
 	extern std::vector<OCXNode> OCExtraModels;
 	extern OverchargeSettings g_OCSettings;
-
-
 
 	void ParseGameData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults);
 	void ParseOverchargeData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults);

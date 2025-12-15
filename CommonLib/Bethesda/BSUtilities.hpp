@@ -1,25 +1,54 @@
 #pragma once
 
-static void BSsprintf(const char* apDest, size_t auiSize, const char* apFormat, ...) {
-	va_list va;
-	va_start(va, apFormat);
-	CdeclCall(0xEC6B2D, apDest, auiSize, apFormat, 0, va);
+class NiPoint3;
+class NiTransform;
+class NiSkinInstance;
+class NiAVObject;
+class NiNode;
+class NiCamera;
+class NiPlane;
+class NiFixedString;
+struct D3DXMATRIX;
+
+class BSUtilities {
+public:
+    static float GetAngleDelta(float afStartAngle, float afTargetAngle, float& arfOutDir) noexcept;
+
+    static float FLerp(float afNewMin, float afNewMax, float afOldMin, float afOldMax, float afOldValue) noexcept;
+
+    static void Clamp(float& arfOut, float afMin, float afMax) noexcept;
+
+    static bool CompareFloat(float a, float b, float afMargin) noexcept;
+
+    static bool ComparePoints(const NiPoint3& __restrict a, const NiPoint3& __restrict b, float afMargin) noexcept;
+
+    static NiAVObject* GetObjectByName(const NiAVObject* apScene, const char* apName);
+
+    static NiAVObject* GetObjectByName(const NiAVObject* apScene, const char* apName, bool abTestScenegraph);
+
+    static NiAVObject* GetObjectByName(const NiAVObject* apScene, const NiFixedString& arName);
+
+    static NiAVObject* GetObjectByName(const NiAVObject* apScene, const NiFixedString& arName, bool abTestScenegraph);
+
+    static int32_t GetMeshesPath(const char* apSource, char* apTarget, uint32_t auiBufferSize);
+
+    static char HasMorpherController(NiNode* node);
+};
+
+// GAME - 0x40EBD0
+template <typename A, typename B>
+B BSMin(A left, B right) {
+    if (right <= left)
+        return right;
+    else
+        return left;
 }
 
-static double remap(float new_min, float new_max, float old_min, float old_max, float old_value) {
-	return ((old_value - old_min) / (old_max - old_min) * (new_max - new_min) + new_min);
-}
-
-// 0x4E44F0
-static void fClamp(float* apOut, float afMin, float afMax) {
-	if (afMax >= afMin) {
-		if (afMax >= *apOut) {
-			if (afMin > *apOut) {
-				*apOut = fmodf(afMax - afMin, *apOut - afMin) + afMax;
-			}
-		}
-		else {
-			*apOut = fmodf(afMax - afMin, *apOut - afMin) + afMin;
-		}
-	}
+// GAME - 0x404010
+template <typename A, typename B>
+B BSMax(A left, B right) {
+    if (right >= left)
+        return right;
+    else
+        return left;
 }

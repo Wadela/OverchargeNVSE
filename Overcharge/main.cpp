@@ -32,7 +32,6 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 
 		Overcharge::LoadWeaponConfigs("Data\\NVSE\\OCWeapons");
 		Overcharge::InitPerks();
-		Overcharge::PostLoad();
 
 		OCLightExtraData::InitName();
 	}
@@ -59,6 +58,8 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 	else if (msg->type == NVSEMessagingInterface::kMessage_PostLoadGame)
 	{
 		Overcharge::ClearOCWeapons();
+		Overcharge::InsertOCPlayerBone();
+		//Overcharge::InitDefinedModels();
 	}
 }
 

@@ -125,6 +125,7 @@
     <ClCompile Include="Bethesda\BSWin32Audio.cpp" />
     <ClCompile Include="Bethesda\VATS.cpp" />
     <ClCompile Include="Bethesda\TESDataHandler.cpp" />
+    <ClCompile Include="Bethesda\BSUtilities.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bethesda\AbsorbEffect.hpp">

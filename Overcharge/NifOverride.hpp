@@ -4,6 +4,7 @@
 #include "Overcharge.hpp"
 
 //Bethesda
+#include "BSUtilities.hpp"
 #include <ModelLoader.hpp>
 #include <BSValueNode.hpp>
 #include <BSPSysSimpleColorModifier.hpp>
@@ -178,40 +179,32 @@ namespace Overcharge
 		}
 	}
 
-	//Edit Color Modifiers - For preparing particles to have emissive colors pop out more
-	static void PrepColorMod(NiParticleSystemPtr& childParticle)
+	static void InsertOCPlayerBone()
 	{
-		if (!childParticle) return;
+		//This node is added as a safe bone to translate for effects such as the shake on charging a weapon.
+		auto player = PlayerCharacter::GetSingleton();
+		NiNodePtr playerNode = player->GetPlayerNode(1);
+		if (!playerNode) return;
 
-		NiAlphaPropertyPtr alpha = childParticle->GetAlphaProperty();
-		if (!alpha || !alpha->IsDstBlendMode(NiAlphaProperty::AlphaFunction::ALPHA_ONE)) return;
+		NiFixedString attachName = "##OCTranslate";
+		NiAVObjectPtr OCTrn = playerNode->GetObjectByName(attachName);
+		if (OCTrn) return;
 
-		for (NiPSysModifier* it : childParticle->m_kModifierList)
-		{
-			if (BSPSysSimpleColorModifier* colorMod = it->NiDynamicCast<BSPSysSimpleColorModifier>())
-			{
-				NiColorA OGCol = colorMod->kColor2;
-				const NiColor emit{ OGCol.r, OGCol.g, OGCol.b };
-				SetEmissiveColor(childParticle.m_pObject, emit);
-
-				NiColorA grayScale = DesaturateRGBA(OGCol, 1.0f);
-
-				grayScale.a = colorMod->kColor1.a;
-				colorMod->kColor1 = grayScale;
-
-				grayScale.a = colorMod->kColor2.a;
-				colorMod->kColor2 = grayScale;
-
-				grayScale.a = colorMod->kColor3.a;
-				colorMod->kColor3 = grayScale;
-			}
+		NiAVObjectPtr bipTrn = playerNode->GetObjectByName("Bip01 Translate");
+		if (bipTrn && bipTrn->m_pkParent) {
+			NiNodePtr parent = bipTrn->m_pkParent;
+			NiNodePtr toAttach = NiNode::CreateObject();
+			toAttach->m_kName = attachName;
+			toAttach->AttachChild(bipTrn, 0);
+			parent->AttachChild(toAttach, 0);
+			parent->DetachChildAlt(bipTrn);
 		}
 	}
 
 	//Edit Vertex Colors - Primarily for preparing meshes to have emissive colors to pop out more 
-	static void PrepVertexColor(NiGeometryPtr& geom)
+	static void PrepVertexColor(NiGeometryPtr geom)
 	{
-		if (const NiGeometryDataPtr modelData = geom->m_spModelData; modelData && modelData->m_pkColor) 
+		if (const NiGeometryDataPtr modelData = geom->m_spModelData; modelData && modelData->m_pkColor)
 		{
 			for (int i = 0; i < modelData->m_usVertices; i++)
 			{
@@ -219,56 +212,23 @@ namespace Overcharge
 				NiColorA grayScale = DesaturateRGBA(OGCol, 1.0f);
 				modelData->m_pkColor[i] = grayScale;
 			}
-
-			NiDX9Renderer::GetSingleton()->LockPrecacheCriticalSection();
-			NiDX9Renderer::GetSingleton()->PurgeGeometryData(modelData);
-			NiDX9Renderer::GetSingleton()->UnlockPrecacheCriticalSection();
 		}
 	}
 
 	//Loads extra meshes and processes existing ones before they are loaded so refreshing geometry cache is not needed. 
-	static NiNode* __fastcall ModelLoaderLoadFile(const Model* model, const char* filePath) 
+	static void ModelLoaderLoadFile(Model* model, const char* filePath) 
 	{
-		if (filePath && (definedModels.contains(filePath)))
-		{
+		if (filePath && (definedModels.contains(filePath))) {
 			NiNodePtr node = model->spNode;
-
 			TraverseNiNode<NiGeometry>(node, [](NiGeometryPtr geom) {
 				PrepVertexColor(geom);
 				});
-
-			TraverseNiNode<NiParticleSystem>(node, [](NiParticleSystemPtr psys) {
-				PrepColorMod(psys);
-				});
-
-			return node;
+			return;
 		}
-		else
+		else 
 		{
-			//This node is added as a safe bone to translate for effects such as the shake on charging a weapon.
-			if (filePath && (CaseInsensitiveCmp(filePath, "Characters\\_1stPerson\\Skeleton.nif")))
-			{
-				NiNodePtr node = model->spNode;
-				NiFixedString attachName = "##OCTranslate";
-				NiAVObjectPtr OCTrn = node->GetObjectByName(attachName);
-				if (!OCTrn)
-				{
-					NiAVObjectPtr bipTrn = node->GetObjectByName("Bip01 Translate");
-					if (bipTrn && bipTrn->m_pkParent) 
-					{
-						NiNodePtr parent = bipTrn->m_pkParent;
-						NiNodePtr toAttach = NiNode::CreateObject();
-						toAttach->m_kName = attachName;
-						toAttach->AttachChild(bipTrn, 0);
-						parent->AttachChild(toAttach, 0);
-						parent->DetachChildAlt(bipTrn);
-					}
-				}
-				return node;
-			}
-
 			char nameBuffer[256];
-			for (auto& it : OCExtraModels)
+			for (auto& it : OCExtraModels) 
 			{
 				if (!filePath || !CaseInsensitiveCmp(filePath, it.targetParent.c_str())) continue;
 
@@ -289,10 +249,8 @@ namespace Overcharge
 
 				NiNodePtr extraModel = ModelLoader::GetSingleton()->LoadFile(it.extraNode.nodeName, 0, 1, 0, 0, 0);
 				if (!extraModel) continue;
-
 				NiObjectPtr extraObj = extraModel->Clone();
 				if (!extraObj) continue;
-
 				NiNodePtr extraNode = extraObj->IsNiNode();
 				if (!extraNode) continue;
 
@@ -314,25 +272,26 @@ namespace Overcharge
 				}
 			}
 		}
-		return model->spNode;
 	}
 
-	static void __fastcall ModelModel(const Model* thisPtr, void* edx, char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV) 
+	static void __fastcall ModelModel(Model* thisPtr, void* edx, const char* modelPath, BSStream* fileStream, bool abAssignShaders, bool abKeepUV) 
 	{
-		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, abAssignShaders, abKeepUV);
+		ThisStdCall(0x43ACE0, thisPtr, modelPath, fileStream, false, abKeepUV);
 
-		if (thisPtr)
-			ModelLoaderLoadFile(thisPtr, modelPath); 
+		if (thisPtr) ModelLoaderLoadFile(thisPtr, modelPath); 
+
+		if (thisPtr && abAssignShaders && thisPtr->spNode) {
+			bool bNoPreCache = false;
+			NiNodePtr node = thisPtr->spNode;
+			if (abKeepUV || BSUtilities::HasMorpherController(node))
+				bNoPreCache = true;
+
+			CdeclCall(0xB57E30, node, abKeepUV, bNoPreCache);
+		}
 	}
 
 	inline void Hook()
 	{
-		WriteRelCall(0x43AB4C, &ModelModel);
-	}
-
-	inline void PostLoad() {
-		// Add any extra models
-		for (const auto& elem : extraModels)
-			definedModels.insert(elem);
+		DetourRelCall(0x43AB4C, UInt32(ModelModel));
 	}
 } 

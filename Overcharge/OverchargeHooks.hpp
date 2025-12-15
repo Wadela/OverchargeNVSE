@@ -25,6 +25,7 @@
 #include "NiRefObject.hpp"
 #include "MagicShaderHitEffect.hpp"
 #include "BGSExplosion.hpp"
+#include "BSUtilities.hpp"
 
 //NVSE
 #include <SafeWrite.hpp>
@@ -161,6 +162,16 @@ namespace Overcharge
 		heat->state.fCooldownRate = baseCooldownRate * (1.0f + curve);
 	}
 
+	inline NiAVObjectPtr GetEmitterObject(NiParticleSystemPtr psys)
+	{
+		if (!psys) return nullptr;
+		for (NiPSysModifier* it : psys->m_kModifierList) {
+			if (NiPSysVolumeEmitterPtr emitter = it->NiDynamicCast<NiPSysVolumeEmitter>()) {
+				return emitter->m_pkEmitterObj;
+			}
+		}
+		return nullptr;
+	}
 
 
 	inline bool FadeOutAndStop(BSSoundHandle* handle, uint32_t auiMilliseconds)
@@ -235,18 +246,20 @@ namespace Overcharge
 	inline void OverheatSightToggle(bool bTrueIronSightsOn)
 	{
 		auto player = PlayerCharacter::GetSingleton();
-		if (player->pkBaseProcess->IsAiming())
-		{
-			if (!bTrueIronSightsOn && player->pIronSightNode) {
-				player->pIronSightNode = nullptr;
-			}
-			else if (bTrueIronSightsOn && !player->pIronSightNode) {
-				auto playerNode = player->GetPlayerNode(1);
-				if (!playerNode) return;
-				auto sightingNode = playerNode->GetObjectByName("##SightingNode");
-				if (!sightingNode) return;
-				player->pIronSightNode = sightingNode->NiDynamicCast<NiNode>();
-			}
+		if (!player || !player->pkBaseProcess
+		|| !player->pkBaseProcess->IsAiming()) return;
+
+		if (!bTrueIronSightsOn && player->pIronSightNode) {
+			player->pIronSightNode = nullptr;
+		}
+		else if (bTrueIronSightsOn && !player->pIronSightNode) {
+			auto playerNode = player->GetPlayerNode(1);
+			if (!playerNode) return;
+			auto sightingNode = BSUtilities::GetObjectByName(playerNode, "##SightingNode2");
+			if (!sightingNode)
+				sightingNode = BSUtilities::GetObjectByName(playerNode, "##SightingNode");
+			if (!sightingNode) return;
+			player->pIronSightNode = sightingNode->NiDynamicCast<NiNode>();
 		}
 	}
 
@@ -392,10 +405,17 @@ namespace Overcharge
 		if (fx.targetBlocks.empty()) return;
 
 		float heatPercent = st.fHeatVal / 100.0f;
+		bool refresh = false;
 
-		for (const auto& node : fx.targetBlocks)
-		{
-			if (!node.target) continue;
+		for (auto it = fx.targetBlocks.begin(); it != fx.targetBlocks.end(); ) {
+
+			if (!it->target || !it->target->m_pkParent) {
+				it = fx.targetBlocks.erase(it);
+				refresh = true;
+				continue;
+			}
+
+			auto& node = *it;
 
 			//If there are any conditional flags checked in the weapon config, then this only runs when triggered. 
 			UInt32 effectFlags = 0;
@@ -409,13 +429,11 @@ namespace Overcharge
 				onEffect = onEffect && heat->rActor->IsWeaponDrawn();
 
 			bool isNegative = node.OCXFlags & OCXNegative;
-
 			if ((node.OCXFlags & OCXParticle) && node.target->IsNiType<NiNode>()) {
 				TraverseNiNode<NiParticleSystem>(
 					static_cast<NiNode*>(node.target.m_pObject),
 					[&](NiParticleSystem* psys) {
-						if (auto ctlr = psys->GetControllers())
-						{
+						if (auto ctlr = psys->GetControllers()) {
 							if (onEffect) ctlr->Start();
 							else ctlr->Stop();
 						}
@@ -423,24 +441,21 @@ namespace Overcharge
 			}
 
 			//Mainly needed for handle weapons were they are generally culled on holster. 
-			if ((node.OCXFlags & OCXCull))
-			{
+			if ((node.OCXFlags & OCXCull)) {
 				bool isCulled = node.target->GetAppCulled();
 				bool shouldCull = true;
-
-				if (hasEffectFlags)
-					shouldCull = !onEffect;
-
+				if (hasEffectFlags) shouldCull = !onEffect;
 				if (isCulled != shouldCull)
 					node.target->SetAppCulled(shouldCull);
 			}
 
-			if (!onEffect) continue;
+			if (!onEffect) {
+				++it;
+				continue;
+			}
 
-			if (node.OCXFlags & OCXColor)
-			{
-				if (node.target->IsNiType<NiNode>())
-				{
+			if (node.OCXFlags & OCXColor) {
+				if (node.target->IsNiType<NiNode>()) {
 					TraverseNiNode<NiGeometry>(
 						static_cast<NiNode*>(node.target.m_pObject),
 						[&](NiGeometry* geom) {
@@ -456,15 +471,12 @@ namespace Overcharge
 				else if (node.target->IsNiType<NiGeometry>())
 					SetEmissiveColor(node.target.m_pObject, fx.currCol, node.matProp);
 			}
-			if ((node.OCXFlags & OCXFlicker))
-			{
+			if ((node.OCXFlags & OCXFlicker)) {
 				if (st.fHeatVal <= 0 && st.uiTicksPassed <= 0)
 					st.fStartingVal = node.matProp->m_fEmitMult;
-
-				ApplyFlicker(node.matProp->m_fEmitMult, st.fStartingVal, 
+				ApplyFlicker(node.matProp->m_fEmitMult, st.fStartingVal,
 					frameTime, st.uiTicksPassed, isNegative);
 			}
-
 			if (node.OCXFlags & (OCXRotateX | OCXRotateY | OCXRotateZ)) {
 				ApplyFixedRotation(node.target, heatPercent,
 					node.OCXFlags & OCXRotateX,
@@ -479,7 +491,11 @@ namespace Overcharge
 					node.OCXFlags & OCXSpinZ,
 					isNegative);
 			}
+
+			++it;
 		}
+		if (refresh || fx.targetBlocks.empty())
+			InitializeHeatFX(heat, heat->config);
 	}
 
 
@@ -570,6 +586,7 @@ namespace Overcharge
 	}
 
 	void InitHooks();
+	void InitDefinedModels();
 	void ParticleCleanup();
 	void ClearOCWeapons();
 	void RefreshPlayerOCWeapons();

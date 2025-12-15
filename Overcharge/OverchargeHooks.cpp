@@ -37,8 +37,7 @@ namespace Overcharge
 		{
 			if (auto biped = instance->rActor->GetValidBip01Names()) {
 				if (auto weapNode = instance->rActor->pkBaseProcess->GetWeaponBone(biped);
-					weapNode && weapNode->m_kChildren.m_usSize != 0)
-				{
+					weapNode && weapNode->m_kChildren.m_usSize != 0) {
 					st.bIsActive = true;
 					st.uiTicksPassed = 0;
 					InitializeHeatData(instance, instance->config);
@@ -132,7 +131,16 @@ namespace Overcharge
 			playerOCWeapons.end()
 		);
 	}
-
+	void InitDefinedModels()
+	{
+		for (auto& string : definedModels)
+		{
+			NiNodePtr node = ModelLoader::GetSingleton()->LoadFile(string.c_str(), 0, 1, 0, 0, 0);
+			TraverseNiNode<NiGeometry>(node, [](NiGeometryPtr geom) {
+				PrepVertexColor(geom);
+				});
+		}
+	}
 	void ClearOCWeapons()
 	{
 		std::vector<std::shared_ptr<HeatData>>().swap(playerOCWeapons);
@@ -242,6 +250,7 @@ namespace Overcharge
 		}
 	}
 
+	//Ammo required must be precalculated because the game deincrements by ammo used per shot and the number of queued shots will overflow
 	static inline UInt8 __cdecl CalcOCAmmoRequired(int a1, char a2)
 	{
 		const auto vats = VATS::GetSingleton();
@@ -304,10 +313,33 @@ namespace Overcharge
 		const HeatConfiguration* config = heat->config;
 		const float hRatio = heat->state.fHeatVal / 100.0f;
 
-		if (heat->state.fHeatVal >= heat->config->iAddAmmoThreshold)
-		heat->state.uiAmmoUsed = ScaleByPercentRange(rWeap->ammoUse, config->iMinAmmoUsed, config->iMaxAmmoUsed, hRatio);
-		if (heat->state.fHeatVal >= heat->config->iAddProjectileThreshold)
-		heat->state.uiProjectiles = ScaleByPercentRange(rWeap->numProjectiles, config->iMinProjectiles, config->iMaxProjectiles, hRatio);
+		if (heat->config->iAddAmmoThreshold > 0) {
+			if (heat->state.fHeatVal < heat->config->iAddAmmoThreshold) {
+				heat->state.uiAmmoUsed = heat->config->iMinAmmoUsed;
+			}
+			else heat->state.uiAmmoUsed = heat->config->iMaxAmmoUsed;
+		}
+		else {
+			heat->state.uiAmmoUsed = ScaleByPercentRange(
+				rWeap->ammoUse, 
+				config->iMinAmmoUsed, 
+				config->iMaxAmmoUsed, 
+				hRatio);
+		}
+		if (heat->config->iAddProjectileThreshold > 0) {
+			if (heat->state.fHeatVal < heat->config->iAddProjectileThreshold) {
+				heat->state.uiProjectiles = heat->config->iMinProjectiles;
+			}
+			else heat->state.uiProjectiles = heat->config->iMaxProjectiles;
+		}
+		else {
+			heat->state.uiProjectiles = ScaleByPercentRange(
+				rWeap->numProjectiles, 
+				config->iMinProjectiles, 
+				config->iMaxProjectiles, 
+				hRatio);
+		}
+
 		heat->state.uiDamage = InterpolateBase(rWeap->usAttackDamage, config->fMinDamage, config->fMaxDamage, hRatio);
 		heat->state.uiCritDamage = InterpolateBase(rWeap->criticalDamage, config->fMinCritDamage, config->fMaxCritDamage, hRatio);
 		heat->state.fAccuracy = InterpolateBase(rWeap->minSpread, config->fMinSpread, config->fMaxSpread, hRatio);
@@ -358,7 +390,9 @@ namespace Overcharge
 			activeEmitters[valueNode] = heat;
 			});
 		TraverseNiNode<NiParticleSystem>(muzzleNode, [&heat](NiParticleSystemPtr psys) {
-			activeEmitters[psys] = heat;
+			if (const auto emitterObj = GetEmitterObject(psys))
+				activeEmitters[emitterObj] = heat;
+			else activeEmitters[psys] = heat;
 			});
 
 		if (heat) {
@@ -407,7 +441,9 @@ namespace Overcharge
 				activeEmitters[valueNode] = heat;
 				});
 			TraverseNiNode<NiParticleSystem>(projNode, [&heat](NiParticleSystemPtr psys) {
-				activeEmitters[psys] = heat;
+				if (const auto emitterObj = GetEmitterObject(psys))
+					activeEmitters[emitterObj] = heat;
+				else activeEmitters[psys] = heat;
 				});
 
 			if (heat) {
@@ -480,7 +516,9 @@ namespace Overcharge
 			activeEmitters[valueNode] = heat;
 			});
 		TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
-			activeEmitters[psys] = heat;
+			if (const auto emitterObj = GetEmitterObject(psys))
+				activeEmitters[emitterObj] = heat;
+			else activeEmitters[psys] = heat;
 			});
 
 		if (heat) {
@@ -544,7 +582,9 @@ namespace Overcharge
 			activeEmitters[valueNode] = heat;
 			});
 		TraverseNiNode<NiParticleSystem>(impactNode, [&heat](NiParticleSystemPtr psys) {
-			activeEmitters[psys] = heat;
+			if (const auto emitterObj = GetEmitterObject(psys))
+				activeEmitters[emitterObj] = heat;
+			else activeEmitters[psys] = heat;
 			});
 
 		if (heat) {
@@ -647,7 +687,9 @@ namespace Overcharge
 			activeEmitters[valueNode] = heat;
 			});
 		TraverseNiNode<NiParticleSystem>(explNode, [&heat](NiParticleSystemPtr psys) {
-			activeEmitters[psys] = heat;
+			if (const auto emitterObj = GetEmitterObject(psys))
+				activeEmitters[emitterObj] = heat;
+			else activeEmitters[psys] = heat;
 			});
 
 		if (!heat) {
@@ -722,7 +764,9 @@ namespace Overcharge
 			activeEmitters[valueNode] = heat;
 			});
 		TraverseNiNode<NiParticleSystem>(node, [&heat](NiParticleSystemPtr psys) {
-			activeEmitters[psys] = heat;
+			if (const auto emitterObj = GetEmitterObject(psys))
+				activeEmitters[emitterObj] = heat;
+			else activeEmitters[psys] = heat;
 			});
 
 		if (!heat) return expl;
