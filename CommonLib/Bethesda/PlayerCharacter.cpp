@@ -1,5 +1,14 @@
 #include "PlayerCharacter.hpp"
 
+void PlayerCharacter::EndVatsKillCam(int a2, bool a3)
+{
+	ThisStdCall(0x93E770, this, a2, a3);
+}
+
+bool PlayerCharacter::HasPipBoyOpen() const {
+	return ThisStdCall(0x967AE0, this);
+}
+
 NiNode* PlayerCharacter::GetCamera1st() {
 	return *reinterpret_cast<NiNode**>(0x11E07D0);
 }
@@ -9,6 +18,6 @@ NiNode* PlayerCharacter::GetCamera3rd() {
 }
 
 // GAME - 0x950BB0
-NiNode* PlayerCharacter::GetNode(bool abFirstPerson) const {
+NiNode* PlayerCharacter::GetPlayerNode(bool abFirstPerson) const {
     return ThisStdCall<NiNode*>(0x950BB0, this, abFirstPerson);
 }

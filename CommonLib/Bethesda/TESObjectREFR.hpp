@@ -92,7 +92,7 @@ public:
 	virtual NiPoint3*				GetMinBounds(NiPoint3* apMin);
 	virtual NiPoint3*				GetMaxBounds(NiPoint3* apMax);
 	virtual void					UpdateAnimation();
-	virtual Animation*				GetAnimData();						// 0079
+	virtual Animation*				GetAnimation();						// 0079
 	virtual BipedAnim*				GetValidBip01Names();				// 007A	Character only
 	virtual BipedAnim*				CallGetValidBip01Names();
 	virtual void					SetValidBip01Names(BipedAnim validBip01Names);
@@ -102,9 +102,9 @@ public:
 	virtual void					Unk_80(UInt32 arg0);
 	virtual void					Unk_81(UInt32 arg0);
 	virtual void					Unk_82();
-	virtual NiNode*					GetProjectileNode();
+	virtual NiNode*					GetRefProjectileNode();
 	virtual void					Unk_84(UInt32 arg0);
-	virtual UInt32					GetSitSleepState();				// 0 or GetActor::Unk01AC
+	virtual UInt32					GetRefSitSleepState();				// 0 or GetActor::Unk01AC
 	virtual bool					IsCharacter();
 	virtual bool					IsCreature();
 	virtual bool					IsExplosion();

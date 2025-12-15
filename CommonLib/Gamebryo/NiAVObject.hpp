@@ -27,7 +27,7 @@ public:
 	virtual void			ApplyTransform(NiMatrix3& arMat, NiPoint3& arTrn, bool abOnLeft);
 	virtual void			Unk_39();
 	virtual NiAVObject*		GetObject_(const NiFixedString& arName);
-	virtual NiAVObject*		GetObjectByName(const NiFixedString& arName);
+	virtual NiAVObject*		GetObjectByName(const NiFixedString& arName) const;
 	virtual void			SetSelectiveUpdateFlags(bool& arSelectiveUpdate, BOOL abSelectiveUpdateTransforms, bool& arRigid);
 	virtual void			UpdateDownwardPass(const NiUpdateData& arData, UInt32 auiFlags);
 	virtual void			UpdateSelectedDownwardPass(const NiUpdateData& arData, UInt32 auiFlags);

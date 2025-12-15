@@ -94,6 +94,9 @@ public:
 	bool SetAttenuationCurve(UInt32 auiSoundID, SInt16 ausUnk1, SInt16 ausUnk2, UInt16 ausStaticAttenuation, UInt16 ausSystemAttenuation, UInt16 ausDistanceAttenuation);
 	bool Stop(UInt32 auiSoundID);
 	bool Release(UInt32 auiSoundID);
+	void SetPriority(UInt32 auiSoundID, UInt8 aucPriority);
+	void FadeInPlay(UInt32 auiSoundID, UInt32 auiMilliseconds);
+	void FadeTo(UInt32 auiSoundID, UInt32 auiMilliseconds, UInt32 auiFollowUpAction);
 
 	static double dVoiceOffset;
 };

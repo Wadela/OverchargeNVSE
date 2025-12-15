@@ -8,6 +8,7 @@
 #include "BSSoundHandle.hpp"
 #include "TESRegionSound.hpp"
 #include "TESRegionList.hpp"
+#include "NiNode.hpp"
 
 class AlchemyItem;
 class BGSNote;
@@ -356,6 +357,8 @@ public:
 
 	QuestObjectiveTargets* GetCurrentQuestObjectiveTargets();
 
+	void EndVatsKillCam(int a2, bool a3);
+
 	bool HasPipBoyOpen() const;
 
 	static NiNode* GetCamera1st();
@@ -367,7 +370,7 @@ public:
 
 	bool IsSleepingorResting() const;
 
-	NiNode* GetNode(const bool abFirstPerson) const;
+	NiNode* GetPlayerNode(const bool abFirstPerson) const;
 
 	void UpdatePlayerControlsMask(bool abEnable, UInt32 aMask);
 

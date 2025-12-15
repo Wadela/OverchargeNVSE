@@ -36,7 +36,25 @@ public:
 	BufferCaps				dsbCaps;
 	HWND					hWindow;
 
-	static BSWin32Audio* GetSingleton();
+	static BSWin32Audio* GetSingleton() { return *(BSWin32Audio**)0x11F6D98; };
+	BSSoundHandle GetSoundHandleByFilePath(const char* apFileName, uint32_t aeAudioFlags, TESSound* apSound) {
+		BSSoundHandle kHandle;
+		ThisCall(0xAD7480, this, &kHandle, apFileName, aeAudioFlags, apSound);
+		return kHandle;
+	}
+
+	BSSoundHandle GetSoundHandleByFormID(UInt32 auiFormID, uint32_t aeAudioFlags) {
+		BSSoundHandle kHandle;
+		ThisCall(0xAD73B0, this, &kHandle, auiFormID, aeAudioFlags);
+		return kHandle;
+	}
+
+	BSSoundHandle GetSoundHandleByEditorName(const char* apEditorID, uint32_t aeAudioFlags) {
+		BSSoundHandle kHandle;
+		ThisCall(0xAD7550, this, &kHandle, apEditorID, aeAudioFlags);
+		return kHandle;
+	}
+
 	static void __stdcall Create();
 
 	void ControlAudioThread(bool abEnable);

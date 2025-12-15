@@ -9,6 +9,7 @@
 class TESObjectLIGH;
 class TESSound;
 class TESObjectWEAP;
+class CombatController;
 
 // 0xD0
 class BGSProjectile :
@@ -49,7 +50,7 @@ public:
 	};
 
 	EnumFlags				eFlags;				// 060
-	EnumType				eType;				// 062
+	UInt16					eType;				// 062
 	Float32					fGravity;			// 064
 	Float32					fSpeed;				// 068
 	Float32					fRange;				// 06C

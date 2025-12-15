@@ -18,7 +18,7 @@ public:
 	virtual void			Process();
 	virtual void			UpdateProcessLevel();
 	virtual void			Unk_99();
-	virtual void			UpdateAnimation(float = 0);
+	virtual void			UpdateMobileAnimation(float = 0);
 	virtual void			Unk_9B();
 	virtual bool			Unk_9C();
 	virtual bool			IsNPCInCombat(bool abNoSearch) const;
@@ -31,12 +31,12 @@ public:
 	virtual bool			HasStartingWorldOrCellA3();
 	virtual TESWorldSpace*	GetStartingWorldspace();
 	virtual TESObjectCELL*	GetStartingCell();
-	virtual NiPoint3*		GetStartingPos(NiPoint3&);
-	virtual void			Unk_A8();
-	virtual void			Unk_A9(NiPoint3&);
+	virtual NiPoint3*		GetStartingMobilePos(NiPoint3& arPos);
+	virtual bool			DetachCharController();
+	virtual bool			RemoveCharController();
 	virtual void			SetPosition(NiPoint3& arPosition);
-	virtual void			Unk_AB();
-	virtual void			HandleRunDetection();
+	virtual void			GetVelocity(NiPoint3& arVelocity) const;
+	virtual void			HandleMobileRunDetection();
 	virtual void			GetDetectionTimer();
 	virtual void			Unk_AE();
 	virtual float			AdjustRot(UInt32 arg1);
@@ -54,7 +54,7 @@ public:
 	virtual void			Unk_BB();
 	virtual void			ToggleCollisionDebug(bool abShow);
 	virtual void			Unk_BD();
-	virtual void			Update(float afDelta);
+	virtual void			UpdateMobile(float afDelta);
 	virtual void			Unk_BF();
 	virtual TESSound*		GetActivatorCloseSound(void*, void*);
 
@@ -76,6 +76,11 @@ public:
 	
 	bool IsTalkingThroughActivator() const { return bTalkingThroughActivator; };
 	TESObjectREFR* GetActivatorRef() const { return pkActivatorRef; };
+	bhkCharacterController* GetCharController() const {
+		if (pkBaseProcess)
+			return pkBaseProcess->GetCharacterController();
+		return nullptr;
+	}
 
 	void RemoveStaleSayOncePerDayTopics();
 };

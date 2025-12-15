@@ -42,6 +42,7 @@ public:
 		z = pt.z;
 	};
 
+	NiPoint4 operator- () const { return NiPoint4(-x, -y, -z, -w); };
 	NiPoint4 operator-(NiPoint3& pt) const {
 		return NiPoint4(x - pt.x, y - pt.y, z - pt.z, w);
 	};
