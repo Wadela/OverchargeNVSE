@@ -620,7 +620,8 @@ namespace Overcharge
 	{
 		TESForm* placedRef = ThisStdCall<TESForm*>(0x4FD380, baseExpl);
 		if (!g_OCSettings.bVFX || !baseExpl || !expl || !expl->pOwnerRef || !placedRef
-			|| !(placedRef->eTypeID & TESForm::kType_TESObjectLIGH)) {
+			|| placedRef->eTypeID != TESForm::kType_TESObjectLIGH
+			|| expl->pOwnerRef->eTypeID != TESForm::kType_Character) {
 			return placedRef;
 		}
 
@@ -741,8 +742,9 @@ namespace Overcharge
 		TESWorldSpace* pWorld, TESObjectREFR* pReference,
 		void* pAddPrimitive, void* pAdditionalData)
 	{
-		auto* ebp = GetParentBasePtr(_AddressOfReturnAddress());
-		Actor* targetActor = *reinterpret_cast<Actor**>(ebp + 0x20);
+		uintptr_t ebxVal;
+		__asm mov ebxVal, ebx
+		Actor* targetActor = *reinterpret_cast<Actor**>(ebxVal + 0x10);
 
 		TESObjectREFR* expl = ThisStdCall<TESObjectREFR*>(
 			0x4698A0, thisPtr, pObject, apLocation,
