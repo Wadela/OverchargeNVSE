@@ -246,6 +246,38 @@ public:
 		bool   bCurrButtonStates[8];
 	};
 
+	enum _XINPUT_BUTTONS : uint16_t {
+		XINPUT_GAMEPAD_DPAD_UP			= 0x0001,
+		XINPUT_GAMEPAD_DPAD_DOWN		= 0x0002,
+		XINPUT_GAMEPAD_DPAD_LEFT		= 0x0004,
+		XINPUT_GAMEPAD_DPAD_RIGHT		= 0x0008,
+		XINPUT_GAMEPAD_START			= 0x0010,
+		XINPUT_GAMEPAD_BACK				= 0x0020,
+		XINPUT_GAMEPAD_LEFT_THUMB		= 0x0040,
+		XINPUT_GAMEPAD_RIGHT_THUMB		= 0x0080,
+		XINPUT_GAMEPAD_LEFT_SHOULDER	= 0x0100,
+		XINPUT_GAMEPAD_RIGHT_SHOULDER	= 0x0200,
+		XINPUT_GAMEPAD_A				= 0x1000,
+		XINPUT_GAMEPAD_B				= 0x2000,
+		XINPUT_GAMEPAD_X				= 0x4000,
+		XINPUT_GAMEPAD_Y				= 0x8000,
+	};
+
+	struct _XINPUT_GAMEPAD {
+		uint16_t wButtons;
+		uint8_t bLeftTrigger;
+		uint8_t bRightTrigger;
+		uint16_t sThumbLX;
+		uint16_t sThumbLY;
+		uint16_t sThumbRX;
+		uint16_t sThumbRY;
+	};
+
+	struct _XINPUT_STATE {
+		uint32_t dwPacketNumber;
+		_XINPUT_GAMEPAD Gamepad;
+	};
+
 	bool bIsControllerDisabled;
 	UInt8 byte0001;
 	UInt8 byte0002;
@@ -284,6 +316,9 @@ public:
 	UInt8 ucKeyBinds[4][28];
 
 	__forceinline static BSInputManager* GetSingleton() { return *reinterpret_cast<BSInputManager**>(0x011F35CC); };
+	__forceinline static _XINPUT_STATE* GetCurrentGamepad() { return reinterpret_cast<_XINPUT_STATE*>(0x011F35A8); };
+	__forceinline static _XINPUT_STATE* GetLastGamepad() { return reinterpret_cast<_XINPUT_STATE*>(0x011F35B8); };
+	__forceinline static bool GetControllerMode() { return *reinterpret_cast<bool*>(0x011F35C8); };
 
 	static LPDIRECTINPUT8A GetDirectInput();
 	static LPDIRECTINPUTDEVICE8A GetKeyboard();
@@ -294,11 +329,13 @@ public:
 	void ChangeMouseCooperativeLevel(bool abBackground);
 	bool GetButtonState(UInt32 uiInputDevice, UInt8 aucKey, UInt32 auiState);
 	SInt32 GetControlState(UInt8 aucKey, UInt32 auiState);
+	uint16_t GetControllerButtonMask(int key);
 
 	void   SetControlHeld(ControlCode aeAction);
 	void   ResetControlState(ControlCode aeAction);
 
 	SInt32 GetUserAction(ControlCode aeAction, KeyState state);
+	void   SetControllerAction(ControlCode aeAction, KeyState state);
 	void   SetUserAction(ControlCode aeAction, KeyState state);
 };
 

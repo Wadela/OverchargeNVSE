@@ -282,11 +282,10 @@ namespace Overcharge
 
 		if (thisPtr && abAssignShaders && thisPtr->spNode) {
 			bool bNoPreCache = false;
-			NiNodePtr node = thisPtr->spNode;
-			if (abKeepUV || BSUtilities::HasMorpherController(node))
+			if (abKeepUV || BSUtilities::HasMorpherController(thisPtr->spNode))
 				bNoPreCache = true;
 
-			CdeclCall(0xB57E30, node, abKeepUV, bNoPreCache);
+			CdeclCall(0xB57E30, thisPtr->spNode.m_pObject, abKeepUV, bNoPreCache);
 		}
 	}
 
