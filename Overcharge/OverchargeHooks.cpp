@@ -6,7 +6,6 @@ namespace Overcharge
 	std::vector<std::shared_ptr<HeatData>>		activeOCWeapons;
 	std::vector<NiParticleSystemPtr>			worldSpaceParticles;
 	std::vector<TempEffectGeometry>				activeTempEffects;
-
 	std::unordered_map<NiAVObject*, std::shared_ptr<HeatData>>	 activeEmitters;
 	std::unordered_map<NiPSysData*, std::unordered_set<UInt16>>  activeParticles;
 
@@ -74,7 +73,7 @@ namespace Overcharge
 			}
 			else {
 				bool lockout = g_OCSettings.bOverheatLockout ||
-				(instance->config->iOverchargeFlags & OCFlags_Lockout);
+					(instance->config->iOverchargeFlags & OCFlags_Lockout);
 				bool descope = !(instance->config->iOverchargeFlags & OCFlags_NoDescope);
 				OverheatSightToggle(false);
 				OverheatLockout(lockout, descope);
@@ -321,9 +320,9 @@ namespace Overcharge
 		}
 		else {
 			heat->state.uiAmmoUsed = ScaleByPercentRange(
-				rWeap->ammoUse, 
-				config->iMinAmmoUsed, 
-				config->iMaxAmmoUsed, 
+				rWeap->ammoUse,
+				config->iMinAmmoUsed,
+				config->iMaxAmmoUsed,
 				hRatio);
 		}
 		if (heat->config->iAddProjectileThreshold > 0) {
@@ -334,9 +333,9 @@ namespace Overcharge
 		}
 		else {
 			heat->state.uiProjectiles = ScaleByPercentRange(
-				rWeap->numProjectiles, 
-				config->iMinProjectiles, 
-				config->iMaxProjectiles, 
+				rWeap->numProjectiles,
+				config->iMinProjectiles,
+				config->iMaxProjectiles,
 				hRatio);
 		}
 
@@ -528,7 +527,7 @@ namespace Overcharge
 				for (auto& tempGeom : activeTempEffects) {
 					if (geom == tempGeom.pTempEffectGeom) {
 						match = true;
-						break; 
+						break;
 					}
 				}
 				if (!match && matProp) {
@@ -675,7 +674,7 @@ namespace Overcharge
 				heat->config->iMaxColor
 			);
 
-			thisPtr->spLight->SetDiffuseColor(heat->fx.currCol); 
+			thisPtr->spLight->SetDiffuseColor(heat->fx.currCol);
 		}
 
 		NiNodePtr explNode = thisPtr->Get3D();
@@ -922,7 +921,7 @@ namespace Overcharge
 
 	__declspec(naked) void __fastcall UpdatePsysWorldData(NiParticleSystem* thisPtr, void* edx, NiUpdateData* apData)
 	{
-		__asm 
+		__asm
 		{
 			mov     eax, [esp + 0x4]
 			push    ebx

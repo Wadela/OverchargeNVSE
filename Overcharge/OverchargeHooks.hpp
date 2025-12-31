@@ -71,12 +71,9 @@ namespace Overcharge
 					? NiMaterialProperty::CreateObject()
 					: nullptr;
 
-				blocks.emplace_back(it.flags, mat, block);
-
-				if (isPlayer1st && (it.flags & OCXParticle))
-				{
-					if (NiNode* node = block->NiDynamicCast<NiNode>())
-					{
+				blocks.emplace_back(it.flags, mat, block, it.threshold);
+				if (isPlayer1st && (it.flags & OCXParticle)) {
+					if (NiNode* node = block->NiDynamicCast<NiNode>()) {
 						TraverseNiNode<NiParticleSystem>(node, [&](NiParticleSystemPtr psys) {
 							if (!ContainsValue(worldSpaceParticles, psys))
 								worldSpaceParticles.emplace_back(psys);
@@ -353,15 +350,16 @@ namespace Overcharge
 			attackDepressed = inputManager->GetUserAction(BSInputManager::Attack, BSInputManager::Depressed);
 		}
 
+		static bool fireOnce = false;
 		static float shakeTime = 0.0f, shakeBlend = 0.0f;
-
 		if (attackPressed) st.uiTicksPassed = 0;
-		if (attackHeld && st.uiTicksPassed == 0)
+		if (attackHeld && st.uiTicksPassed == 0) {
 			st.fTargetVal = st.fHeatVal + inst->config->iOverchargeEffectThreshold;
+			fireOnce = false;
+		}
+		bool release = (attackHeld && st.fHeatVal > st.fTargetVal);
 
-		bool reset = attackDepressed || (attackHeld && st.fHeatVal > st.fTargetVal);
-
-		if (reset) {
+		if (attackDepressed || release) {
 			st.uiOCEffect &= ~OCEffects_ChargeDelay;
 			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
 			st.fTargetVal = -1.f;
@@ -369,6 +367,15 @@ namespace Overcharge
 			if (OCTranslate) {
 				OCTranslate->m_kLocal.m_Translate.x = 0.0f;
 				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
+			}
+			if (!fireOnce && !attackDepressed) {
+				const auto weapon = inst->rWeap;
+				if (weapon && !weapon->IsAutomatic()) {
+					fireOnce = true;
+					inputManager->SetUserAction(
+						BSInputManager::Attack,
+						BSInputManager::Pressed);
+				}
 			}
 		}
 		else if (attackHeld)
@@ -423,10 +430,20 @@ namespace Overcharge
 			if (node.OCXFlags & OCXOnOvercharge) effectFlags |= OCEffects_Overcharge;
 			if (node.OCXFlags & OCXOnDelay)      effectFlags |= OCEffects_ChargeDelay;
 			if (node.OCXFlags & OCXOnAltProj)    effectFlags |= OCEffects_AltProjectile;
-			bool hasEffectFlags = node.OCXFlags & (OCXOnOverheat | OCXOnOvercharge | OCXOnDelay | OCXOnAltProj | OCXOnHolster);
-			bool onEffect = (effectFlags == 0) || (st.uiOCEffect & effectFlags);
+			bool hasEffectFlags = node.OCXFlags & (OCXOnOverheat | OCXOnOvercharge | OCXOnDelay | OCXOnAltProj | OCXOnHolster | OCXOnThreshold);
+			bool onEffect = (effectFlags == 0) || ((st.uiOCEffect & effectFlags) == effectFlags);
+
 			if (node.OCXFlags & OCXOnHolster && heat->rActor)
-				onEffect = onEffect && heat->rActor->IsWeaponDrawn();
+				onEffect &= heat->rActor->IsWeaponDrawn();
+
+			if (node.OCXFlags & OCXOnThreshold)
+			{
+				bool thresholdPass =
+					(node.OCXThreshold >= 0)
+					? (st.fHeatVal >= node.OCXThreshold)
+					: (st.fHeatVal <= std::abs(node.OCXThreshold));
+				onEffect &= thresholdPass;
+			}
 
 			bool isNegative = node.OCXFlags & OCXNegative;
 			if ((node.OCXFlags & OCXParticle) && node.target->IsNiType<NiNode>()) {
