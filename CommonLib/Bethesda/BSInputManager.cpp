@@ -15,9 +15,111 @@ SInt32 BSInputManager::GetUserAction(ControlCode aeAction, KeyState state)
 	return ThisStdCall<SInt32>(0xA24660, this, aeAction, state);
 }
 
+uint16_t BSInputManager::GetControllerButtonMask(int key) 
+{
+    int button = 0;
+    switch (key)
+    {
+    case 1:
+        button = 1;
+        break;
+    case 2:
+        button = 2;
+        break;
+    case 4:
+        button = 8;
+        break;
+    case 5:
+        button = 4;
+        break;
+    case 6:
+        button = 16;
+        break;
+    case 7:
+        button = 32;
+        break;
+    case 8:
+        button = 64;
+        break;
+    case 9:
+        button = 128;
+        break;
+    case 10:
+        button = 4096;
+        break;
+    case 11:
+        button = 0x2000;
+        break;
+    case 12:
+        button = 0x4000;
+        break;
+    case 13:
+        button = 0x8000;
+        break;
+    case 14:
+        button = 512;
+        break;
+    case 15:
+        button = 256;
+        break;
+    default:
+        return button;
+    }
+    return button;
+}
+
+void BSInputManager::SetControllerAction(ControlCode aeAction, KeyState state)
+{
+    if (!BSInputManager::GetControllerMode()) return;
+
+    _XINPUT_STATE* currentGamepad = BSInputManager::GetCurrentGamepad();
+    _XINPUT_STATE* lastGamepad = BSInputManager::GetLastGamepad();
+
+    UInt8 key = this->ucKeyBinds[Controller][aeAction];
+    if (key == 0xFF) return;
+
+    if (key == 16) 
+    {
+        switch (state) //Left trigger
+        {
+        case Held:      currentGamepad->Gamepad.bLeftTrigger = 0xFF; break;
+        case Pressed:   lastGamepad->Gamepad.bLeftTrigger = 0; currentGamepad->Gamepad.bLeftTrigger = 0xFF; break;
+        case Depressed: lastGamepad->Gamepad.bLeftTrigger = 0xFF; currentGamepad->Gamepad.bLeftTrigger = 0; break;
+        case Changed:   currentGamepad->Gamepad.bLeftTrigger = (~lastGamepad->Gamepad.bLeftTrigger) & 0xFF; break;
+        case None:      lastGamepad->Gamepad.bLeftTrigger = 0; currentGamepad->Gamepad.bLeftTrigger = 0; break;
+        default:        break;
+        }
+    }
+    else if (key == 17) 
+    {
+        switch (state)  //Right trigger
+        {
+        case Held:      currentGamepad->Gamepad.bRightTrigger = 0xFF; break;
+        case Pressed:   lastGamepad->Gamepad.bRightTrigger = 0; currentGamepad->Gamepad.bRightTrigger = 0xFF; break;
+        case Depressed: lastGamepad->Gamepad.bRightTrigger = 0xFF; currentGamepad->Gamepad.bRightTrigger = 0; break;
+        case Changed:   currentGamepad->Gamepad.bRightTrigger = (~lastGamepad->Gamepad.bRightTrigger) & 0xFF; break;
+        case None:      lastGamepad->Gamepad.bRightTrigger = 0; currentGamepad->Gamepad.bRightTrigger = 0; break;
+        default:        break;
+        }
+    }
+    else {
+        
+        uint16_t mask = GetControllerButtonMask(key);
+        switch (state) //Face Buttons
+        {
+        case Held:      currentGamepad->Gamepad.wButtons |= mask; break;
+        case Pressed:   lastGamepad->Gamepad.wButtons &= ~mask; currentGamepad->Gamepad.wButtons |= mask; break;
+        case Depressed: lastGamepad->Gamepad.wButtons |= mask; currentGamepad->Gamepad.wButtons &= ~mask; break;
+        case Changed:   currentGamepad->Gamepad.wButtons = (currentGamepad->Gamepad.wButtons & ~mask) | ((~lastGamepad->Gamepad.wButtons) & mask); break;
+        case None:      lastGamepad->Gamepad.wButtons &= ~mask; currentGamepad->Gamepad.wButtons &= ~mask; break;
+        default:        break;
+        }
+    }
+}
+
 void BSInputManager::SetUserAction(ControlCode aeAction, KeyState state)
 {
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         UInt8 key = this->ucKeyBinds[i][aeAction];
         if (key == 0xFF) continue;
@@ -59,8 +161,11 @@ void BSInputManager::SetUserAction(ControlCode aeAction, KeyState state)
             default:        break;
             }
             break;
+
+        case 3: //XInput
+            SetControllerAction(aeAction, state);
+            break;
         }
-        //case 3: xinput?
     }
 }
 

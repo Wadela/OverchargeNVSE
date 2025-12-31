@@ -25,6 +25,7 @@ namespace Overcharge
 	constexpr float INVALID_F32 = -1.0f;
 
 	extern case_insensitive_set definedModels;
+	extern std::unordered_map<NiGeometry*, NiColor> defaultColors;
 
 	extern BGSPerk* OCPerkOverclocker;
 	extern BGSPerk* OCPerkVoltageRegulator;
@@ -54,6 +55,7 @@ namespace Overcharge
 		OCXFlicker		  = 1 << 14,
 		OCXNegative		  = 1 << 15,
 		OCXCull		      = 1 << 16,
+		OCXOnThreshold	  = 1 << 17,
 	};
 
 	enum OCFlags : UInt16
@@ -95,7 +97,7 @@ namespace Overcharge
 		OCWeap_Thrown
 	};
 
-	constexpr std::array<std::pair<UInt32, std::string_view>, 17> OCXAddonNames
+	constexpr std::array<std::pair<UInt32, std::string_view>, 18> OCXAddonNames
 	{ {
 		{ OCXColor,				"color"	     },
 		{ OCXParticle,			"particle"   },
@@ -113,7 +115,8 @@ namespace Overcharge
 		{ OCXSpinZ,				"spinz"		 },
 		{ OCXFlicker,			"flicker"	 },
 		{ OCXNegative,			"negative"	 },
-		{ OCXCull,				"cull"		 }
+		{ OCXCull,				"cull"		 },
+		{ OCXOnThreshold,		"onthreshold"},
 	} };
 
 	constexpr std::array<std::pair<UInt16, std::string_view>, 8> OCFlagNames
@@ -179,6 +182,7 @@ namespace Overcharge
 		UInt32			index;
 		UInt32			flags;
 		NiFixedString	nodeName;
+		float			threshold = 0;
 	};
 
 	struct OCXNode

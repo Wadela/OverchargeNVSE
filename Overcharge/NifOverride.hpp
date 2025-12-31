@@ -206,11 +206,26 @@ namespace Overcharge
 	{
 		if (const NiGeometryDataPtr modelData = geom->m_spModelData; modelData && modelData->m_pkColor)
 		{
+			float wSum = 0.0f;
+			float r = 0.0f, g = 0.0f, b = 0.0f;
 			for (int i = 0; i < modelData->m_usVertices; i++)
 			{
-				NiColorA OGCol = modelData->m_pkColor[i];
-				NiColorA grayScale = DesaturateRGBA(OGCol, 1.0f);
-				modelData->m_pkColor[i] = grayScale;
+				NiColorA& col = modelData->m_pkColor[i];
+				float lr = col.r * col.r;
+				float lg = col.g * col.g;
+				float lb = col.b * col.b;
+				float w = 0.2126f * lr + 0.7152f * lg + 0.0722f * lb;
+				w = 4.0f * w * (1.0f - w);
+				r += lr * w;
+				g += lg * w;
+				b += lb * w;
+				wSum += w;
+
+				col = DesaturateRGBA(col, col.a);
+			}
+			if (wSum > 0.0f) {
+				NiColor lCol(r / wSum, g / wSum, b / wSum);
+				defaultColors.try_emplace(geom, lCol);
 			}
 		}
 	}
@@ -282,11 +297,20 @@ namespace Overcharge
 
 		if (thisPtr && abAssignShaders && thisPtr->spNode) {
 			bool bNoPreCache = false;
-			NiNodePtr node = thisPtr->spNode;
-			if (abKeepUV || BSUtilities::HasMorpherController(node))
+			if (abKeepUV || BSUtilities::HasMorpherController(thisPtr->spNode))
 				bNoPreCache = true;
 
-			CdeclCall(0xB57E30, node, abKeepUV, bNoPreCache);
+			CdeclCall(0xB57E30, thisPtr->spNode.m_pObject, abKeepUV, bNoPreCache);
+
+			if (modelPath && definedModels.contains(modelPath)) {
+				TraverseNiNode<NiGeometry>(thisPtr->spNode, [](NiGeometryPtr geom) {
+					auto it = defaultColors.find(geom);
+					if (it != defaultColors.end()) {
+						SetEmissiveColor(geom.m_pObject, it->second);
+						defaultColors.erase(it);
+					}
+					});
+			}
 		}
 	}
 

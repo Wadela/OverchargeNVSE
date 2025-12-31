@@ -6,6 +6,7 @@ namespace Overcharge
 	std::vector<OCXNode> OCExtraModels;
 	std::vector<std::pair<NiFixedString, NiFixedString>> OCDeferredModels;
 	std::unordered_map<UInt64, const HeatConfiguration>	weaponDataMap;
+	std::unordered_map<NiGeometry*, NiColor> defaultColors;
 	OverchargeSettings g_OCSettings;
 
 	template <typename TMinMax>
@@ -221,7 +222,7 @@ namespace Overcharge
 		}
 	}
 
-	void ParseAssetData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, TESObjectWEAP* rWeap)
+	void ParseAssetData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults, TESObjectWEAP* rWeap)
 	{
 		char buffer[256];
 		char keyBuffer[32];
@@ -232,22 +233,40 @@ namespace Overcharge
 				std::snprintf(buffer, sizeof(buffer), "Sound\\OCSounds\\%.*s", (int)hSound.size(), hSound.data());
 				config.sHeatSoundFile = buffer;
 			}
+			else {
+				config.sHeatSoundFile = defaults.sHeatSoundFile;
+			}
+
 			if (std::string_view cSound = ini.GetValue(secItem, "sChargeSFX", ""); !cSound.empty()) {
 				std::snprintf(buffer, sizeof(buffer), "Sound\\OCSounds\\%.*s", (int)cSound.size(), cSound.data());
 				config.sChargeSoundFile = buffer;
 			}
+			else {
+				config.sChargeSoundFile = defaults.sChargeSoundFile;
+			}
 		}
-		std::string_view animFile = ini.GetValue(secItem, "sOverheatAnimation", "");
-		std::string_view weapType = EnumToString(rWeap->eWeaponType, OCWeapTypeNames);
-		if (animFile.empty()) {
-			std::snprintf(buffer, sizeof(buffer), "OCAnims\\Overheat%.*s.kf", (int)weapType.size(), weapType.data());
+		if (g_OCSettings.bAnimations) {
+			std::string_view animFile = ini.GetValue(secItem, "sOverheatAnimation", "");
+			std::string_view weapType = EnumToString(rWeap->eWeaponType, OCWeapTypeNames);
+			if (!animFile.empty()) {
+				std::snprintf(buffer, sizeof(buffer), "OCAnims\\%.*s", (int)animFile.size(), animFile.data());
+				config.sAnimFile = buffer;
+			}
+			else if (defaults.sAnimFile != "") {
+				config.sAnimFile = defaults.sAnimFile;
+			}
+			else {
+				std::snprintf(buffer, sizeof(buffer), "OCAnims\\Overheat%.*s.kf", (int)weapType.size(), weapType.data());
+				config.sAnimFile = buffer;
+			}
 		}
-		else {
-			std::snprintf(buffer, sizeof(buffer), "OCAnims\\%.*s", (int)animFile.size(), animFile.data());
+		if (!g_OCSettings.bMeshes) return;
+
+		if (!defaults.sHeatedNodes.empty()) {
+			config.sHeatedNodes = defaults.sHeatedNodes;
+			return;
 		}
 
-		if (g_OCSettings.bAnimations) config.sAnimFile = buffer;
-		if (!g_OCSettings.bMeshes) return;
 		CSimpleIniA::TNamesDepend nodeValues;
 		ini.GetAllValues(secItem, "OCNode", nodeValues);
 
@@ -279,6 +298,7 @@ namespace Overcharge
 			NiPoint3 translate{ 0.f, 0.f, 0.f };
 			NiPoint3 rotate{ 0.f, 0.f, 0.f };
 			float scale = 1.0f;
+			float threshold = 0.0f;
 			UInt32 indexForConfig;
 			const char* finalName = nullptr;
 
@@ -293,12 +313,16 @@ namespace Overcharge
 					if (seg.empty()) continue;
 
 					char type = seg[0];
-					if (type != 'T' && type != 'R' && type != 'S') continue;
+					if (type != 'T' && type != 'R' && type != 'S' && type != '~') continue;
 
 					auto vals = ParseNiTransform(seg, type);
 					if (type == 'T')      translate = { vals[0], vals[1], vals[2] };
 					else if (type == 'R') rotate = { vals[0], vals[1], vals[2] };
 					else if (type == 'S') scale = (vals[0] != 0.f ? vals[0] : 1.0f);
+					else if (type == '~') {
+						threshold = ParseDelimitedData(seg.substr(1), '(', ')');
+						flags |= OCXOnThreshold;
+					}
 				}
 			}
 			else
@@ -310,7 +334,7 @@ namespace Overcharge
 				indexForConfig = INVALID_U32;
 			}
 
-			HeatedNode hNode({ indexForConfig, flags, NiFixedString(finalName) });
+			HeatedNode hNode({ indexForConfig, flags, NiFixedString(finalName), threshold });
 			NiFixedString fixed(rWeap->kModel.c_str());
 			OCExtraModels.push_back({ fixed, hNode, scale, translate, rotate });
 
@@ -326,93 +350,89 @@ namespace Overcharge
 				std::snprintf(nodeBuffer, sizeof(nodeBuffer), "%.*s%d", (int)len, nodeBuffer, i);
 			}
 
-			config.sHeatedNodes.push_back({ static_cast<UInt32>(i), flags, nodeBuffer });
+			config.sHeatedNodes.push_back({ static_cast<UInt32>(i), flags, nodeBuffer, threshold });
 		}
 	}
 
 	void LoadConfigSection(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, TESObjectWEAP* rWeap, const HeatConfiguration* baseConfig = nullptr)
 	{
-		const HeatConfiguration& defaults = baseConfig ? *baseConfig : HeatConfiguration{};
+		const HeatConfiguration& defaults =
+			baseConfig ? *baseConfig : HeatConfiguration{};
 
 		ParseGameData(ini, secItem, config, defaults);
 		ParseOverchargeData(ini, secItem, config, defaults);
-		if (!baseConfig) 
-			ParseAssetData(ini, secItem, config, rWeap);
-		else
-		{
-			config.iOverchargeFlags = baseConfig->iOverchargeFlags;
-			config.sAnimFile = baseConfig->sAnimFile;
-			config.sHeatedNodes = baseConfig->sHeatedNodes;
-		}
+
+		ParseAssetData(ini, secItem, config, defaults, rWeap);
 	}
 
 	void LoadWeaponConfigs(const std::string& filePath)
 	{
 		for (const auto& entry : std::filesystem::directory_iterator(filePath))
 		{
-			if (entry.path().extension() == ".ini")
+			if (entry.path().extension() != ".ini") continue;
+
+			std::string weapEID = entry.path().stem().string();
+			TESForm* weapForm = TESForm::GetByID(weapEID.c_str());
+
+			if (!weapForm || weapForm->eTypeID != TESForm::kType_TESObjectWEAP) {
+				Log() << "Could not find form from editor ID: " << weapEID;
+				continue;
+			}
+
+			UInt32 weapFID = weapForm->uiFormID;
+			if (!weapFID) {
+				Log() << "Could not find form ID: " << weapEID;
+				continue;
+			}
+
+			TESObjectWEAP* rWeap = reinterpret_cast<TESObjectWEAP*>(weapForm);
+			InitConfigModelPaths(rWeap);
+
+			CSimpleIniA ini;
+			ini.SetUnicode();
+			ini.SetMultiKey();
+			if (ini.LoadFile(entry.path().string().c_str()) < 0) {
+				Log() << std::format("Failed to load config: {}", entry.path().string());
+				continue;
+			}
+
+			HeatConfiguration baseConfig{};
+			bool hasBaseConfig = false;
+
+			if (ini.GetSection("Default")) {
+				hasBaseConfig = true;
+				LoadConfigSection(ini, "Default", baseConfig, rWeap, nullptr);
+				UInt64 key = MakeHashKey(weapFID, 0);
+				weaponDataMap.try_emplace(key, baseConfig);
+			}
+
+			CSimpleIniA::TNamesDepend allSections;
+			ini.GetAllSections(allSections);
+			for (const auto& section : allSections)
 			{
-				std::string weapEID = entry.path().stem().string();
-				TESForm* weapForm = TESForm::GetByID(weapEID.c_str());
+				const char* secName = section.pItem;
+				if (_stricmp(secName, "Default") == 0)
+					continue;
 
-				if (!weapForm || weapForm->eTypeID != TESForm::kType_TESObjectWEAP)
-				{
-					Log() << "Could not find form from editor ID: " << weapEID;
+				HeatConfiguration config{};
+				LoadConfigSection(
+					ini,
+					secName,
+					config,
+					rWeap,
+					hasBaseConfig ? &baseConfig : nullptr
+				);
+
+				UInt32 ammoFID = TESForm::GetFormIDByEdID(secName);
+				if (!ammoFID) {
+					Log() << "Unable to locate Ammo Editor ID: " << secName;
 					continue;
 				}
 
-				UInt32 weapFID = weapForm->uiFormID;
-				if (!weapFID)
-				{
-					Log() << "Could not find form ID: " << weapEID;
-					continue;
-				}
-
-				TESObjectWEAP* rWeap = reinterpret_cast<TESObjectWEAP*>(weapForm);
-				InitConfigModelPaths(rWeap);
-
-				CSimpleIniA ini;
-				ini.SetUnicode();
-				ini.SetMultiKey();
-				if (ini.LoadFile(entry.path().string().c_str()) < 0)
-				{
-					Log() << std::format("Failed to load config: {}", entry.path().string());
-					continue;
-				}
-
-				HeatConfiguration baseConfig{};
-				bool hasBaseConfig = false;
-
-				if (ini.GetSection("Default"))
-				{
-					LoadConfigSection(ini, "Default", baseConfig, rWeap);
-					hasBaseConfig = true;
-
-					UInt64 key = MakeHashKey(weapFID, 0); 
-					weaponDataMap.try_emplace(key, baseConfig);
-				}
-
-				CSimpleIniA::TNamesDepend allSections;
-				ini.GetAllSections(allSections);
-				for (const auto& section : allSections)
-				{
-					const char* secName = section.pItem;
-					if (_stricmp(secName, "Default") == 0) continue;
-
-					HeatConfiguration config = hasBaseConfig ? baseConfig : HeatConfiguration{};
-					LoadConfigSection(ini, secName, config, rWeap);
-
-					UInt32 ammoFID = TESForm::GetFormIDByEdID(secName);
-					if (!ammoFID)
-					{
-						Log() << "Unable to locate Ammo Editor ID: " << secName;
-						continue;
-					}
-
-					UInt64 key = MakeHashKey(weapFID, ammoFID);
-					weaponDataMap.try_emplace(key, config);
-				}
+				UInt64 key = MakeHashKey(weapFID, ammoFID);
+				weaponDataMap.try_emplace(key, config);
 			}
 		}
 	}
+
 }

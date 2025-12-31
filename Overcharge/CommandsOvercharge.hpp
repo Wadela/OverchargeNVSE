@@ -395,7 +395,7 @@ bool Cmd_GetOCWeaponConfig_Execute(COMMAND_ARGS)
 			resultString.reserve(config.sHeatedNodes.size() * 32);
 			for (size_t i = 0; i < config.sHeatedNodes.size(); ++i)
 			{
-				const auto& [index, flags, node] = config.sHeatedNodes[i];
+				const auto& [index, flags, node, thresh] = config.sHeatedNodes[i];
 				if (i > 0) resultString += ",";
 				char buf[256];
 				std::snprintf(buf, sizeof(buf), "[%X]%s", flags, node.c_str());

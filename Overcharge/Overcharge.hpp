@@ -91,6 +91,7 @@ namespace Overcharge
         UInt32 OCXFlags                 = 0x0;
         NiMaterialPropertyPtr matProp   = nullptr;
         NiAVObjectPtr target            = nullptr;
+        float OCXThreshold              = 0.0f;
     };
 
     struct HeatFX

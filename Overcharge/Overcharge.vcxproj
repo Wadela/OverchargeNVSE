@@ -104,7 +104,7 @@
     </Link>
     <PostBuildEvent>
       <Message>Installing DLL...</Message>
-      <Command>copy "$(TargetPath)" "E:\Modding\ModLists\Viva New Vegas\mods\OverchargeRelease\NVSE\Plugins\$(TargetFileName)"</Command>
+      <Command>copy "$(TargetPath)" "E:\Modding\ModLists\Viva New Vegas\mods\Overcharge Testing\NVSE\Plugins\$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -136,7 +136,7 @@
     </Link>
     <PostBuildEvent />
     <PostBuildEvent>
-      <Command>copy "$(TargetPath)" "E:\Modding\ModLists\Viva New Vegas\mods\OverchargeRelease\NVSE\Plugins\$(TargetFileName)"</Command>
+      <Command>copy "$(TargetPath)" "E:\Modding\ModLists\Viva New Vegas\mods\Overcharge Testing\NVSE\Plugins\$(TargetFileName)"</Command>
       <Message>Installing DLL...</Message>
     </PostBuildEvent>
   </ItemDefinitionGroup>
