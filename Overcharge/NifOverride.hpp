@@ -221,7 +221,7 @@ namespace Overcharge
 				b += lb * w;
 				wSum += w;
 
-				col = DesaturateRGBA(col, col.a);
+				col = DesaturateRGBA(col, 1.0f);
 			}
 			if (wSum > 0.0f) {
 				NiColor lCol(r / wSum, g / wSum, b / wSum);

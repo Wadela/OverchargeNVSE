@@ -184,6 +184,9 @@ namespace Overcharge
 			auto OCFlags = StringToFlags(OCFlagString, ' ', OCFlagNames);
 			config.iOverchargeFlags = OCFlags;
 		}
+		else {
+			config.iOverchargeFlags = defaults.iOverchargeFlags;
+		}
 
 		config.fHeatPerShot = ini.GetDoubleValue(secItem, "fHeatPerShot", defaults.fHeatPerShot);
 		config.fCooldownPerSecond = ini.GetDoubleValue(secItem, "fCooldownPerSecond", defaults.fCooldownPerSecond);
@@ -197,8 +200,15 @@ namespace Overcharge
 					auto flags = StringToFlags(parts[0], ' ', OCEffectNames);
 					config.iOverchargeEffect = flags;
 				}
-				if (parts.size() >= 2)
+				else {
+					config.iOverchargeEffect = defaults.iOverchargeEffect;
+				}
+				if (parts.size() >= 2) {
 					config.iOverchargeEffectThreshold = static_cast<UInt8>(ParseDelimitedData(parts[1], '\0', ')'));
+				}
+				else {
+					config.iOverchargeEffectThreshold = defaults.iOverchargeEffectThreshold;
+				}
 			}
 		}
 
@@ -386,7 +396,6 @@ namespace Overcharge
 			}
 
 			TESObjectWEAP* rWeap = reinterpret_cast<TESObjectWEAP*>(weapForm);
-			InitConfigModelPaths(rWeap);
 
 			CSimpleIniA ini;
 			ini.SetUnicode();
@@ -404,6 +413,10 @@ namespace Overcharge
 				LoadConfigSection(ini, "Default", baseConfig, rWeap, nullptr);
 				UInt64 key = MakeHashKey(weapFID, 0);
 				weaponDataMap.try_emplace(key, baseConfig);
+
+				if (!(baseConfig.iOverchargeFlags & OCFlags_NoVFX)) {
+					InitConfigModelPaths(rWeap);
+				}
 			}
 
 			CSimpleIniA::TNamesDepend allSections;

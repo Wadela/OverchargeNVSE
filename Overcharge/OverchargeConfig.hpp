@@ -70,6 +70,7 @@ namespace Overcharge
 		OCFlags_NoKillEffects = 1 << 5,
 		OCFlags_NoAshPiles	  = 1 << 6,
 		OCFlags_NoDescope	  = 1 << 7,
+		OCFlags_NoVFX		  = 1 << 8,
 
 		OCFlags_All			  = 0xFFFF
 	};
@@ -119,7 +120,7 @@ namespace Overcharge
 		{ OCXOnThreshold,		"onthreshold"},
 	} };
 
-	constexpr std::array<std::pair<UInt16, std::string_view>, 8> OCFlagNames
+	constexpr std::array<std::pair<UInt16, std::string_view>, 9> OCFlagNames
 	{ {
 		{ OCFlags_Lockout,       "lockout"		 },
 		{ OCFlags_NoAnimation,	 "noanim"		 },
@@ -129,6 +130,7 @@ namespace Overcharge
 		{ OCFlags_NoKillEffects, "nokillFX"		 },
 		{ OCFlags_NoAshPiles,    "nopiles"		 },
 		{ OCFlags_NoDescope,	 "nodescope"	 },
+		{ OCFlags_NoVFX,		 "novfx"		 },
 	} };
 
 	constexpr std::array<std::pair<UInt16, std::string_view>, 5> OCEffectNames
