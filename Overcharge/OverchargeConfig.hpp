@@ -246,7 +246,7 @@ namespace Overcharge
 
 	void ParseGameData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults);
 	void ParseOverchargeData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults);
-	void ParseAssetData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, TESObjectWEAP* rWeap);
+	void ParseAssetData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, const HeatConfiguration& defaults, TESObjectWEAP* rWeap);
 
 	void LoadConfigMain(const std::string& filePath);
 	void LoadExtraModels(const std::string& filePath);
