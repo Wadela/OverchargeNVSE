@@ -22,6 +22,12 @@ static ParamInfo kParams_1Int[1] =
 	"Integer", kParamType_Integer, 0
 };
 
+static ParamInfo kParams_1Int_1Float[2] =
+{
+	{"Integer", kParamType_Integer, 0},
+	{"Float",	kParamType_Float,	0}
+};
+
 static ParamInfo kParams_1Form_1Int[2] =
 {
 	{"Form",    kParamType_AnyForm, 0},
@@ -52,6 +58,7 @@ DEFINE_COMMAND_PLUGIN(GetOCWeaponState, "", 1, 2, kParams_1Form_1Int);
 DEFINE_COMMAND_PLUGIN(SetOCWeaponState, "", 1, 3, kParams_1Form_1Int_1Float);
 DEFINE_COMMAND_PLUGIN(GetOCWeaponConfig, "", 0, 3, kParams_2Form_1Int);
 DEFINE_COMMAND_PLUGIN(GetOCSettings, "", 0, 1, kParams_1Int);
+DEFINE_COMMAND_PLUGIN(SetOCSettings, "", 0, 2, kParams_1Int_1Float);
 DEFINE_COMMAND_PLUGIN(CreateOCLightClone, "", 0, 2, kParams_2Form);
 
 bool Cmd_CreateOCLightClone_Execute(COMMAND_ARGS)
@@ -471,6 +478,65 @@ bool Cmd_GetOCSettings_Execute(COMMAND_ARGS)
 			return true;
 		}
 		if (IsConsoleOpen()) Console_Print("GetOCSettings >> %d >> %g", type, *result);
+	}
+	return true;
+}
+
+bool Cmd_SetOCSettings_Execute(COMMAND_ARGS)
+{
+	*result = 0;
+	UInt32 type;
+	std::string resultString;
+	float value;
+
+	if (ExtractArgsEx(EXTRACT_ARGS_EX, &type, &value) && type >= 0 && type <= 12)
+	{
+		switch (type)
+		{
+		case 0:
+			Overcharge::LoadConfigMain("Data\\NVSE\\Plugins\\Overcharge.ini");
+			break;
+		case 1:
+			Overcharge::g_OCSettings.bMeshes = value;
+			break;
+		case 2:
+			Overcharge::g_OCSettings.bAnimations = value;
+			break;
+		case 3:
+			Overcharge::g_OCSettings.bSounds = value;
+			break;
+		case 4:
+			Overcharge::g_OCSettings.bStats = value;
+			break;
+		case 5:
+			Overcharge::g_OCSettings.bMechanics = value;
+			break;
+		case 6:
+			Overcharge::g_OCSettings.bVFX = value;
+			break;
+		case 7:
+			Overcharge::g_OCSettings.bOverheatLockout = value;
+			break;
+		case 8:
+			Overcharge::g_OCSettings.fSkillLevelScaling = value;
+			break;
+		case 9:
+			Overcharge::g_OCSettings.iHUDStyle = value;
+			break;
+		case 10:
+			Overcharge::g_OCSettings.fHUDScale = value;
+			break;
+		case 11:
+			Overcharge::g_OCSettings.fHUDOffsetX = value;
+			break;
+		case 12:
+			Overcharge::g_OCSettings.fHUDOffsetY = value;
+			break;
+		default:
+			*result = 0;
+			return true;
+		}
+		if (IsConsoleOpen()) Console_Print("SetOCSettings >> %d >> %g", type, value);
 	}
 	return true;
 }

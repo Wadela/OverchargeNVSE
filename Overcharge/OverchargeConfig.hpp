@@ -249,6 +249,7 @@ namespace Overcharge
 	void ParseAssetData(CSimpleIniA& ini, const char* secItem, HeatConfiguration& config, TESObjectWEAP* rWeap);
 
 	void LoadConfigMain(const std::string& filePath);
+	void LoadExtraModels(const std::string& filePath);
 	void InitConfigModelPaths(TESObjectWEAP* rWeap);
 	void LoadWeaponConfigs(const std::string& filePath);
 }

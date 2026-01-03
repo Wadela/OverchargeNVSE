@@ -299,7 +299,7 @@ namespace Overcharge
 			if (!(st.uiOCEffect & OCEffects_Overheat))
 				st.uiOCEffect |= OCEffects_Overcharge;
 
-			if (OCTranslate) {
+			if (OCTranslate && g_OCSettings.bAnimations) {
 				shakeTime += frameTime * 8.5f;
 				shakeBlend = (std::min)(shakeBlend + frameTime * 2.f, 1.f);
 				float hf = std::clamp(st.fHeatVal * 0.01f, 0.f, 1.f), amp = 0.08f * shakeBlend * hf;
@@ -319,7 +319,7 @@ namespace Overcharge
 			st.uiOCEffect &= ~OCEffects_Overcharge;
 			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
 			shakeTime = shakeBlend = currentVol = 0.f;
-			if (OCTranslate) {
+			if (OCTranslate && g_OCSettings.bAnimations) {
 				OCTranslate->m_kLocal.m_Translate.x = 0.0f;
 				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
 			}
@@ -364,7 +364,7 @@ namespace Overcharge
 			FadeOutAndStop(&inst->fx.chargeSoundHandle, 100);
 			st.fTargetVal = -1.f;
 			shakeTime = 0.f;
-			if (OCTranslate) {
+			if (OCTranslate && g_OCSettings.bAnimations) {
 				OCTranslate->m_kLocal.m_Translate.x = 0.0f;
 				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
 			}
@@ -385,7 +385,7 @@ namespace Overcharge
 			&& !(st.uiOCEffect & OCEffects_Overheat)
 			&& st.fHeatVal <= HOT_THRESHOLD)
 		{
-			if (OCTranslate) {
+			if (OCTranslate && g_OCSettings.bAnimations) {
 				shakeTime += frameTime * 8.5f;
 				shakeBlend = (std::min)(shakeBlend + frameTime * 2.f, 1.f);
 				float amp = 0.08f * shakeBlend, t = shakeTime;

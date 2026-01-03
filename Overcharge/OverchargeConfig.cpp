@@ -65,7 +65,6 @@ namespace Overcharge
 	{
 		CSimpleIniA ini;
 		ini.SetUnicode();
-		ini.SetMultiKey();
 
 		if (ini.LoadFile(filePath.c_str()) < 0)
 		{
@@ -88,6 +87,19 @@ namespace Overcharge
 		g_OCSettings.fHUDScale = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDScale", 100.0));
 		g_OCSettings.fHUDOffsetX = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDOffsetX", 0.0));
 		g_OCSettings.fHUDOffsetY = static_cast<float>(ini.GetDoubleValue("User Interface", "fHUDOffsetY", 0.0));
+	}
+
+	void LoadExtraModels(const std::string& filePath)
+	{
+		CSimpleIniA ini;
+		ini.SetUnicode();
+		ini.SetMultiKey();
+
+		if (ini.LoadFile(filePath.c_str()) < 0)
+		{
+			Log() << std::format("Failed to load Extra Models from '{}'", filePath);
+			return;
+		}
 
 		//Load all extra mesh entries (i.e. Ash Piles)
 		CSimpleIniA::TNamesDepend extraMeshes;
