@@ -394,7 +394,7 @@ bool Cmd_GetOCWeaponConfig_Execute(COMMAND_ARGS)
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
 		case 31:
-			resultString = config.sHeatSoundFile.c_str();
+			resultString = config.sChargeSoundFile.c_str();
 			g_stringInterface->Assign(PASS_COMMAND_ARGS, resultString.c_str());
 			break;
 		case 32:
