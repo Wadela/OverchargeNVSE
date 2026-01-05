@@ -106,6 +106,7 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 	REG_CMD(SetOCWeaponState);
 	REG_CMD(GetOCWeaponConfig);
 	REG_CMD(GetOCSettings);
+	REG_CMD(SetOCSettings);
 
 	if (nvse->isEditor) {
 		return true;
@@ -146,6 +147,7 @@ bool NVSEPlugin_Load(const NVSEInterface* nvse)
 
 	Overcharge::InitHooks();
 	Overcharge::LoadConfigMain("Data\\NVSE\\Plugins\\Overcharge.ini");
+	Overcharge::LoadExtraModels("Data\\NVSE\\Plugins\\OCDefinedModels.ini");
 
 	for (const auto& i : pluginLoad) i(); // call all plugin load functions
 

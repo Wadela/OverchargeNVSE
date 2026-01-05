@@ -385,6 +385,11 @@ namespace Overcharge
 		UInt32 weapID = flash->pSourceWeapon->uiFormID;
 		auto heat = GetActiveHeat(sourceID, weapID);
 
+		if (heat && heat->config->iOverchargeFlags & OCFlags_NoVFX) {
+			ThisStdCall(0x9BB690, flash);
+			return;
+		}
+
 		TraverseNiNode<BSValueNode>(muzzleNode, [&heat](BSValueNodePtr valueNode) {
 			activeEmitters[valueNode] = heat;
 			});
@@ -433,8 +438,7 @@ namespace Overcharge
 		apBGSProjectile = ogProj;
 		const NiNodePtr projNode = proj ? proj->Get3D() : nullptr;
 		if (!projNode) return proj;
-
-		if (g_OCSettings.bVFX) {
+		if (g_OCSettings.bVFX && !(heat && (heat->config->iOverchargeFlags & OCFlags_NoVFX))) {
 			//Insert Value Nodes to activeInstances - BSValueNodes serve as emitter objects for their respective particles.
 			TraverseNiNode<BSValueNode>(projNode, [&heat](BSValueNodePtr valueNode) {
 				activeEmitters[valueNode] = heat;
@@ -446,7 +450,6 @@ namespace Overcharge
 				});
 
 			if (heat) {
-
 				heat->fx.currCol = SmoothColorShift(
 					heat->state.fHeatVal,
 					heat->config->iMinColor,
@@ -520,7 +523,7 @@ namespace Overcharge
 			else activeEmitters[psys] = heat;
 			});
 
-		if (heat) {
+		if (heat && !(heat->config->iOverchargeFlags & OCFlags_NoVFX)) {
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
 				bool match = false;
 				auto matProp = geom->GetMaterialProperty();
@@ -586,7 +589,7 @@ namespace Overcharge
 			else activeEmitters[psys] = heat;
 			});
 
-		if (heat) {
+		if (heat && !(heat->config->iOverchargeFlags & OCFlags_NoVFX)) {
 			TraverseNiNode<NiGeometry>(impactNode, [&heat](NiGeometryPtr geom) {
 				bool match = false;
 				auto matProp = geom->GetMaterialProperty();
@@ -626,7 +629,8 @@ namespace Overcharge
 
 		Actor* owner = reinterpret_cast<Actor*>(expl->pOwnerRef);
 		UInt32 weapID = owner->GetCurrentWeaponID();
-		if (auto heat = GetActiveHeat(owner->uiFormID, weapID)) {
+		auto heat = GetActiveHeat(owner->uiFormID, weapID);
+		if (heat && !(heat->config->iOverchargeFlags & OCFlags_NoVFX)) {
 			heat->fx.currCol = SmoothColorShift(
 				heat->state.fHeatVal,
 				heat->config->iMinColor,
@@ -667,7 +671,7 @@ namespace Overcharge
 		Actor* owner = reinterpret_cast<Actor*>(thisPtr->pOwnerRef);
 		UInt32 weapID = owner->GetCurrentWeaponID();
 		auto heat = GetActiveHeat(owner->uiFormID, weapID);
-		if (heat && thisPtr->spLight) {
+		if (heat && !(heat->config->iOverchargeFlags & OCFlags_NoVFX) && thisPtr->spLight) {
 			heat->fx.currCol = SmoothColorShift(
 				heat->state.fHeatVal,
 				heat->config->iMinColor,
@@ -692,7 +696,7 @@ namespace Overcharge
 			else activeEmitters[psys] = heat;
 			});
 
-		if (!heat) {
+		if (!heat || (heat->config->iOverchargeFlags & OCFlags_NoVFX)) {
 			ThisStdCall(0x9B1260, thisPtr);
 			return;
 		}
@@ -720,8 +724,8 @@ namespace Overcharge
 
 		UInt32 killerID = killer->uiFormID;
 		UInt32 killerWeapID = killer->GetCurrentWeaponID();
-
-		if (auto heat = GetActiveHeat(killerID, killerWeapID))
+		auto heat = GetActiveHeat(killerID, killerWeapID);
+		if (heat && !(heat->config->iOverchargeFlags & OCFlags_NoVFX))
 		{
 			UInt32 col = RGBtoUInt32(heat->fx.currCol);
 			a3->Data.colorKey1RGB = col;
@@ -770,7 +774,7 @@ namespace Overcharge
 			else activeEmitters[psys] = heat;
 			});
 
-		if (!heat) return expl;
+		if (!heat || (heat->config->iOverchargeFlags & OCFlags_NoVFX)) return expl;
 
 		//Ash/Goo piles have their vertex colors desaturated earlier in the process and now use emissive colors. 
 		TraverseNiNode<NiGeometry>(node, [&heat](NiGeometryPtr geom) {
@@ -786,7 +790,6 @@ namespace Overcharge
 				}
 			}
 			});
-
 
 		return expl;
 	}
@@ -819,7 +822,7 @@ namespace Overcharge
 		auto& activeSet = activeParticles[psysData];
 		activeSet.insert(usNewParticle);
 
-		if (it->second) {
+		if (it->second && !(it->second->config->iOverchargeFlags & OCFlags_NoVFX)) {
 			psysData->m_pkColor[usNewParticle] = it->second->fx.currCol;
 			SetEmissiveColor(thisPtr, NiColor(1, 1, 1));
 		}
