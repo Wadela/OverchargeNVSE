@@ -118,8 +118,8 @@ namespace Overcharge
 
         const HeatConfiguration* config;
 
-        Actor*         rActor = nullptr;
-        TESObjectWEAP* rWeap  = nullptr;
+        UInt32 rActor = 0;
+        UInt32 rWeap  = 0;
     };
 
     struct TempEffectGeometry

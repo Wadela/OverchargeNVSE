@@ -104,8 +104,8 @@ namespace Overcharge
 		auto it = std::find_if(vec.begin(), vec.end(),
 			[&](const std::shared_ptr<HeatData>& heat) {
 				return heat && heat->rActor && heat->rWeap &&
-					heat->rActor->uiFormID == actorID &&
-					heat->rWeap->uiFormID == weaponID;
+					heat->rActor == actorID &&
+					heat->rWeap == weaponID;
 			});
 
 		return (it != vec.end()) ? *it : nullptr;
@@ -116,7 +116,11 @@ namespace Overcharge
 	{
 		auto player = PlayerCharacter::GetSingleton();
 		if (!player || !heat || !heat->rActor || !heat->rWeap) return;
-		UInt32 actorID = heat->rActor->uiFormID;
+
+		auto actorForm = TESForm::GetByID(heat->rActor);
+		Actor* actor = reinterpret_cast<Actor*>(actorForm);
+		if (!actor) return;
+		UInt32 actorID = heat->rActor;
 
 		if (actorID == player->uiFormID) {
 			NiAVObjectPtr player1st = player->GetPlayerNode(1);
@@ -131,7 +135,7 @@ namespace Overcharge
 				playerOCWeapons.push_back(heat);
 		}
 		else {
-			if (NiAVObjectPtr sourceNode = heat->rActor->Get3D())
+			if (NiAVObjectPtr sourceNode = actor->Get3D())
 				heat->fx.targetBlocks = ObjsFromStrings(config, sourceNode);
 			if (!ContainsValue(activeOCWeapons, heat))
 				activeOCWeapons.push_back(heat);
@@ -140,8 +144,17 @@ namespace Overcharge
 
 	inline void InitializeHeatData(std::shared_ptr<HeatData>& heat, const HeatConfiguration* config)
 	{
-		float actorSkLvl = heat->rActor->GetActorValueF(ActorValue::Index(heat->rWeap->weaponSkill));
-		float reqSkill = heat->rWeap->skillRequirement;
+		if (!heat->rActor || !heat->rWeap) return;
+
+		auto actorForm = TESForm::GetByID(heat->rActor);
+		Actor* actor = reinterpret_cast<Actor*>(actorForm);
+		auto weapForm = TESForm::GetByID(heat->rWeap);
+		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
+
+		if (!actor || !weap) return;
+
+		float actorSkLvl = actor->GetActorValueF(ActorValue::Index(weap->weaponSkill));
+		float reqSkill = weap->skillRequirement;
 		float percentScaling = g_OCSettings.fSkillLevelScaling ? g_OCSettings.fSkillLevelScaling : 0.25f;
 		float baseHeatPerShot = heat->config->fHeatPerShot;
 		float baseCooldownRate = heat->config->fCooldownPerSecond;
@@ -232,8 +245,8 @@ namespace Overcharge
 		}
 
 		heat = std::make_shared<HeatData>(config);
-		heat->rActor = rActor;
-		heat->rWeap = rWeap;
+		heat->rActor = rActor->uiFormID;
+		heat->rWeap = rWeap->uiFormID;
 		InitializeHeatData(heat, config);
 		InitializeHeatFX(heat, config);
 		InitializeHeatSounds(heat, config);
@@ -342,6 +355,13 @@ namespace Overcharge
 		HeatState& st = inst->state;
 		if (!(inst->config->iOverchargeEffect & OCEffects_ChargeDelay)) return;
 
+		auto actorForm = TESForm::GetByID(inst->rActor);
+		Actor* actor = reinterpret_cast<Actor*>(actorForm);
+		auto weapForm = TESForm::GetByID(inst->rWeap);
+		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
+
+		if (!actor || !weap) return;
+
 		SInt32 attackHeld = 0, attackPressed = 0, attackDepressed = 0;
 		auto inputManager = BSInputManager::GetSingleton();
 		if (inputManager) {
@@ -369,8 +389,7 @@ namespace Overcharge
 				OCTranslate->m_kLocal.m_Translate.y = 0.0f;
 			}
 			if (!fireOnce && !attackDepressed) {
-				const auto weapon = inst->rWeap;
-				if (weapon && !weapon->IsAutomatic()) {
+				if (!weap->IsAutomatic()) {
 					fireOnce = true;
 					inputManager->SetUserAction(
 						BSInputManager::Attack,
@@ -407,6 +426,13 @@ namespace Overcharge
 		auto& fx = heat->fx;
 		auto& cfg = heat->config;
 
+		auto actorForm = TESForm::GetByID(heat->rActor);
+		Actor* actor = reinterpret_cast<Actor*>(actorForm);
+		auto weapForm = TESForm::GetByID(heat->rWeap);
+		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
+
+		if (!actor || !weap) return;
+
 		fx.currCol = SmoothColorShift(st.fHeatVal, cfg->iMinColor, cfg->iMaxColor);
 
 		if (fx.targetBlocks.empty()) return;
@@ -434,7 +460,7 @@ namespace Overcharge
 			bool onEffect = (effectFlags == 0) || ((st.uiOCEffect & effectFlags) == effectFlags);
 
 			if (node.OCXFlags & OCXOnHolster && heat->rActor)
-				onEffect &= heat->rActor->IsWeaponDrawn();
+				onEffect &= actor->IsWeaponDrawn();
 
 			if (node.OCXFlags & OCXOnThreshold)
 			{
@@ -549,14 +575,21 @@ namespace Overcharge
 
 		auto& st = data->state;
 
-		if (data->rActor->GetPerkRank(OCPerkOverclocker, 0))
+		auto actorForm = TESForm::GetByID(data->rActor);
+		Actor* actor = reinterpret_cast<Actor*>(actorForm);
+		auto weapForm = TESForm::GetByID(data->rWeap);
+		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
+
+		if (!actor || !weap) return;
+
+		if (actor->GetPerkRank(OCPerkOverclocker, 0))
 		{
 			if (st.fHeatVal > 60)
 			{
 				st.uiCritDamage *= 1.1;
 			}
 		}
-		if (data->rActor->GetPerkRank(OCPerkVoltageRegulator, 0))
+		if (actor->GetPerkRank(OCPerkVoltageRegulator, 0))
 		{
 			int rng = rand();
 			if (st.fHeatVal < 50.0f && (rng % 100) < 25)
@@ -564,7 +597,7 @@ namespace Overcharge
 				st.uiAmmoUsed = 0;
 			}
 		}
-		if (data->rActor->GetPerkRank(OCPerkGalvanicRelativist, 0))
+		if (actor->GetPerkRank(OCPerkGalvanicRelativist, 0))
 		{
 			if (st.fHeatVal > 35.0f && st.fHeatVal < 65.0f)
 			{
@@ -572,20 +605,20 @@ namespace Overcharge
 			}
 			else st.uiDamage *= 0.9;
 		}
-		if (data->rActor->GetPerkRank(OCPerkCircuitBender, 0))
+		if (actor->GetPerkRank(OCPerkCircuitBender, 0))
 		{
 			if (st.uiOCEffect & OCEffects_AltProjectile && (rand() % 100) < 50)
 			{
 				st.fHeatVal = (std::max)(0.0f, st.fHeatVal - st.fHeatPerShot);
 			}
 		}
-		if (data->rActor->GetPerkRank(OCPerkCriticalMass, 0))
+		if (actor->GetPerkRank(OCPerkCriticalMass, 0))
 		{
 			if (st.IsHot() && !(st.uiOCEffect & OCEffects_SelfDamage))
 			{
 				st.uiOCEffect |= OCEffects_SelfDamage;
 				TESForm* effect = TESForm::GetByID("EnchFlamerEffect");
-				if (effect) data->rActor->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, data->rActor, 1, 0);
+				if (effect) actor->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, actor, 1, 0);
 				st.iCanOverheat = 0;
 			}
 			else if (!st.IsHot() && st.uiOCEffect & OCEffects_SelfDamage)
@@ -593,7 +626,7 @@ namespace Overcharge
 				st.uiOCEffect &= ~OCEffects_SelfDamage;
 			}
 		}
-		if (data->rActor->GetPerkRank(OCPerkCoolantLeak, 0))
+		if (actor->GetPerkRank(OCPerkCoolantLeak, 0))
 		{
 			if (st.fHeatVal >= 70.0f)
 			{

@@ -26,16 +26,23 @@ namespace Overcharge
 		auto& st = instance->state;
 		auto& fx = instance->fx;
 
+		auto actorForm = TESForm::GetByID(instance->rActor);
+		Actor* actor = reinterpret_cast<Actor*>(actorForm);
+		auto weapForm = TESForm::GetByID(instance->rWeap);
+		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
+
+		if (!actor || !weap) return false;
+
 		//If a weapon is inactive, it essentially is queued for cleanup.
-		if (instance->rActor->GetCurrentWeapon() != instance->rWeap
-			|| instance->rActor->IsDying()) st.bIsActive = false;
+		if (actor->GetCurrentWeapon() != weap
+			|| actor->IsDying()) st.bIsActive = false;
 
 		//Refresh OCWeapons when it becomes active again to avoid issues with the game unloading anything important.
-		if (!st.bIsActive && !instance->rActor->IsDying()
-			&& instance->rActor->GetCurrentWeapon() == instance->rWeap)
+		if (!st.bIsActive && !actor->IsDying()
+			&& actor->GetCurrentWeapon() == weap)
 		{
-			if (auto biped = instance->rActor->GetValidBip01Names()) {
-				if (auto weapNode = instance->rActor->pkBaseProcess->GetWeaponBone(biped);
+			if (auto biped = actor->GetValidBip01Names()) {
+				if (auto weapNode = actor->pkBaseProcess->GetWeaponBone(biped);
 					weapNode && weapNode->m_kChildren.m_usSize != 0) {
 					st.bIsActive = true;
 					st.uiTicksPassed = 0;
@@ -108,7 +115,7 @@ namespace Overcharge
 			std::remove_if(activeOCWeapons.begin(), activeOCWeapons.end(),
 				[&](std::shared_ptr<HeatData>& inst)
 				{
-					if (inst->rActor == PlayerCharacter::GetSingleton())
+					if (inst->rActor == PlayerCharacter::GetSingleton()->uiFormID)
 						return false;
 
 					else return !UpdateActiveWeapons(inst, frameTimeAdjusted);
