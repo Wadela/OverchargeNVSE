@@ -117,12 +117,7 @@ namespace Overcharge
 		auto player = PlayerCharacter::GetSingleton();
 		if (!player || !heat || !heat->rActor || !heat->rWeap) return;
 
-		auto actorForm = TESForm::GetByID(heat->rActor);
-		Actor* actor = reinterpret_cast<Actor*>(actorForm);
-		if (!actor) return;
-		UInt32 actorID = heat->rActor;
-
-		if (actorID == player->uiFormID) {
+		if (heat->rActor == player->uiFormID) {
 			NiAVObjectPtr player1st = player->GetPlayerNode(1);
 			NiAVObjectPtr player3rd = player->GetPlayerNode(0);
 			if (player1st && player3rd) {
@@ -135,6 +130,11 @@ namespace Overcharge
 				playerOCWeapons.push_back(heat);
 		}
 		else {
+			auto actorForm = TESForm::GetByID(heat->rActor);
+			if (!actorForm || !actorForm->IsActor()) return;
+			Actor* actor = reinterpret_cast<Actor*>(actorForm);
+			if (!actor) return;
+
 			if (NiAVObjectPtr sourceNode = actor->Get3D())
 				heat->fx.targetBlocks = ObjsFromStrings(config, sourceNode);
 			if (!ContainsValue(activeOCWeapons, heat))
@@ -147,8 +147,11 @@ namespace Overcharge
 		if (!heat->rActor || !heat->rWeap) return;
 
 		auto actorForm = TESForm::GetByID(heat->rActor);
+		if (!actorForm || !actorForm->IsActor()) return;
 		Actor* actor = reinterpret_cast<Actor*>(actorForm);
+
 		auto weapForm = TESForm::GetByID(heat->rWeap);
+		if (!weapForm || !weapForm->IsWeapon()) return;
 		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
 
 		if (!actor || !weap) return;
@@ -355,12 +358,11 @@ namespace Overcharge
 		HeatState& st = inst->state;
 		if (!(inst->config->iOverchargeEffect & OCEffects_ChargeDelay)) return;
 
-		auto actorForm = TESForm::GetByID(inst->rActor);
-		Actor* actor = reinterpret_cast<Actor*>(actorForm);
 		auto weapForm = TESForm::GetByID(inst->rWeap);
+		if (!weapForm || !weapForm->IsWeapon()) return;
 		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
 
-		if (!actor || !weap) return;
+		if (!weap) return;
 
 		SInt32 attackHeld = 0, attackPressed = 0, attackDepressed = 0;
 		auto inputManager = BSInputManager::GetSingleton();
@@ -427,11 +429,10 @@ namespace Overcharge
 		auto& cfg = heat->config;
 
 		auto actorForm = TESForm::GetByID(heat->rActor);
+		if (!actorForm || !actorForm->IsActor()) return;
 		Actor* actor = reinterpret_cast<Actor*>(actorForm);
-		auto weapForm = TESForm::GetByID(heat->rWeap);
-		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
 
-		if (!actor || !weap) return;
+		if (!actor) return;
 
 		fx.currCol = SmoothColorShift(st.fHeatVal, cfg->iMinColor, cfg->iMaxColor);
 
@@ -459,7 +460,7 @@ namespace Overcharge
 			bool hasEffectFlags = node.OCXFlags & (OCXOnOverheat | OCXOnOvercharge | OCXOnDelay | OCXOnAltProj | OCXOnHolster | OCXOnThreshold);
 			bool onEffect = (effectFlags == 0) || ((st.uiOCEffect & effectFlags) == effectFlags);
 
-			if (node.OCXFlags & OCXOnHolster && heat->rActor)
+			if (node.OCXFlags & OCXOnHolster)
 				onEffect &= actor->IsWeaponDrawn();
 
 			if (node.OCXFlags & OCXOnThreshold)
@@ -541,105 +542,9 @@ namespace Overcharge
 			InitializeHeatFX(heat, heat->config);
 	}
 
-
-	inline void InitPerks()
-	{
-		auto overclocker = TESForm::GetByID("OCPerkOverclocker");
-		if (overclocker && overclocker->eTypeID == TESForm::kType_BGSPerk)
-			OCPerkOverclocker = static_cast<BGSPerk*>(overclocker);
-
-		auto voltageReg = TESForm::GetByID("OCPerkVoltageRegulator");
-		if (voltageReg && voltageReg->eTypeID == TESForm::kType_BGSPerk)
-			OCPerkVoltageRegulator = static_cast<BGSPerk*>(voltageReg);
-
-		auto galRelativ = TESForm::GetByID("OCPerkGalvanicRelativist");
-		if (galRelativ && galRelativ->eTypeID == TESForm::kType_BGSPerk)
-			OCPerkGalvanicRelativist = static_cast<BGSPerk*>(galRelativ);
-
-		auto cirBender = TESForm::GetByID("OCPerkCircuitBender");
-		if (cirBender && cirBender->eTypeID == TESForm::kType_BGSPerk)
-			OCPerkCircuitBender = static_cast<BGSPerk*>(cirBender);
-
-		auto critMass = TESForm::GetByID("OCPerkCriticalMass");
-		if (critMass && critMass->eTypeID == TESForm::kType_BGSPerk)
-			OCPerkCriticalMass = static_cast<BGSPerk*>(critMass);
-
-		auto coolantLeak = TESForm::GetByID("OCPerkCoolantLeak");
-		if (coolantLeak && coolantLeak->eTypeID == TESForm::kType_BGSPerk)
-			OCPerkCoolantLeak = static_cast<BGSPerk*>(coolantLeak);
-	}
-
-	inline void UpdatePerks(std::shared_ptr<HeatData> data)
-	{
-		if (!data || !data->rActor) return;
-
-		auto& st = data->state;
-
-		auto actorForm = TESForm::GetByID(data->rActor);
-		Actor* actor = reinterpret_cast<Actor*>(actorForm);
-		auto weapForm = TESForm::GetByID(data->rWeap);
-		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
-
-		if (!actor || !weap) return;
-
-		if (actor->GetPerkRank(OCPerkOverclocker, 0))
-		{
-			if (st.fHeatVal > 60)
-			{
-				st.uiCritDamage *= 1.1;
-			}
-		}
-		if (actor->GetPerkRank(OCPerkVoltageRegulator, 0))
-		{
-			int rng = rand();
-			if (st.fHeatVal < 50.0f && (rng % 100) < 25)
-			{
-				st.uiAmmoUsed = 0;
-			}
-		}
-		if (actor->GetPerkRank(OCPerkGalvanicRelativist, 0))
-		{
-			if (st.fHeatVal > 35.0f && st.fHeatVal < 65.0f)
-			{
-				st.uiDamage *= 1.2;
-			}
-			else st.uiDamage *= 0.9;
-		}
-		if (actor->GetPerkRank(OCPerkCircuitBender, 0))
-		{
-			if (st.uiOCEffect & OCEffects_AltProjectile && (rand() % 100) < 50)
-			{
-				st.fHeatVal = (std::max)(0.0f, st.fHeatVal - st.fHeatPerShot);
-			}
-		}
-		if (actor->GetPerkRank(OCPerkCriticalMass, 0))
-		{
-			if (st.IsHot() && !(st.uiOCEffect & OCEffects_SelfDamage))
-			{
-				st.uiOCEffect |= OCEffects_SelfDamage;
-				TESForm* effect = TESForm::GetByID("EnchFlamerEffect");
-				if (effect) actor->CastSpellImmediate(reinterpret_cast<MagicItemForm*>(effect), 0, actor, 1, 0);
-				st.iCanOverheat = 0;
-			}
-			else if (!st.IsHot() && st.uiOCEffect & OCEffects_SelfDamage)
-			{
-				st.uiOCEffect &= ~OCEffects_SelfDamage;
-			}
-		}
-		if (actor->GetPerkRank(OCPerkCoolantLeak, 0))
-		{
-			if (st.fHeatVal >= 70.0f)
-			{
-				st.fHeatVal = 100.0f;
-			}
-		}
-	}
-
 	void InitHooks();
 	void InitDefinedModels();
-	void ParticleCleanup();
 	void ClearOCWeapons();
-	void RefreshPlayerOCWeapons();
 	void UpdateActiveOCWeapons();
 	void UpdatePlayerOCWeapons();
 }

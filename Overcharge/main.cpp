@@ -31,7 +31,6 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 		for (const auto& i : deferredInit) i(); // call all deferred init functions
 
 		Overcharge::LoadWeaponConfigs("Data\\NVSE\\OCWeapons");
-		Overcharge::InitPerks();
 
 		OCLightExtraData::InitName();
 	}
@@ -59,7 +58,6 @@ void NVSEMessageHandler(NVSEMessagingInterface::Message* msg)
 	{
 		Overcharge::ClearOCWeapons();
 		Overcharge::InsertOCPlayerBone();
-		//Overcharge::InitDefinedModels();
 	}
 }
 
@@ -69,7 +67,7 @@ bool NVSEPlugin_Query(const NVSEInterface* nvse, PluginInfo* info)
 
 	info->infoVersion = PluginInfo::kInfoVersion;
 	info->name = "Overcharge";
-	info->version = 100;
+	info->version = 120;
 
 	// version checks
 	if (nvse->isEditor) {

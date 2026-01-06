@@ -23,23 +23,22 @@ namespace Overcharge
 	{
 		if (!instance || !instance->rActor || !instance->rWeap) return false;
 
+		auto actorForm = TESForm::GetByID(instance->rActor);
+		if (!actorForm || !actorForm->IsActor()) return false;
+		Actor* actor = reinterpret_cast<Actor*>(actorForm);
+		if (!actor) return false;
+
 		auto& st = instance->state;
 		auto& fx = instance->fx;
 
-		auto actorForm = TESForm::GetByID(instance->rActor);
-		Actor* actor = reinterpret_cast<Actor*>(actorForm);
-		auto weapForm = TESForm::GetByID(instance->rWeap);
-		TESObjectWEAP* weap = reinterpret_cast<TESObjectWEAP*>(weapForm);
-
-		if (!actor || !weap) return false;
-
 		//If a weapon is inactive, it essentially is queued for cleanup.
-		if (actor->GetCurrentWeapon() != weap
+		auto currentWeap = actor->GetCurrentWeapon();
+		if (!currentWeap || currentWeap->uiFormID != instance->rWeap
 			|| actor->IsDying()) st.bIsActive = false;
 
 		//Refresh OCWeapons when it becomes active again to avoid issues with the game unloading anything important.
 		if (!st.bIsActive && !actor->IsDying()
-			&& actor->GetCurrentWeapon() == weap)
+			&& currentWeap && currentWeap->uiFormID == instance->rWeap)
 		{
 			if (auto biped = actor->GetValidBip01Names()) {
 				if (auto weapNode = actor->pkBaseProcess->GetWeaponBone(biped);
@@ -349,8 +348,6 @@ namespace Overcharge
 		heat->state.uiDamage = InterpolateBase(rWeap->usAttackDamage, config->fMinDamage, config->fMaxDamage, hRatio);
 		heat->state.uiCritDamage = InterpolateBase(rWeap->criticalDamage, config->fMinCritDamage, config->fMaxCritDamage, hRatio);
 		heat->state.fAccuracy = InterpolateBase(rWeap->minSpread, config->fMinSpread, config->fMaxSpread, hRatio);
-
-		UpdatePerks(heat);
 
 		if (g_OCSettings.bStats) {
 			rWeap->ammoUse = heat->state.uiAmmoUsed;
